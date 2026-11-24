@@ -16,6 +16,7 @@ from .routes import (
     projects,
     providers,
     review,
+    skills,
     snapshots,
     summary,
     tasks,
@@ -43,6 +44,9 @@ def create_app() -> FastAPI:
             except OSError:
                 pass
         yield
+        from ..agents.runner import shutdown_runs
+
+        shutdown_runs()
 
     app = FastAPI(
         title="Kova Core",
@@ -64,6 +68,7 @@ def create_app() -> FastAPI:
     app.include_router(ledger.router)
     app.include_router(summary.router)
     app.include_router(providers.router)
+    app.include_router(skills.router)
     app.include_router(agents.router)
 
     @app.middleware("http")

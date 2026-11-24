@@ -117,6 +117,7 @@ export default function App() {
   const [projectsLoading, setProjectsLoading] = useState(false);
   const [providers, setProviders] = useState<ProviderInfo[]>([]);
   const [defaultProvider, setDefaultProvider] = useState("");
+  const [toast, setToast] = useState<{ text: string; tone: "error" | "warning" } | null>(null);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [trashTasks, setTrashTasks] = useState<Task[]>([]);
   const [taskToDelete, setTaskToDelete] = useState<Task | null>(null);
@@ -215,6 +216,16 @@ export default function App() {
     await Promise.all([reload(), refreshBlender()]);
   }, [reload, refreshBlender]);
 
+  const notify = useCallback((text: string, tone: "error" | "warning" = "error") => {
+    setToast({ text, tone });
+  }, []);
+
+  useEffect(() => {
+    if (!toast) return;
+    const timer = window.setTimeout(() => setToast(null), 6000);
+    return () => window.clearTimeout(timer);
+  }, [toast]);
+
   useEffect(() => {
     void refresh();
     const timer = window.setInterval(() => void refresh(), 15000);
@@ -282,12 +293,14 @@ export default function App() {
       setProviders(data.providers);
       setDefaultProvider(data.default_provider);
     } catch {
-      setProviders([]);
+      // Keep the last known providers: the core may still be starting.
     }
   }, []);
 
   useEffect(() => {
     void refreshProviders();
+    const timer = window.setInterval(() => void refreshProviders(), 4000);
+    return () => window.clearInterval(timer);
   }, [refreshProviders]);
 
   const handleSaveProvider = useCallback(
@@ -301,6 +314,23 @@ export default function App() {
         enabled?: boolean;
         timeout?: number;
         models?: string[];
+        default_model?: string;
+        models_args?: string[];
+        read_only_args?: string[];
+        resume_args?: string[];
+        session_regex?: string;
+        output_mode?: string;
+        kind?: "cli" | "api";
+        api_url?: string;
+        api_model?: string;
+        api_style?: "openai" | "anthropic" | "google" | "azure" | "vertex" | "bedrock";
+        api_max_tokens?: number;
+        catalog_id?: string;
+        gcp_project?: string;
+        gcp_region?: string;
+        aws_region?: string;
+        api_key?: string;
+        delete_key?: boolean;
         set_default?: boolean;
       },
     ) => {
@@ -318,6 +348,23 @@ export default function App() {
       description?: string;
       timeout?: number;
       models?: string[];
+      default_model?: string;
+      models_args?: string[];
+      read_only_args?: string[];
+      resume_args?: string[];
+      session_regex?: string;
+      output_mode?: string;
+      kind?: "cli" | "api";
+      api_url?: string;
+      api_model?: string;
+      api_style?: "openai" | "anthropic" | "google" | "azure" | "vertex" | "bedrock";
+      api_max_tokens?: number;
+      catalog_id?: string;
+      gcp_project?: string;
+      gcp_region?: string;
+      aws_region?: string;
+      api_key?: string;
+      delete_key?: boolean;
       set_default?: boolean;
     }) => {
       await createProvider(input);
@@ -918,7 +965,15 @@ export default function App() {
               onCover={handleProjectCover}
             />
           ) : active === "Скиллы" ? (
-            <SkillsScreen skills={blenderSkills} tasks={tasks} />
+            <SkillsScreen
+              skills={blenderSkills}
+              tasks={tasks}
+              onChanged={() => {
+                listBlenderSkills()
+                  .then(setBlenderSkills)
+                  .catch(() => undefined);
+              }}
+            />
           ) : active === "Агенты" ? (
             <AgentsScreen
               providers={providers}
@@ -987,6 +1042,7 @@ export default function App() {
                 onEditSkills={() => setSkillPickerTaskId(openTask.id)}
                 onOpenAgents={() => setActive("Агенты")}
                 onTaskChanged={loadProjectData}
+                onNotify={notify}
                 onArchive={() => void handleArchiveTask(openTask.id)}
                 onRestore={() => void handleRestoreTask(openTask.id)}
                 onDelete={() => requestDeleteTask(openTask)}
@@ -997,6 +1053,7 @@ export default function App() {
                 trashTasks={trashTasks}
                 assets={assets}
                 projectCover={projectCoverUrl}
+                projectName={projectName}
                 onCreateTask={openTaskDialog}
                 onOpenTask={setOpenTaskId}
                 onArchive={(taskId) => void handleArchiveTask(taskId)}
@@ -1099,6 +1156,14 @@ export default function App() {
           onClose={() => setSkillPickerTaskId(null)}
           onSave={handleTaskSkills}
         />
+      ) : null}
+      {toast ? (
+        <div className={`app-toast is-${toast.tone}`} role="status">
+          <span>{toast.text}</span>
+          <button type="button" aria-label="Закрыть" onClick={() => setToast(null)}>
+            ×
+          </button>
+        </div>
       ) : null}
       {blenderOpen ? (
         <BlenderModal

@@ -3,6 +3,7 @@ from pathlib import Path
 from fastapi.testclient import TestClient
 
 from kova_core.api.server import create_app
+from kova_core.storage.snapshots import create_snapshot, diff_snapshot
 
 
 def make_client(tmp_path: Path, monkeypatch) -> TestClient:
@@ -49,3 +50,36 @@ def test_doctor_reports_environment(tmp_path: Path, monkeypatch) -> None:
     assert checks["Структура .hub"]["status"] == "passed"
     assert "Свободное место" in checks
     assert "Blender" in checks
+
+
+def test_snapshot_diff(tmp_path: Path) -> None:
+    game = tmp_path / "game"
+    game.mkdir()
+    (game / ".hub").mkdir()
+    (game / "keep.txt").write_text("same", encoding="utf-8")
+    (game / "change.txt").write_text("before", encoding="utf-8")
+    (game / "remove.txt").write_text("old", encoding="utf-8")
+
+    snapshot = create_snapshot(game / ".hub", "diff test")
+    (game / "change.txt").write_text("after", encoding="utf-8")
+    (game / "remove.txt").unlink()
+    (game / "new.txt").write_text("new", encoding="utf-8")
+
+    result = diff_snapshot(
+        game / ".hub",
+        snapshot.id,
+        patch_dir=game / ".hub" / "agents" / "diffs" / "test",
+    )
+    changes = {item["path"]: item["status"] for item in result["changes"]}
+    assert changes["change.txt"] == "modified"
+    assert changes["remove.txt"] == "deleted"
+    assert changes["new.txt"] == "added"
+    assert "keep.txt" not in changes
+    for item in result["changes"]:
+        if item["path"] == "change.txt":
+            assert item["patch_path"]
+            assert item["additions"] == 1
+            assert item["deletions"] == 1
+            patch = (game / ".hub" / item["patch_path"]).read_text(encoding="utf-8")
+            assert "-before" in patch
+            assert "+after" in patch

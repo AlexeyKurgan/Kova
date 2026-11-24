@@ -31,9 +31,13 @@ Most AI game-dev workflows lose context between chats, files, and engine editors
 - Task board with rich cards, filters, archive, trash, restore, and permanent purge.
 - Asset library with real previews, 3D viewer, versions, per-version checks, and usage links.
 - Blender bridge: auto-installed add-on, live status, QA checks, model metrics, renders, and viewport screenshots.
-- 28 bundled Blender skills with instructions and runnable scripts.
-- CLI AI providers: Codex CLI, Claude Code, Gemini CLI, and OpenCode.
-- AI runs with live output, cancellation, snapshots, and review integration.
+- Skills library: 28 bundled Blender skills plus code, Roblox, Unity, Godot, Unreal, and general skills. Create, edit, delete, and lock skills from AI changes.
+- CLI AI providers: Codex CLI, Claude Code, Gemini CLI, OpenCode, or your own command.
+- OpenAI-compatible API providers with keys encrypted by Windows DPAPI.
+- Execution sessions with live output, cancellation, handoff preview, and recovery after a core restart.
+- Run queue per project, optional git worktree isolation, and a read-only mode with user-defined flags.
+- Task validation commands, a review gate for failed or stale checks, and file diffs with unified patches.
+- Linear workflow steps that stop after each step, plus a token budget based only on real usage.
 - Built-in editor based on [code-server](https://github.com/coder/code-server), plus “open in VS Code” support.
 - Local ledger, snapshots, Doctor, and a dark/light UI.
 
@@ -74,6 +78,8 @@ MyGame/
     tasks/{active,done,archive,trash}/
     assets/               # asset passports
     checks/assets/        # version-scoped check results
+    agents/               # sessions, runs, handoffs, diffs
+    checks/tasks/         # task validation results
     artifacts/            # previews and renders
     snapshots/
     ledger/
@@ -162,14 +168,12 @@ powershell -ExecutionPolicy Bypass -File scripts\run-app.ps1
 
 ### Packaging status
 
-The MSI/NSIS built by Tauri currently contains the **desktop shell only**. The Python core is not bundled yet, so a release install still needs:
+The MSI/NSIS installers are now **self-contained**: `scriptsuild.ps1` builds the Python core with PyInstaller (`scriptsuild-core.ps1`), and Tauri bundles it as a sidecar. The installed app starts the core on `127.0.0.1:8765` automatically and stops it on exit.
 
-1. Python 3.11+ installed.
-2. `core` from this repository.
-3. `python -m pip install -e ./core`.
-4. The core running on port `8765`.
-
-Bundling the core as a Tauri sidecar is the next packaging step. Until then, the source setup above is the supported way to run Kova on a clean machine.
+- An existing core on port `8765` is reused, so source-checkout development still works.
+- A clean install no longer needs Python, a virtualenv, or a separate core process.
+- Set `KOVA_SKIP_CORE_BUILD=1` to rebuild only the shell when the sidecar is already current.
+- Building from source still needs Python 3.11+, `pip install -e ./core`, and `pyinstaller`.
 
 ## Core commands
 
@@ -221,7 +225,63 @@ Open **Agents** in the sidebar, add a provider, and point it at a CLI command. P
 - `gemini` — Gemini CLI
 - `opencode` — OpenCode CLI
 
-Install and authenticate each CLI yourself. Provider configuration is stored in `%APPDATA%\KovaHub\providers.json`. Runs write to `<project>/.hub/agents/runs` and stream output back into the task panel.
+Install and authenticate each CLI yourself. Provider configuration is stored in `%APPDATA%\KovaHub\providers.json`. Kova never stores CLI logins.
+
+The Agents page has three add modes: **CLI**, **API provider**, and **local connector** (Ollama / LM Studio on localhost, no key). **From catalog** connects OpenAI, Anthropic, Google AI Studio, OpenRouter, DeepSeek, xAI, and Z.AI with a key; models are discovered automatically after saving.
+
+Cloud adapters are separate because auth differs:
+
+- **Azure OpenAI** — resource URL with deployment, `api-key`, manual deployment name.
+- **Google Vertex AI** — project + region, access token from `GOOGLE_ACCESS_TOKEN` or `gcloud auth print-access-token`.
+- **AWS Bedrock** — region + model ID, SigV4 from `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY`. The adapter supports Anthropic Claude models; other model families need their own request format.
+
+Models for these clouds are entered manually; Kova does not invent a model list.
+
+API keys are encrypted with Windows DPAPI in `%APPDATA%\KovaHub\secrets.json` and are never returned by the local API.
+
+Native providers can use tools in a bounded loop: list files, read, write, delete, and optionally run commands. The scope is chosen before the run:
+
+- **Read only** — only `list_dir` and `read_file`.
+- **Workspace** (default) — plus `write_file` and `delete_file` inside the project.
+- **Auto** — plus `run_command` in the project folder.
+
+The policy limits which tools are available, and every `write_file`, `delete_file`, or `run_command` pauses the run for explicit approval. You can allow once, allow all for that run, or deny; deny cancels the run. Tool calls are shown in the run details, and file changes go through the normal snapshot/diff/Review flow.
+
+Request formats are explicit, not guessed: **OpenAI-compatible**, **Anthropic Messages**, and **Google Gemini**. The selected format controls the request body, auth headers, and streaming parser.
+
+The **Models** tab can load models from the CLI or API (`opencode models`, or `GET /models`) and search them. Pick a default model there; it is used when the provider args contain `{model}`. Manual models are supported for CLIs without a list command.
+
+### Agent runs and sessions
+
+A task owns one or more **execution sessions**. Each session groups runs, handoff packages, snapshots, and status. Runs stream stdout/stderr into the task panel, can be cancelled, and are marked `interrupted` if the core stops mid-run.
+
+- **Continue** uses the real CLI session when the provider exposes a session id and resume flags (Codex, Claude, OpenCode presets). The CLI keeps its own context; Kova sends only the new message.
+- **Hand over** creates a new session with a handoff package when continuing with another provider or when resume is unavailable.
+- **Handoff preview** shows exactly what the next agent will receive before you start.
+- **Queue** limits parallel runs per project (1–4). With one slot, runs wait instead of writing over each other.
+- **Worktree isolation** (git projects) runs an agent in a separate copy of `HEAD`. Changes are shown in Review and applied to the project only by explicit click, with a snapshot first.
+- **Read-only mode** uses flags you configure per provider. Kova does not guess flags or intercept commands.
+
+### Checks and review
+
+Validation commands are task-level and user-editable. Kova can suggest commands from `package.json`, `tsconfig.json`, `pyproject.toml`, `pytest`, `Cargo.toml`, `go.mod`, `Makefile`, or .NET project files. Checks run only when you click, with your OS permissions.
+
+Review compares the run against its pre-run snapshot, shows added/modified/deleted files, line counts, unified patches, and check results. Failed, missing, or stale checks require an explicit confirmation before accepting.
+
+### Workflow and budget
+
+Tasks can hold ordered workflow steps. **Run step** sends that step's prompt to the selected agent, and the workflow stops there: the next step starts only when you approve it. A failed run marks the step failed; a cancelled run returns it to pending.
+
+Set a project **token limit** in Agents. Kova sums only real token counts reported by CLIs or APIs. If a provider returns no usage, the run is counted as unknown and the UI says so instead of inventing numbers. `0` disables the limit.
+
+**Routing rules** map task tags to a recommended provider. The recommendation is shown in the task; Kova does not silently switch providers. **Roles** add a name and instructions to the prompt and can be attached to a task. Both live in `%APPDATA%\KovaHub\routing.json`.
+
+### Honest limits
+
+- Kova does not intercept commands the CLI runs inside itself.
+- File write boundaries come from the CLI sandbox/flags, not from Kova.
+- Tokens and cost come from real CLI output when the provider emits usage (for example Codex JSONL or Claude JSON); otherwise they show `Unknown`. There are no invented budgets.
+- There is no automatic provider fallback or automatic merge.
 
 ## Built-in editor and VS Code
 
@@ -239,6 +299,9 @@ Install and authenticate each CLI yourself. Provider configuration is stored in 
 | `<project>/.hub/` | Project metadata, tasks, passports, checks, snapshots, ledger, previews |
 | `%APPDATA%\KovaHub\projects.json` | Project registry |
 | `%APPDATA%\KovaHub\providers.json` | AI provider configuration |
+| `%APPDATA%\KovaHub\capabilities.json` | Probed CLI capabilities |
+| `%APPDATA%\KovaHub\secrets.json` | API keys encrypted with Windows DPAPI |
+| `%APPDATA%\KovaHub\worktrees\` | Temporary git worktrees for isolated runs |
 | `%APPDATA%\KovaHub\projects\` | Projects created through Kova |
 | `%LOCALAPPDATA%\KovaHub\editor\` | code-server and extensions |
 | `%LOCALAPPDATA%\KovaHub\blender\bridge.json` | Blender bridge discovery |

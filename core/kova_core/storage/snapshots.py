@@ -1,3 +1,4 @@
+import difflib
 import hashlib
 import json
 import shutil
@@ -53,8 +54,9 @@ def create_snapshot(
     reason: str,
     scope: SnapshotScope = SnapshotScope.project,
     created_by: str = "human",
+    root: Path | None = None,
 ) -> Snapshot:
-    root = hub.parent
+    root = root or hub.parent
     snapshot_id = new_id("snap")
     files: list[SnapshotFile] = []
 
@@ -105,3 +107,126 @@ def restore_snapshot(hub: Path, snapshot_id: str) -> Snapshot:
         target.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(source, target)
     return snapshot
+
+
+def _patch_text(
+    hub: Path,
+    snapshot_id: str,
+    path: str,
+    status: str,
+    patch_dir: Path | None,
+    index: int,
+    root: Path | None = None,
+) -> tuple[str, bool, bool, int, int]:
+    before_path = resolve_inside(
+        hub,
+        Path("snapshots") / snapshot_id / "tree" / Path(path),
+    )
+    after_path = resolve_inside(root or hub.parent, Path(path))
+    before_bytes = before_path.read_bytes() if before_path.is_file() else b""
+    after_bytes = after_path.read_bytes() if after_path.is_file() else b""
+    if b"\x00" in before_bytes or b"\x00" in after_bytes:
+        return "", True, False, 0, 0
+    before = before_bytes.decode("utf-8", errors="replace").splitlines()
+    after = after_bytes.decode("utf-8", errors="replace").splitlines()
+    patch = "\n".join(
+        difflib.unified_diff(
+            before,
+            after,
+            fromfile=f"a/{path}",
+            tofile=f"b/{path}",
+            n=3,
+            lineterm="",
+        )
+    )
+    if patch:
+        patch += "\n"
+    additions = sum(
+        1
+        for line in patch.splitlines()
+        if line.startswith("+") and not line.startswith("+++")
+    )
+    deletions = sum(
+        1
+        for line in patch.splitlines()
+        if line.startswith("-") and not line.startswith("---")
+    )
+    truncated = len(patch) > 120_000
+    if truncated:
+        patch = patch[:120_000] + "\n\n[diff обрезан]\n"
+    if patch_dir is None or not patch:
+        return "", False, truncated, additions, deletions
+    patch_dir.mkdir(parents=True, exist_ok=True)
+    target = patch_dir / f"{index:04d}.diff"
+    target.write_text(patch, encoding="utf-8")
+    return target.relative_to(hub).as_posix(), False, truncated, additions, deletions
+
+
+def diff_snapshot(
+    hub: Path,
+    snapshot_id: str,
+    limit: int = 500,
+    patch_dir: Path | None = None,
+    root: Path | None = None,
+) -> dict[str, object]:
+    snapshot = get_snapshot(hub, snapshot_id)
+    if snapshot is None:
+        raise FileNotFoundError(f"snapshot not found: {snapshot_id}")
+
+    before = {item.path: item for item in snapshot.files}
+    after: dict[str, tuple[str, int]] = {}
+    source_root = root or hub.parent
+    for path, rel in _walk(source_root):
+        data = path.read_bytes()
+        after[rel.as_posix()] = (hashlib.sha256(data).hexdigest(), len(data))
+
+    changes: list[dict[str, object]] = []
+    for path, (digest, size) in after.items():
+        previous = before.get(path)
+        if previous is None:
+            changes.append(
+                {"path": path, "status": "added", "size": size, "previous_size": 0}
+            )
+        elif previous.hash != digest:
+            changes.append(
+                {
+                    "path": path,
+                    "status": "modified",
+                    "size": size,
+                    "previous_size": previous.size,
+                }
+            )
+    for path, previous in before.items():
+        if path not in after:
+            changes.append(
+                {
+                    "path": path,
+                    "status": "deleted",
+                    "size": 0,
+                    "previous_size": previous.size,
+                }
+            )
+
+    changes.sort(key=lambda item: (str(item["status"]), str(item["path"])))
+    for index, change in enumerate(changes):
+        patch_path, binary, truncated, additions, deletions = _patch_text(
+            hub,
+            snapshot_id,
+            str(change["path"]),
+            str(change["status"]),
+            patch_dir,
+            index,
+            root,
+        )
+        change["patch_path"] = patch_path
+        change["binary"] = binary
+        change["patch_truncated"] = truncated
+        change["additions"] = additions
+        change["deletions"] = deletions
+    total = len(changes)
+    return {
+        "snapshot_id": snapshot_id,
+        "changes": changes[:limit],
+        "total": total,
+        "truncated": total > limit,
+    }

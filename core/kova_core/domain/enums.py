@@ -12,6 +12,17 @@ class TaskStatus(StrEnum):
     archived = "archived"
 
 
+class IsolationMode(StrEnum):
+    direct = "direct"
+    worktree = "worktree"
+
+
+class ValidationMode(StrEnum):
+    ask = "ask"
+    always = "always"
+    never = "never"
+
+
 class TaskType(StrEnum):
     model = "model"
     animation = "animation"

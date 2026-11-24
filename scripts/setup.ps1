@@ -91,7 +91,7 @@ try {
 
   Write-Output ""
   Write-Output "Installing the Python core..."
-  & python -m pip install -e ./core
+  & python -m pip install -e ./core pyinstaller
   if ($LASTEXITCODE -ne 0) { throw "pip install failed" }
 } finally {
   Pop-Location

@@ -1,15 +1,15 @@
 import { useEffect, useMemo, useState } from "react";
 import { Check, RotateCcw, X } from "lucide-react";
-import type { BlenderSkill, Task } from "../../lib/types";
+import type { Skill, Task } from "../../lib/types";
 
 type Props = {
   task: Task;
-  skills: BlenderSkill[];
+  skills: Skill[];
   onClose: () => void;
   onSave: (names: string[]) => Promise<void>;
 };
 
-const GROUP_ORDER = ["core", "modeling", "materials", "rig", "fx", "pipeline", "other"];
+const CATEGORY_ORDER = ["blender", "code", "roblox", "unity", "godot", "unreal", "general"];
 
 function short(text: string) {
   if (!text) return "";
@@ -40,14 +40,14 @@ export default function SkillPickerModal({ task, skills, onClose, onSave }: Prop
   }, [query, skills]);
 
   const groups = useMemo(() => {
-    const map = new Map<string, { label: string; items: BlenderSkill[] }>();
+    const map = new Map<string, { label: string; items: Skill[] }>();
     for (const skill of filtered) {
-      const entry = map.get(skill.group) ?? { label: skill.group_label, items: [] };
+      const entry = map.get(skill.category) ?? { label: skill.category_label, items: [] };
       entry.items.push(skill);
-      map.set(skill.group, entry);
+      map.set(skill.category, entry);
     }
     return [...map.entries()].sort(
-      ([left], [right]) => GROUP_ORDER.indexOf(left) - GROUP_ORDER.indexOf(right),
+      ([left], [right]) => CATEGORY_ORDER.indexOf(left) - CATEGORY_ORDER.indexOf(right),
     );
   }, [filtered]);
 
@@ -118,6 +118,7 @@ export default function SkillPickerModal({ task, skills, onClose, onSave }: Prop
                       <span className="skill-option-copy">
                         <span className="skill-option-name">
                           {skill.name.replace("blender-", "")}
+                          {skill.locked ? <em className="skill-lock">AI lock</em> : null}
                         </span>
                         <span className="skill-option-desc">{short(skill.description)}</span>
                       </span>

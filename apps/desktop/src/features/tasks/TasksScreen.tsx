@@ -1,17 +1,24 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Archive,
   ArchiveRestore,
   Box,
+  ChevronLeft,
   ChevronRight,
   ClipboardList,
+  Code,
   Ellipsis,
+  LayoutGrid,
+  List,
+  Play,
   Plus,
   Search,
   Sparkles,
   Trash2,
 } from "lucide-react";
-import { formatDate, plural } from "../../lib/format";
+import BrandIcon from "../../components/BrandIcon";
+import { engineBrand } from "../../lib/brands";
+import { formatDate } from "../../lib/format";
 import { coreUrl } from "../../lib/coreClient";
 import {
   ENGINE_LABELS,
@@ -25,6 +32,7 @@ type Props = {
   trashTasks: Task[];
   assets: AssetPassport[];
   projectCover: string | null;
+  projectName: string;
   onCreateTask: () => void;
   onOpenTask: (taskId: string) => void;
   onArchive: (taskId: string) => void;
@@ -59,6 +67,7 @@ export default function TasksScreen({
   trashTasks,
   assets,
   projectCover,
+  projectName,
   onCreateTask,
   onOpenTask,
   onArchive,
@@ -72,6 +81,19 @@ export default function TasksScreen({
   const [sort, setSort] = useState("recent");
   const [query, setQuery] = useState("");
   const [menuFor, setMenuFor] = useState<string | null>(null);
+  const [view, setView] = useState<"table" | "grid">("table");
+  const [page, setPage] = useState(0);
+
+  useEffect(() => {
+    if (!menuFor) return;
+    const onPointerDown = (event: MouseEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (target?.closest(".task-menu-wrap")) return;
+      setMenuFor(null);
+    };
+    document.addEventListener("mousedown", onPointerDown);
+    return () => document.removeEventListener("mousedown", onPointerDown);
+  }, [menuFor]);
 
   const counts = useMemo(
     () => ({
@@ -110,34 +132,115 @@ export default function TasksScreen({
     });
   }, [query, sort, status, tasks, trashTasks, type]);
 
-  const assetsFor = (task: Task) => assets.filter((asset) => asset.task_ids.includes(task.id)).length;
   const isTrash = status === "trash";
+  const PAGE_SIZE = 8;
+  const pageCount = Math.max(1, Math.ceil(visible.length / PAGE_SIZE));
+  const currentPage = Math.min(page, pageCount - 1);
+  const paged = visible.slice(currentPage * PAGE_SIZE, currentPage * PAGE_SIZE + PAGE_SIZE);
+
+  const thumbnailFor = (task: Task) => {
+    const linkedPreview = task.asset_ids
+      .map((assetId) => assets.find((asset) => asset.id === assetId))
+      .find((asset): asset is AssetPassport => Boolean(asset?.preview));
+    if (linkedPreview) {
+      return `${coreUrl(`/assets/${linkedPreview.id}/preview`)}?v=${encodeURIComponent(
+        linkedPreview.updated_at,
+      )}`;
+    }
+    return projectCover || undefined;
+  };
+
+  const renderMenu = (task: Task) => (
+    <div className="project-menu">
+      {isTrash ? (
+        <button
+          type="button"
+          className="is-danger"
+          onClick={() => {
+            setMenuFor(null);
+            onPurge(task);
+          }}
+        >
+          <Trash2 size={13} />
+          Удалить навсегда
+        </button>
+      ) : (
+        <>
+          <button
+            type="button"
+            onClick={() => {
+              setMenuFor(null);
+              onOpenTask(task.id);
+            }}
+          >
+            <ChevronRight size={13} />
+            Открыть
+          </button>
+          {task.status === "archived" ? (
+            <button
+              type="button"
+              onClick={() => {
+                setMenuFor(null);
+                onRestore(task.id);
+              }}
+            >
+              <ArchiveRestore size={13} />
+              Вернуть из архива
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => {
+                setMenuFor(null);
+                onArchive(task.id);
+              }}
+            >
+              <Archive size={13} />
+              В архив
+            </button>
+          )}
+          <button
+            type="button"
+            className="is-danger"
+            onClick={() => {
+              setMenuFor(null);
+              onDelete(task);
+            }}
+          >
+            <Trash2 size={13} />
+            В корзину
+          </button>
+        </>
+      )}
+    </div>
+  );
 
   return (
-    <section className="assets-screen tasks-screen">
-      <div className="assets-heading">
-        <ClipboardList size={42} strokeWidth={1.15} className="assets-heading-icon" />
-        <div className="assets-heading-copy">
+    <section className="tasks-page">
+      <header className="tk-head">
+        <span className="tk-head-icon">
+          <ClipboardList size={34} strokeWidth={1.3} />
+        </span>
+        <div className="tk-head-copy">
           <h1>Задачи</h1>
-          <p className="subtitle">
-            Цель, критерии готовности и связанные ассеты — рабочий контекст вместо чата.
-          </p>
+          <p>Цель, критерии готовности и связанные ассеты.</p>
         </div>
-        <div className="header-actions">
-          <button type="button" className="btn btn-primary" onClick={onCreateTask}>
-            <Plus size={15} />
-            Новая задача
-          </button>
-        </div>
-      </div>
+        <button type="button" className="btn btn-primary" onClick={onCreateTask}>
+          <Plus size={15} />
+          Новая задача
+        </button>
+      </header>
 
-      <div className="resource-toolbar">
-        <label className="resource-search">
+      <div className="tk-toolbar">
+        <label className="resource-search tk-search">
           <Search size={14} />
           <input
             type="search"
             value={query}
-            onChange={(event) => setQuery(event.target.value)}
+            onChange={(event) => {
+              setQuery(event.target.value);
+              setPage(0);
+            }}
             placeholder="Поиск задач…"
             aria-label="Поиск задач"
           />
@@ -145,7 +248,10 @@ export default function TasksScreen({
         <select
           className="filter-select"
           value={status}
-          onChange={(event) => setStatus(event.target.value as StatusFilter)}
+          onChange={(event) => {
+            setStatus(event.target.value as StatusFilter);
+            setPage(0);
+          }}
           aria-label="Статус задач"
         >
           {STATUS_OPTIONS.map((option) => (
@@ -157,7 +263,10 @@ export default function TasksScreen({
         <select
           className="filter-select"
           value={type}
-          onChange={(event) => setType(event.target.value as "all" | TaskType)}
+          onChange={(event) => {
+            setType(event.target.value as "all" | TaskType);
+            setPage(0);
+          }}
           aria-label="Тип задачи"
         >
           <option value="all">Все типы</option>
@@ -170,13 +279,34 @@ export default function TasksScreen({
         <select
           className="filter-select"
           value={sort}
-          onChange={(event) => setSort(event.target.value)}
+          onChange={(event) => {
+            setSort(event.target.value);
+            setPage(0);
+          }}
           aria-label="Сортировка"
         >
           <option value="recent">Последние</option>
           <option value="name">По названию</option>
           <option value="progress">По прогрессу</option>
         </select>
+        <div className="tk-view-switch">
+          <button
+            type="button"
+            className={view === "table" ? "is-active" : ""}
+            title="Списком"
+            onClick={() => setView("table")}
+          >
+            <List size={15} />
+          </button>
+          <button
+            type="button"
+            className={view === "grid" ? "is-active" : ""}
+            title="Плиткой"
+            onClick={() => setView("grid")}
+          >
+            <LayoutGrid size={15} />
+          </button>
+        </div>
       </div>
 
       {visible.length === 0 ? (
@@ -199,134 +329,186 @@ export default function TasksScreen({
                 : "Смени фильтры или сбрось поиск."}
           </p>
         </div>
-      ) : (
-        <div className="task-list">
-          {visible.map((task) => {
+      ) : view === "table" ? (
+        <div className="tk-table">
+          <div className="tk-row is-head">
+            <span>Задача</span>
+            <span>Статус</span>
+            <span>Проект</span>
+            <span>Тип</span>
+            <span>Обновлена</span>
+            <span>Критерии</span>
+            <span />
+          </div>
+          {paged.map((task) => {
             const done = task.criteria.filter((criterion) => criterion.done).length;
             const total = task.criteria.length;
             const percent = total === 0 ? 0 : Math.round((done / total) * 100);
-            const linkedAssets = assetsFor(task);
-            const linkedPreview = task.asset_ids
-              .map((assetId) => assets.find((asset) => asset.id === assetId))
-              .find((asset): asset is AssetPassport => Boolean(asset?.preview));
-            const thumbnail = linkedPreview
-              ? `${coreUrl(`/assets/${linkedPreview.id}/preview`)}?v=${encodeURIComponent(
-                  linkedPreview.updated_at,
-                )}`
-              : undefined;
+            const thumb = thumbnailFor(task);
             return (
-              <article className={`task-card2${isTrash ? " is-trash" : ""}`} key={task.id}>
-                <div className="task-thumb2">
-                  {linkedPreview ? (
-                    <img src={thumbnail} alt="" />
-                  ) : task.asset_ids.length > 0 ? (
-                    <Box size={28} strokeWidth={1.4} />
-                  ) : projectCover ? (
-                    <img src={projectCover} alt="" />
+              <div
+                className="tk-row"
+                key={task.id}
+                onClick={() => {
+                  if (!isTrash) onOpenTask(task.id);
+                }}
+              >
+                <div className="tk-task">
+                  <span className="tk-thumb">
+                    {thumb ? (
+                      <img src={thumb} alt="" />
+                    ) : task.asset_ids.length > 0 ? (
+                      <Box size={17} />
+                    ) : (
+                      <ClipboardList size={17} />
+                    )}
+                  </span>
+                  <span className="tk-task-copy">
+                    <b>{task.title}</b>
+                    <small>{task.goal || "Цель пока не задана"}</small>
+                  </span>
+                </div>
+                <span className={`tk-status is-${isTrash ? "deleted" : task.status}`}>
+                  <i />
+                  {isTrash ? "В корзине" : TASK_STATUS_LABELS[task.status]}
+                </span>
+                <span className="tk-cell">
+                  {engineBrand(task.engine) ? (
+                    <BrandIcon name={engineBrand(task.engine)!} size={13} />
                   ) : (
-                    <ClipboardList size={28} strokeWidth={1.4} />
+                    <Box size={13} />
                   )}
-                </div>
-                <div className="task-body2">
-                  <div className="task-head2">
-                    <span className={`task-status is-${isTrash ? "deleted" : task.status}`}>
-                      {isTrash ? "В корзине" : TASK_STATUS_LABELS[task.status]}
-                    </span>
-                    <span className="task-id2">#{task.id.slice(-4)}</span>
-                    <span className="task-type-chip">{taskTypeValue(task.type)}</span>
-                    <span className="task-updated2">{formatDate(task.updated_at)}</span>
-                  </div>
-                  <h2>{task.title}</h2>
-                  <p className="task-goal2">{task.goal || "Цель пока не задана"}</p>
-                  <div className="task-meta2">
-                    <span>{ENGINE_LABELS[task.engine]}</span>
-                    {linkedAssets > 0 ? (
-                      <span>
-                        <Box size={12} />
-                        {linkedAssets} {plural(linkedAssets, ["ассет", "ассета", "ассетов"])}
-                      </span>
-                    ) : null}
-                    {task.skills.length > 0 ? (
-                      <span>
-                        <Sparkles size={12} />
-                        {task.skills.length} скиллов
-                      </span>
-                    ) : null}
-                  </div>
-                  <div className="task-progress2">
-                    <span className="task-progress-bar">
-                      <span style={{ width: `${percent}%` }} />
-                    </span>
-                    <span>{done}/{total}</span>
-                  </div>
-                </div>
-
-                <div className="task-actions2">
+                  <span>{projectName || ENGINE_LABELS[task.engine]}</span>
+                </span>
+                <span className="tk-cell">
+                  {task.type === "model" ? (
+                    <Box size={13} />
+                  ) : task.type === "code" ? (
+                    <Code size={13} />
+                  ) : (
+                    <ClipboardList size={13} />
+                  )}
+                  <span>{taskTypeValue(task.type)}</span>
+                </span>
+                <span className="tk-muted">{formatDate(task.updated_at)}</span>
+                <span className="tk-criteria">
+                  <span className="tk-progress">
+                    <i style={{ width: `${percent}%` }} />
+                  </span>
+                  <small>
+                    {done}/{total}
+                  </small>
+                </span>
+                <span className="tk-actions">
                   {!isTrash ? (
                     <button
                       type="button"
-                      className="btn btn-secondary btn-small"
-                      onClick={() => { setMenuFor(null); onOpenTask(task.id); }}
+                      className="tk-icon-btn"
+                      title="Открыть задачу"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        onOpenTask(task.id);
+                      }}
                     >
-                      Открыть задачу
-                      <ChevronRight size={14} />
+                      <Play size={13} />
                     </button>
                   ) : (
                     <button
                       type="button"
-                      className="btn btn-secondary btn-small"
-                      onClick={() => onRestoreTrash(task.id)}
+                      className="tk-icon-btn"
+                      title="Восстановить"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        onRestoreTrash(task.id);
+                      }}
                     >
-                      <ArchiveRestore size={14} />
-                      Восстановить
+                      <ArchiveRestore size={13} />
                     </button>
                   )}
                   <div className="task-menu-wrap">
                     <button
                       type="button"
-                      className="icon-btn"
-                      onClick={() => setMenuFor(menuFor === task.id ? null : task.id)}
+                      className="tk-icon-btn"
                       aria-label="Действия с задачей"
-                      title="Действия"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        setMenuFor(menuFor === task.id ? null : task.id);
+                      }}
                     >
-                      <Ellipsis size={16} />
+                      <Ellipsis size={15} />
                     </button>
-                    {menuFor === task.id ? (
-                      <div className="project-menu">
-                        {isTrash ? (
-                          <button type="button" className="is-danger" onClick={() => { setMenuFor(null); onPurge(task); }}>
-                            <Trash2 size={13} />
-                            Удалить навсегда
-                          </button>
-                        ) : (
-                          <>
-                            <button type="button" onClick={() => { setMenuFor(null); onOpenTask(task.id); }}>
-                              <ChevronRight size={13} />
-                              Открыть
-                            </button>
-                            {task.status === "archived" ? (
-                              <button type="button" onClick={() => { setMenuFor(null); onRestore(task.id); }}>
-                                <ArchiveRestore size={13} />
-                                Вернуть из архива
-                              </button>
-                            ) : (
-                              <button type="button" onClick={() => { setMenuFor(null); onArchive(task.id); }}>
-                                <Archive size={13} />
-                                В архив
-                              </button>
-                            )}
-                            <button
-                              type="button"
-                              className="is-danger"
-                              onClick={() => { setMenuFor(null); onDelete(task); }}
-                            >
-                              <Trash2 size={13} />
-                              В корзину
-                            </button>
-                          </>
-                        )}
-                      </div>
-                    ) : null}
+                    {menuFor === task.id ? renderMenu(task) : null}
+                  </div>
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        <div className="tk-grid">
+          {paged.map((task) => {
+            const done = task.criteria.filter((criterion) => criterion.done).length;
+            const total = task.criteria.length;
+            const percent = total === 0 ? 0 : Math.round((done / total) * 100);
+            const thumb = thumbnailFor(task);
+            return (
+              <article className="tk-card" key={task.id} onClick={() => !isTrash && onOpenTask(task.id)}>
+                <div className="tk-card-thumb">
+                  {thumb ? (
+                    <img src={thumb} alt="" />
+                  ) : (
+                    <ClipboardList size={26} />
+                  )}
+                </div>
+                <div className="tk-card-body">
+                  <div className="tk-card-top">
+                    <span className={`tk-status is-${isTrash ? "deleted" : task.status}`}>
+                      <i />
+                      {isTrash ? "В корзине" : TASK_STATUS_LABELS[task.status]}
+                    </span>
+                    <small>{formatDate(task.updated_at)}</small>
+                  </div>
+                  <b>{task.title}</b>
+                  <p>{task.goal || "Цель пока не задана"}</p>
+                  <div className="tk-card-meta">
+                    <span>{projectName || ENGINE_LABELS[task.engine]}</span>
+                    <span>{taskTypeValue(task.type)}</span>
+                  </div>
+                  <div className="tk-criteria">
+                    <span className="tk-progress">
+                      <i style={{ width: `${percent}%` }} />
+                    </span>
+                    <small>
+                      {done}/{total}
+                    </small>
+                  </div>
+                </div>
+                <div className="tk-card-actions">
+                  {!isTrash ? (
+                    <button
+                      type="button"
+                      className="tk-icon-btn"
+                      title="Открыть задачу"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        onOpenTask(task.id);
+                      }}
+                    >
+                      <Play size={13} />
+                    </button>
+                  ) : null}
+                  <div className="task-menu-wrap">
+                    <button
+                      type="button"
+                      className="tk-icon-btn"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        setMenuFor(menuFor === task.id ? null : task.id);
+                      }}
+                    >
+                      <Ellipsis size={15} />
+                    </button>
+                    {menuFor === task.id ? renderMenu(task) : null}
                   </div>
                 </div>
               </article>
@@ -334,6 +516,32 @@ export default function TasksScreen({
           })}
         </div>
       )}
+
+      <footer className="tk-footer">
+        <span>
+          Показано {currentPage * PAGE_SIZE + 1}–{Math.min(visible.length, (currentPage + 1) * PAGE_SIZE)} из{" "}
+          {visible.length} задач
+        </span>
+        <div className="tk-pager">
+          <button
+            type="button"
+            disabled={currentPage === 0}
+            onClick={() => setPage(Math.max(0, currentPage - 1))}
+            aria-label="Назад"
+          >
+            <ChevronLeft size={14} />
+          </button>
+          <span>{currentPage + 1}</span>
+          <button
+            type="button"
+            disabled={currentPage >= pageCount - 1}
+            onClick={() => setPage(Math.min(pageCount - 1, currentPage + 1))}
+            aria-label="Вперёд"
+          >
+            <ChevronRight size={14} />
+          </button>
+        </div>
+      </footer>
     </section>
   );
 }

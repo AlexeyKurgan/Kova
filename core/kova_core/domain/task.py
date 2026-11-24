@@ -3,7 +3,7 @@ from datetime import datetime
 from pydantic import Field
 
 from .common import DomainModel, utc_now
-from .enums import AgentMode, Engine, TaskStatus, TaskType
+from .enums import AgentMode, Engine, TaskStatus, TaskType, ValidationMode
 from .ids import new_id
 
 
@@ -27,6 +27,22 @@ class ArtifactRef(DomainModel):
     created_at: datetime = Field(default_factory=utc_now)
 
 
+class ValidationCommand(DomainModel):
+    id: str = Field(default_factory=lambda: new_id("val"))
+    label: str
+    command: str
+    timeout: int = 300
+    created_at: datetime = Field(default_factory=utc_now)
+
+
+class WorkflowStep(DomainModel):
+    id: str = Field(default_factory=lambda: new_id("step"))
+    title: str
+    prompt: str = ""
+    status: str = "pending"
+    run_id: str = ""
+
+
 class Task(DomainModel):
     id: str = Field(default_factory=lambda: new_id("task"))
     title: str
@@ -40,6 +56,10 @@ class Task(DomainModel):
     assigned_agent: str | None = None
     mode: AgentMode = AgentMode.clipboard
     skills: list[str] = Field(default_factory=list)
+    validation: list[ValidationCommand] = Field(default_factory=list)
+    validation_mode: ValidationMode = ValidationMode.ask
+    role_id: str = ""
+    workflow: list[WorkflowStep] = Field(default_factory=list)
     asset_ids: list[str] = Field(default_factory=list)
     created_at: datetime = Field(default_factory=utc_now)
     updated_at: datetime = Field(default_factory=utc_now)

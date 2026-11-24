@@ -3,8 +3,6 @@ import type {
   AgentSession,
   AssetPassport,
   BlenderInspectResult,
-  BlenderSkill,
-  BlenderSkillDetail,
   BlenderStatus,
   BlenderWorkspace,
   CapsuleResponse,
@@ -23,9 +21,13 @@ import type {
   ProviderInfo,
   ProvidersResponse,
   ReviewItem,
+  Skill,
+  SkillDetail,
   Snapshot,
   Task,
   UpdateTaskInput,
+  ValidationResult,
+  ValidationSuggestion,
 } from "./types";
 
 const BASE_URL = import.meta.env.VITE_CORE_URL ?? "http://127.0.0.1:8765";
@@ -77,6 +79,17 @@ export async function getProject(): Promise<ProjectResponse | null> {
     throw new Error(`GET /project: ${response.status}`);
   }
   return response.json() as Promise<ProjectResponse>;
+}
+
+export async function updateProject(input: {
+  max_parallel_runs?: number;
+  isolation?: "direct" | "worktree";
+  token_budget?: number;
+}): Promise<ProjectResponse> {
+  return request<ProjectResponse>("/project", {
+    method: "PATCH",
+    body: JSON.stringify(input),
+  });
 }
 
 export async function openProject(
@@ -162,6 +175,34 @@ export async function createTask(input: CreateTaskInput): Promise<Task> {
   });
 }
 
+export async function addWorkflowStep(
+  taskId: string,
+  input: { title: string; prompt?: string },
+): Promise<Task> {
+  return request<Task>(`/tasks/${encodeURIComponent(taskId)}/workflow`, {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export async function updateWorkflowStep(
+  taskId: string,
+  stepId: string,
+  input: { title?: string; prompt?: string; status?: string },
+): Promise<Task> {
+  return request<Task>(
+    `/tasks/${encodeURIComponent(taskId)}/workflow/${encodeURIComponent(stepId)}`,
+    { method: "PATCH", body: JSON.stringify(input) },
+  );
+}
+
+export async function deleteWorkflowStep(taskId: string, stepId: string): Promise<Task> {
+  return request<Task>(
+    `/tasks/${encodeURIComponent(taskId)}/workflow/${encodeURIComponent(stepId)}`,
+    { method: "DELETE" },
+  );
+}
+
 export async function updateTask(
   taskId: string,
   input: UpdateTaskInput,
@@ -224,14 +265,57 @@ export async function ensureBlenderWorkspace(): Promise<BlenderWorkspace> {
   return request<BlenderWorkspace>("/blender/workspace", { method: "POST" });
 }
 
-export async function listBlenderSkills(): Promise<BlenderSkill[]> {
-  return request<BlenderSkill[]>("/blender/skills");
+export async function listSkills(): Promise<Skill[]> {
+  return request<Skill[]>("/skills");
 }
 
-export async function getBlenderSkill(name: string): Promise<BlenderSkillDetail> {
-  return request<BlenderSkillDetail>(
-    `/blender/skills/${encodeURIComponent(name)}`,
+export async function getSkill(skillId: string): Promise<SkillDetail> {
+  return request<SkillDetail>(`/skills/${encodeURIComponent(skillId)}`);
+}
+
+export async function createSkill(input: {
+  name: string;
+  description?: string;
+  category?: string;
+  content?: string;
+  locked?: boolean;
+}): Promise<SkillDetail> {
+  return request<SkillDetail>("/skills", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export async function updateSkill(
+  skillId: string,
+  input: {
+    name?: string;
+    description?: string;
+    category?: string;
+    content?: string;
+    locked?: boolean;
+  },
+  unlock = false,
+): Promise<SkillDetail> {
+  return request<SkillDetail>(
+    `/skills/${encodeURIComponent(skillId)}${unlock ? "?unlock=true" : ""}`,
+    { method: "PATCH", body: JSON.stringify(input) },
   );
+}
+
+export async function deleteSkill(skillId: string, unlock = false): Promise<void> {
+  await request<void>(
+    `/skills/${encodeURIComponent(skillId)}${unlock ? "?unlock=true" : ""}`,
+    { method: "DELETE" },
+  );
+}
+
+export async function listBlenderSkills(): Promise<Skill[]> {
+  return listSkills();
+}
+
+export async function getBlenderSkill(name: string): Promise<SkillDetail> {
+  return getSkill(name);
 }
 
 export async function captureBlenderScreenshot(): Promise<string> {
@@ -267,6 +351,57 @@ export async function updateAsset(
 
 export async function getAsset(assetId: string): Promise<AssetPassport> {
   return request<AssetPassport>(`/assets/${encodeURIComponent(assetId)}`);
+}
+
+export async function addValidationCommand(
+  taskId: string,
+  input: { label: string; command: string; timeout?: number },
+): Promise<Task> {
+  return request<Task>(`/tasks/${encodeURIComponent(taskId)}/validation`, {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export async function deleteValidationCommand(
+  taskId: string,
+  commandId: string,
+): Promise<Task> {
+  return request<Task>(
+    `/tasks/${encodeURIComponent(taskId)}/validation/${encodeURIComponent(commandId)}`,
+    { method: "DELETE" },
+  );
+}
+
+export async function getValidationSuggestions(
+  taskId: string,
+): Promise<ValidationSuggestion[]> {
+  return request<ValidationSuggestion[]>(
+    `/tasks/${encodeURIComponent(taskId)}/validation/suggestions`,
+  );
+}
+
+export async function listValidationResults(taskId: string): Promise<ValidationResult[]> {
+  return request<ValidationResult[]>(
+    `/tasks/${encodeURIComponent(taskId)}/validation/results`,
+  );
+}
+
+export async function runTaskValidation(
+  taskId: string,
+  commandId?: string,
+  runId?: string,
+): Promise<ValidationResult[]> {
+  return request<ValidationResult[]>(
+    `/tasks/${encodeURIComponent(taskId)}/validation/run`,
+    {
+      method: "POST",
+      body: JSON.stringify({
+        ...(commandId ? { command_id: commandId } : {}),
+        ...(runId ? { run_id: runId } : {}),
+      }),
+    },
+  );
 }
 
 export async function getAssetChecks(
@@ -400,8 +535,23 @@ export async function startAiRun(input: {
   snapshot: boolean;
   message?: string;
   model?: string;
+  handoff_from_session?: string;
+  read_only?: boolean;
+  workflow_step_id?: string;
+  role_id?: string;
+  tool_policy?: "read-only" | "workspace" | "auto";
 }): Promise<AiRun> {
   return request<AiRun>("/ai/runs", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export async function resumeAiSession(
+  sessionId: string,
+  input: { message?: string; model?: string; snapshot?: boolean; read_only?: boolean },
+): Promise<AiRun> {
+  return request<AiRun>(`/ai/sessions/${encodeURIComponent(sessionId)}/resume`, {
     method: "POST",
     body: JSON.stringify(input),
   });
@@ -415,6 +565,84 @@ export async function listRecentAiRuns(limit = 8): Promise<AiRun[]> {
   return request<AiRun[]>(`/ai/runs?limit=${limit}`);
 }
 
+export type HandoffPreview = {
+  id: string;
+  from_session_id: string;
+  from_provider_id: string;
+  from_provider_name: string;
+  from_session_status: string;
+  from_run_id: string;
+  from_run_status: string;
+  snapshot_id: string;
+  to_provider_id: string;
+  to_provider_name: string;
+  summary: string;
+  created_at: string;
+  text: string;
+};
+
+export async function previewAiHandoff(input: {
+  task_id: string;
+  from_session_id: string;
+  to_provider: string;
+}): Promise<HandoffPreview> {
+  return request<HandoffPreview>("/ai/handoffs/preview", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export async function getAgentRouting(): Promise<import("./types").AgentRouting> {
+  return request<import("./types").AgentRouting>("/ai/routing");
+}
+
+export async function saveAgentRouting(
+  input: import("./types").AgentRouting,
+): Promise<import("./types").AgentRouting> {
+  return request<import("./types").AgentRouting>("/ai/routing", {
+    method: "PUT",
+    body: JSON.stringify(input),
+  });
+}
+
+export async function recommendProvider(
+  taskId: string,
+): Promise<import("./types").AgentRecommendation> {
+  return request<import("./types").AgentRecommendation>(
+    `/ai/routing/recommend?task_id=${encodeURIComponent(taskId)}`,
+  );
+}
+
+export async function getAgentUsage(): Promise<import("./types").AgentUsage> {
+  return request<import("./types").AgentUsage>("/ai/usage");
+}
+
+export async function applyWorktreeRun(runId: string): Promise<AiRun> {
+  return request<AiRun>(`/ai/runs/${encodeURIComponent(runId)}/apply-worktree`, {
+    method: "POST",
+  });
+}
+
+export async function cleanupAgentHistory(
+  keep = 50,
+): Promise<{ runs_removed: number; sessions_removed: number; logs_removed: number; diffs_removed: number }> {
+  return request(`/ai/cleanup`, {
+    method: "POST",
+    body: JSON.stringify({ keep }),
+  });
+}
+
+export async function getRunChangePatch(runId: string, index: number): Promise<string> {
+  const response = await fetch(
+    `${BASE_URL}/ai/runs/${encodeURIComponent(runId)}/changes/${index}`,
+    { headers: withAuth() },
+  );
+  if (!response.ok) {
+    throw new Error(`Request failed: ${response.status}`);
+  }
+  return response.text();
+}
+
 export async function listAiSessions(taskId: string, limit = 20): Promise<AgentSession[]> {
   return request<AgentSession[]>(
     `/ai/sessions?task_id=${encodeURIComponent(taskId)}&limit=${limit}`,
@@ -425,8 +653,32 @@ export async function listAiRuns(taskId: string): Promise<AiRun[]> {
   return request<AiRun[]>(`/ai/runs?task_id=${encodeURIComponent(taskId)}`);
 }
 
+export async function approveAiRun(
+  runId: string,
+  decision: "allow" | "deny" | "allow_all",
+): Promise<AiRun> {
+  return request<AiRun>(`/ai/runs/${encodeURIComponent(runId)}/approval`, {
+    method: "POST",
+    body: JSON.stringify({ decision }),
+  });
+}
+
 export async function cancelAiRun(runId: string): Promise<AiRun> {
   return request<AiRun>(`/ai/runs/${encodeURIComponent(runId)}/cancel`, {
+    method: "POST",
+  });
+}
+
+export async function getProviderCatalog(): Promise<{
+  providers: import("./types").ProviderCatalogItem[];
+}> {
+  return request<{ providers: import("./types").ProviderCatalogItem[] }>("/providers/catalog");
+}
+
+export async function discoverProviderModels(
+  providerId: string,
+): Promise<{ models: string[]; source: string }> {
+  return request(`/providers/${encodeURIComponent(providerId)}/models`, {
     method: "POST",
   });
 }

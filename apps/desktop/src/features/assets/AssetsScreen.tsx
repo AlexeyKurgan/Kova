@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import {
   Box,
+  ChevronRight,
   FileAudio,
   Film,
   ImageIcon,
@@ -54,7 +55,7 @@ export default function AssetsScreen({ assets, importing, error, onImport, onOpe
   const [engineFilter, setEngineFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [sort, setSort] = useState("recent");
-  const [view, setView] = useState<"grid" | "list">("grid");
+  const [view, setView] = useState<"grid" | "list">("list");
 
   const engines = useMemo(
     () => [...new Set(assets.map((asset) => asset.engine))].sort(),
@@ -224,8 +225,84 @@ export default function AssetsScreen({ assets, importing, error, onImport, onOpe
             </span>
           </div>
         </div>
+      ) : view === "list" ? (
+        <div className="asset-table">
+          <div className="asset-table-row is-head">
+            <span>Ассет</span>
+            <span>Тип</span>
+            <span>Статус</span>
+            <span>Размер</span>
+            <span>Обновлён</span>
+            <span>Задачи</span>
+            <span />
+          </div>
+          {filtered.map((asset) => {
+            const current =
+              asset.versions.find((item) => item.id === asset.current_version_id) ??
+              asset.versions[asset.versions.length - 1];
+            const Icon = typeIcon(asset.type);
+            return (
+              <div className="asset-table-row" key={asset.id} onClick={() => onOpenAsset(asset.id)}>
+                <div className="asset-table-name">
+                  <span className="asset-table-thumb">
+                    {asset.preview ? (
+                      <img
+                        src={`${coreUrl(`/assets/${asset.id}/preview`)}?v=${encodeURIComponent(
+                          asset.updated_at,
+                        )}`}
+                        alt=""
+                        loading="lazy"
+                      />
+                    ) : (
+                      <Icon size={17} strokeWidth={1.4} />
+                    )}
+                  </span>
+                  <span>
+                    <b>{asset.name}</b>
+                    <small title={asset.path}>{asset.path}</small>
+                  </span>
+                </div>
+                <span className="asset-table-muted">
+                  {ASSET_TYPE_LABELS[asset.type] ?? asset.type}
+                </span>
+                <span>
+                  {current ? (
+                    <span className={`task-status is-${current.status}`}>
+                      {ASSET_VERSION_STATUS_LABELS[current.status]}
+                    </span>
+                  ) : (
+                    <span className="asset-table-muted">—</span>
+                  )}
+                </span>
+                <span className="asset-table-muted">{formatBytes(asset.file_size)}</span>
+                <span className="asset-table-muted">{formatDate(asset.updated_at)}</span>
+                <span className="asset-table-muted">
+                  {asset.task_ids.length > 0
+                    ? `${asset.task_ids.length} ${plural(asset.task_ids.length, ["задача", "задачи", "задач"])}`
+                    : "свободен"}
+                </span>
+                <span className="asset-table-actions">
+                  <button
+                    type="button"
+                    className="tk-icon-btn"
+                    title="Открыть ассет"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      onOpenAsset(asset.id);
+                    }}
+                  >
+                    <ChevronRight size={14} />
+                  </button>
+                </span>
+              </div>
+            );
+          })}
+          <div className="asset-table-foot">
+            Показано {filtered.length} из {assets.length} ассетов
+          </div>
+        </div>
       ) : (
-        <div className={`asset-grid2${view === "list" ? " is-list" : ""}`}>
+        <div className="asset-grid2">
           {filtered.map((asset) => {
             const current =
               asset.versions.find((item) => item.id === asset.current_version_id) ??

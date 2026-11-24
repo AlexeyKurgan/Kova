@@ -48,10 +48,55 @@ export type TaskType =
 
 export type AgentMode = "clipboard" | "cli" | "api" | "local" | "mcp";
 
+export type IsolationMode = "direct" | "worktree";
+
+export type RoutingRule = { id: string; tag: string; provider_id: string };
+
+export type AgentRole = {
+  id: string;
+  name: string;
+  prompt: string;
+  provider_id: string;
+};
+
+export type ProviderCatalogItem = {
+  id: string;
+  name: string;
+  style: string;
+  api_url: string;
+  description: string;
+  brand: string;
+  available: boolean;
+  connected: boolean;
+  configured: boolean;
+  provider_id: string;
+  models_count: number;
+};
+
+export type AgentRouting = { rules: RoutingRule[]; roles: AgentRole[] };
+
+export type AgentRecommendation = {
+  provider_id: string;
+  provider_name: string;
+  reason: string;
+};
+
+export type AgentUsage = {
+  budget: number;
+  used: number;
+  known_runs: number;
+  unknown_runs: number;
+  remaining: number | null;
+  exhausted: boolean;
+};
+
 export type Project = {
   schema_version: number;
   name: string;
   engine: Engine;
+  max_parallel_runs: number;
+  isolation: IsolationMode;
+  token_budget: number;
   created_at: string;
   updated_at: string;
 };
@@ -59,6 +104,7 @@ export type Project = {
 export type ProjectResponse = {
   project: Project;
   path: string;
+  git_repo: boolean;
 };
 
 export type ProjectCard = {
@@ -108,6 +154,50 @@ export type ArtifactRef = {
   created_at: string;
 };
 
+export type ValidationMode = "ask" | "always" | "never";
+
+export type WorkflowStepStatus = "pending" | "active" | "done" | "failed" | "skipped";
+
+export type WorkflowStep = {
+  id: string;
+  title: string;
+  prompt: string;
+  status: WorkflowStepStatus;
+  run_id: string;
+};
+
+export type ValidationCommand = {
+  id: string;
+  label: string;
+  command: string;
+  timeout: number;
+  created_at: string;
+};
+
+export type ValidationSuggestion = {
+  label: string;
+  command: string;
+  source: string;
+};
+
+export type ValidationResult = {
+  id: string;
+  task_id: string;
+  command_id: string;
+  label: string;
+  command: string;
+  status: "passed" | "failed" | "timeout" | "error";
+  exit_code: number | null;
+  duration_ms: number;
+  output: string;
+  error: string;
+  log_path: string;
+  created_at: string;
+  agent_run_id: string;
+  agent_session_id: string;
+  agent_run_status: string;
+};
+
 export type Task = {
   id: string;
   title: string;
@@ -120,6 +210,10 @@ export type Task = {
   assigned_agent: string | null;
   mode: AgentMode;
   skills: string[];
+  validation: ValidationCommand[];
+  validation_mode: ValidationMode;
+  role_id: string;
+  workflow: WorkflowStep[];
   asset_ids: string[];
   created_at: string;
   updated_at: string;
@@ -145,6 +239,8 @@ export type UpdateTaskInput = {
   next_step?: string;
   criteria?: string[];
   skills?: string[];
+  validation_mode?: ValidationMode;
+  role_id?: string;
 };
 
 export type AssetVersionStatus = "draft" | "review" | "accepted" | "archived";
@@ -194,6 +290,20 @@ export type AssetPassport = {
   updated_at: string;
 };
 
+export type ProviderCapabilities = {
+  checked: boolean;
+  checked_at: string;
+  source: string;
+  version: string;
+  supports_model: boolean;
+  supports_resume: boolean;
+  supports_json: boolean;
+  supports_permissions: boolean;
+  supports_non_interactive: boolean;
+  flags: string[];
+  note: string;
+};
+
 export type ProviderInfo = {
   id: string;
   name: string;
@@ -209,6 +319,23 @@ export type ProviderInfo = {
   url: string;
   timeout: number;
   models: string[];
+  default_model: string;
+  models_args: string[];
+  read_only_args: string[];
+  resume_args: string[];
+  api_url: string;
+  api_model: string;
+  api_style: "openai" | "anthropic" | "google" | "azure" | "vertex" | "bedrock";
+  api_max_tokens: number;
+  catalog_id: string;
+  gcp_project: string;
+  gcp_region: string;
+  aws_region: string;
+  has_key: boolean;
+  local_api: boolean;
+  session_regex: string;
+  output_mode: string;
+  capabilities: ProviderCapabilities;
   default: boolean;
 };
 
@@ -220,10 +347,32 @@ export type ProvidersResponse = {
 export type AiRunStatus =
   | "queued"
   | "running"
+  | "waiting_approval"
   | "succeeded"
   | "failed"
   | "cancelled"
   | "interrupted";
+
+export type ToolApproval = {
+  id: string;
+  tool: string;
+  args: {
+    tool: string;
+    path?: string;
+    command?: string;
+    bytes?: number;
+    preview?: string;
+  };
+  status: "pending" | "allowed" | "denied" | "allowed_all" | "timeout";
+  created_at: string;
+};
+
+export type AgentAction = {
+  kind: "command" | "file" | string;
+  value: string;
+  exit_code?: number | null;
+  change?: string;
+};
 
 export type AiRun = {
   id: string;
@@ -250,6 +399,41 @@ export type AiRun = {
   pid: number | null;
   interrupted_reason: string;
   model: string;
+  handoff_id: string;
+  changes: Array<{
+    path: string;
+    status: "added" | "modified" | "deleted";
+    size: number;
+    previous_size: number;
+    patch_path: string;
+    binary: boolean;
+    patch_truncated: boolean;
+    additions: number;
+    deletions: number;
+  }>;
+  changes_total: number;
+  changes_truncated: boolean;
+  changes_error: string;
+  queue_position: number;
+  max_parallel_runs: number;
+  isolation: "direct" | "worktree";
+  worktree_path: string;
+  worktree_applied_at: string;
+  worktree_applied: number;
+  worktree_deleted: number;
+  read_only: boolean;
+  resumed: boolean;
+  resumed_from_session: string;
+  resumed_from_run: string;
+  workflow_step_id: string;
+  role_id: string;
+  role_name: string;
+  tool_policy: string;
+  approval: ToolApproval | null;
+  auto_approve: boolean;
+  cli_session_id: string;
+  usage: Record<string, unknown> | null;
+  actions: AgentAction[];
 };
 
 export type AgentSession = {
@@ -263,6 +447,8 @@ export type AgentSession = {
   updated_at: string;
   finished_at: string;
   snapshot_before: string;
+  handoff_id: string;
+  cli_session_id: string;
   run_ids: string[];
   runs: AiRun[];
 };
@@ -297,19 +483,37 @@ export type BlenderWorkspace = {
   checks: string[];
 };
 
-export type BlenderSkill = {
+export type SkillCategory =
+  | "blender"
+  | "code"
+  | "roblox"
+  | "unity"
+  | "godot"
+  | "unreal"
+  | "general";
+
+export type Skill = {
+  id: string;
   name: string;
   description: string;
-  path: string;
+  category: SkillCategory;
+  category_label: string;
   group: string;
   group_label: string;
+  path: string;
+  source: "builtin" | "user";
+  locked: boolean;
   scripts: string[];
   files: string[];
+  updated_at?: string;
 };
 
-export type BlenderSkillDetail = BlenderSkill & {
+export type SkillDetail = Skill & {
   content: string;
 };
+
+export type BlenderSkill = Skill;
+export type BlenderSkillDetail = SkillDetail;
 
 export type BlenderInspectResult = {
   asset: AssetPassport;

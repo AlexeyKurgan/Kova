@@ -66,15 +66,18 @@ def get_or_create_session(
     provider_id: str,
     provider_name: str,
     snapshot_id: str = "",
+    handoff_id: str = "",
+    force_new: bool = False,
 ) -> dict[str, Any]:
     with LOCK:
-        for row in list_sessions(hub, task_id):
-            if row.get("status") == "active":
-                if snapshot_id and not row.get("snapshot_before"):
-                    row["snapshot_before"] = snapshot_id
-                    row["updated_at"] = _now()
-                    _save(hub, row)
-                return row
+        if not force_new:
+            for row in list_sessions(hub, task_id):
+                if row.get("status") == "active":
+                    if snapshot_id and not row.get("snapshot_before"):
+                        row["snapshot_before"] = snapshot_id
+                        row["updated_at"] = _now()
+                        _save(hub, row)
+                    return row
         record: dict[str, Any] = {
             "id": new_id("ses"),
             "task_id": task_id,
@@ -86,6 +89,8 @@ def get_or_create_session(
             "updated_at": _now(),
             "finished_at": "",
             "snapshot_before": snapshot_id,
+            "handoff_id": handoff_id,
+            "cli_session_id": "",
             "run_ids": [],
         }
         _save(hub, record)
@@ -148,3 +153,34 @@ def interrupt_active_sessions(hub: Path, active_run_ids: set[str]) -> list[dict[
             _save(hub, current)
             changed.append(current)
     return changed
+
+
+def set_cli_session(
+    hub: Path,
+    session_id: str,
+    cli_session_id: str,
+) -> dict[str, Any] | None:
+    if not session_id or not cli_session_id:
+        return get_session(hub, session_id)
+    with LOCK:
+        record = get_session(hub, session_id)
+        if record is None:
+            return None
+        record["cli_session_id"] = cli_session_id
+        record["updated_at"] = _now()
+        _save(hub, record)
+        return record
+
+
+def reopen_session(hub: Path, session_id: str) -> dict[str, Any] | None:
+    with LOCK:
+        record = get_session(hub, session_id)
+        if record is None:
+            return None
+        if record.get("status") == "active":
+            return record
+        record["status"] = "active"
+        record["finished_at"] = ""
+        record["updated_at"] = _now()
+        _save(hub, record)
+        return record

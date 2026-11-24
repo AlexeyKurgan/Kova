@@ -19,7 +19,8 @@ Kova Hub is licensed under the MIT License (see [LICENSE](LICENSE)). It uses the
 
 ## Runtime components
 
-- **Python** — PSF-2.0
+- **Python** — PSF-2.0. Bundled inside the desktop installer as a PyInstaller sidecar.
+- **PyInstaller** — GPL-2.0-or-later with the bootloader exception. Used only to package the Python core; it does not affect the license of Kova Hub's source.
 - **FastAPI** — MIT
 - **Uvicorn** — BSD-3-Clause
 - **Pydantic** — MIT

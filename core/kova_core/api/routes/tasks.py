@@ -4,11 +4,12 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
 from ...domain.capsule import Capsule
-from ...domain.enums import AgentMode, Engine, TaskStatus, TaskType
+from ...domain.enums import AgentMode, Engine, TaskStatus, TaskType, ValidationMode
 from ...domain.ledger import LedgerEvent
 from ...domain.review import ReviewItem
-from ...domain.task import Criterion, Task
+from ...domain.task import Criterion, Task, ValidationCommand, WorkflowStep
 from ...integrations.blender.skills import list_skills
+from ...checks.validation import list_validation_results, run_validation, suggest_validation
 from ...storage.assets import get_asset, link_asset_task, unlink_task_from_assets
 from ...storage.capsules import build_capsule, capsule_text, save_capsule
 from ...storage.ledger import append_event
@@ -56,6 +57,54 @@ class UpdateTaskRequest(BaseModel):
     mode: AgentMode | None = None
     assigned_agent: str | None = None
     skills: list[str] | None = None
+    validation_mode: ValidationMode | None = None
+    role_id: str | None = None
+
+
+class WorkflowStepRequest(BaseModel):
+    title: str = Field(min_length=1, max_length=160)
+    prompt: str = ""
+
+
+class WorkflowStepUpdate(BaseModel):
+    title: str | None = Field(default=None, min_length=1, max_length=160)
+    prompt: str | None = None
+    status: str | None = None
+
+
+class ValidationCommandRequest(BaseModel):
+    label: str = Field(min_length=1, max_length=80)
+    command: str = Field(min_length=1, max_length=1000)
+    timeout: int = Field(default=300, ge=30, le=7200)
+
+
+class RunValidationRequest(BaseModel):
+    command_id: str | None = None
+    run_id: str | None = None
+
+
+class ValidationSuggestion(BaseModel):
+    label: str
+    command: str
+    source: str = ""
+
+
+class ValidationResult(BaseModel):
+    id: str
+    task_id: str
+    command_id: str
+    label: str
+    command: str
+    status: str
+    exit_code: int | None = None
+    duration_ms: int = 0
+    output: str = ""
+    error: str = ""
+    log_path: str = ""
+    created_at: str = ""
+    agent_run_id: str = ""
+    agent_session_id: str = ""
+    agent_run_status: str = ""
 
 
 class CapsuleResponse(BaseModel):
@@ -207,6 +256,148 @@ def purge_task_route(task_id: str, hub: Path = Depends(require_hub)) -> None:
             data={"title": task.title},
         ),
     )
+
+
+@router.post("/{task_id}/workflow", response_model=Task, status_code=201)
+def add_workflow_step(
+    task_id: str,
+    payload: WorkflowStepRequest,
+    hub: Path = Depends(require_hub),
+) -> Task:
+    task = get_task(hub, task_id)
+    if task is None:
+        raise HTTPException(status_code=404, detail="task not found")
+    task.workflow.append(WorkflowStep(title=payload.title, prompt=payload.prompt))
+    return save_task(hub, task)
+
+
+@router.patch("/{task_id}/workflow/{step_id}", response_model=Task)
+def update_workflow_step(
+    task_id: str,
+    step_id: str,
+    payload: WorkflowStepUpdate,
+    hub: Path = Depends(require_hub),
+) -> Task:
+    task = get_task(hub, task_id)
+    if task is None:
+        raise HTTPException(status_code=404, detail="task not found")
+    step = next((item for item in task.workflow if item.id == step_id), None)
+    if step is None:
+        raise HTTPException(status_code=404, detail="step not found")
+    if payload.title is not None:
+        step.title = payload.title
+    if payload.prompt is not None:
+        step.prompt = payload.prompt
+    if payload.status is not None:
+        if payload.status not in {"pending", "active", "done", "failed", "skipped"}:
+            raise HTTPException(status_code=400, detail="invalid step status")
+        step.status = payload.status
+    return save_task(hub, task)
+
+
+@router.delete("/{task_id}/workflow/{step_id}", response_model=Task)
+def delete_workflow_step(
+    task_id: str,
+    step_id: str,
+    hub: Path = Depends(require_hub),
+) -> Task:
+    task = get_task(hub, task_id)
+    if task is None:
+        raise HTTPException(status_code=404, detail="task not found")
+    remaining = [item for item in task.workflow if item.id != step_id]
+    if len(remaining) == len(task.workflow):
+        raise HTTPException(status_code=404, detail="step not found")
+    task.workflow = remaining
+    return save_task(hub, task)
+
+
+@router.post("/{task_id}/validation", response_model=Task, status_code=201)
+def add_validation_command(
+    task_id: str,
+    payload: ValidationCommandRequest,
+    hub: Path = Depends(require_hub),
+) -> Task:
+    task = get_task(hub, task_id)
+    if task is None:
+        raise HTTPException(status_code=404, detail="task not found")
+    task.validation.append(
+        ValidationCommand(
+            label=payload.label.strip(),
+            command=payload.command.strip(),
+            timeout=payload.timeout,
+        )
+    )
+    saved = save_task(hub, task)
+    append_event(
+        hub,
+        LedgerEvent(
+            type="task.validation.added",
+            subject=task.id,
+            data={"label": payload.label},
+        ),
+    )
+    return saved
+
+
+@router.delete("/{task_id}/validation/{command_id}", response_model=Task)
+def delete_validation_command(
+    task_id: str,
+    command_id: str,
+    hub: Path = Depends(require_hub),
+) -> Task:
+    task = get_task(hub, task_id)
+    if task is None:
+        raise HTTPException(status_code=404, detail="task not found")
+    task.validation = [item for item in task.validation if item.id != command_id]
+    saved = save_task(hub, task)
+    append_event(
+        hub,
+        LedgerEvent(
+            type="task.validation.deleted",
+            subject=task.id,
+            data={"command_id": command_id},
+        ),
+    )
+    return saved
+
+
+@router.get(
+    "/{task_id}/validation/suggestions",
+    response_model=list[ValidationSuggestion],
+)
+def get_validation_suggestions(
+    task_id: str,
+    hub: Path = Depends(require_hub),
+) -> list[ValidationSuggestion]:
+    if get_task(hub, task_id) is None:
+        raise HTTPException(status_code=404, detail="task not found")
+    return [ValidationSuggestion(**row) for row in suggest_validation(hub)]
+
+
+@router.get("/{task_id}/validation/results", response_model=list[ValidationResult])
+def get_validation_results(
+    task_id: str,
+    hub: Path = Depends(require_hub),
+) -> list[ValidationResult]:
+    if get_task(hub, task_id) is None:
+        raise HTTPException(status_code=404, detail="task not found")
+    return [ValidationResult(**row) for row in list_validation_results(hub, task_id)]
+
+
+@router.post("/{task_id}/validation/run", response_model=list[ValidationResult])
+def run_validation_route(
+    task_id: str,
+    payload: RunValidationRequest,
+    hub: Path = Depends(require_hub),
+) -> list[ValidationResult]:
+    task = get_task(hub, task_id)
+    if task is None:
+        raise HTTPException(status_code=404, detail="task not found")
+    try:
+        results = run_validation(hub, task, payload.command_id, payload.run_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return [ValidationResult(**row) for row in results]
 
 
 @router.post("/{task_id}/capsule", response_model=CapsuleResponse)

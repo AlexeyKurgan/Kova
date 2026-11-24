@@ -95,6 +95,17 @@ export default function ProjectsScreen({
   const [menuFor, setMenuFor] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!menuFor) return;
+    const onPointerDown = (event: MouseEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (target?.closest(".project-menu-wrap")) return;
+      setMenuFor(null);
+    };
+    document.addEventListener("mousedown", onPointerDown);
+    return () => document.removeEventListener("mousedown", onPointerDown);
+  }, [menuFor]);
+
+  useEffect(() => {
     setParent(defaultParent);
   }, [defaultParent]);
 

@@ -8,6 +8,7 @@ dist-ssr/
 # Rust / Tauri
 target/
 **/src-tauri/gen/
+apps/desktop/src-tauri/binaries/
 
 # Python
 __pycache__/
