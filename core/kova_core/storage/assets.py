@@ -266,3 +266,119 @@ def import_asset(
     if task_id:
         _sync_task_asset(hub, task_id, saved.id, True)
     return saved
+
+
+def delete_asset(hub: Path, asset_id: str) -> bool:
+    """Delete an asset passport, its copied files and previews.
+
+    Files are removed only when they are inside the project's assets folder,
+    were created for this asset, and are not referenced by another asset.
+    """
+    asset = get_asset(hub, asset_id)
+    if asset is None:
+        return False
+
+    project_root = hub.parent
+    other_paths: set[str] = set()
+    other_previews: set[str] = set()
+    for other in list_assets(hub):
+        if other.id == asset_id:
+            continue
+        for version in other.versions:
+            if version.path:
+                other_paths.add(version.path)
+            if version.preview:
+                other_previews.add(version.preview)
+        if other.path:
+            other_paths.add(other.path)
+        if other.preview:
+            other_previews.add(other.preview)
+
+    paths: set[str] = set(other_paths)
+    previews: set[str] = set()
+    for version in asset.versions:
+        if version.path:
+            paths.add(version.path)
+        if version.preview:
+            previews.add(version.preview)
+    if asset.path:
+        paths.add(asset.path)
+    if asset.preview:
+        previews.add(asset.preview)
+
+    for relative in paths - other_paths:
+        try:
+            target = resolve_inside(project_root, relative)
+        except ValueError:
+            continue
+        try:
+            inside = target.relative_to(project_root).as_posix()
+        except ValueError:
+            continue
+        if not inside.startswith("assets/"):
+            continue
+        if target.is_file():
+            target.unlink(missing_ok=True)
+
+    for relative in previews - other_previews:
+        try:
+            target = resolve_inside(hub, relative)
+        except ValueError:
+            continue
+        if target.is_file() and "artifacts" in target.relative_to(hub).parts:
+            target.unlink(missing_ok=True)
+
+    from ..checks.assets import checks_file
+    from .tasks import get_task, save_task
+
+    checks_file(hub, asset_id).unlink(missing_ok=True)
+    for task_id in list(asset.task_ids):
+        task = get_task(hub, task_id)
+        if task is None:
+            continue
+        if asset_id in task.asset_ids:
+            task.asset_ids = [item for item in task.asset_ids if item != asset_id]
+            save_task(hub, task)
+
+    resolve_inside(hub, Path("assets") / f"{asset_id}.json").unlink(missing_ok=True)
+    return True
+
+
+def duplicate_asset(hub: Path, asset_id: str) -> AssetPassport | None:
+    asset = get_asset(hub, asset_id)
+    if asset is None:
+        return None
+    project_root = hub.parent
+    source = resolve_inside(project_root, asset.path or "")
+    if not source.is_file():
+        raise FileNotFoundError("asset file not found")
+    target = _copy_target(project_root, source)
+    shutil.copy2(source, target)
+    data = target.read_bytes()
+    relative = target.relative_to(project_root).as_posix()
+    digest = hashlib.sha256(data).hexdigest()
+    version = AssetVersion(
+        label="v1",
+        status=AssetVersionStatus.draft,
+        reason="Копия ассета",
+        path=relative,
+        file_hash=digest,
+        file_size=len(data),
+        metrics=asset.metrics.model_copy(deep=True) if asset.metrics else AssetMetrics(),
+    )
+    copy = AssetPassport(
+        name=f"{asset.name} copy",
+        type=asset.type,
+        engine=asset.engine,
+        path=relative,
+        file_hash=digest,
+        file_size=len(data),
+        preview="",
+        current_version_id=version.id,
+        origin=asset.origin,
+        description=asset.description,
+        license=asset.license,
+        metrics=asset.metrics.model_copy(deep=True) if asset.metrics else AssetMetrics(),
+        versions=[version],
+    )
+    return save_asset(hub, copy)

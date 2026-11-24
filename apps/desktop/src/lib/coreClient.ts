@@ -710,3 +710,14 @@ export async function activateAssetVersion(
     { method: "POST" },
   );
 }
+
+
+export async function deleteAsset(assetId: string): Promise<void> {
+  await request<void>(`/assets/${encodeURIComponent(assetId)}`, { method: "DELETE" });
+}
+
+export async function duplicateAsset(assetId: string): Promise<AssetPassport> {
+  return request<AssetPassport>(`/assets/${encodeURIComponent(assetId)}/duplicate`, {
+    method: "POST",
+  });
+}

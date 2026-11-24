@@ -13,6 +13,7 @@ import {
   Plus,
   Search,
   Sparkles,
+  Trash2,
   TriangleAlert,
 } from "lucide-react";
 import { coreUrl } from "../../lib/coreClient";
@@ -30,6 +31,7 @@ type Props = {
   error: string | null;
   onImport: () => void;
   onOpenAsset: (assetId: string) => void;
+  onDeleteAsset: (assetId: string) => void;
 };
 
 const TYPE_ORDER = ["model", "texture", "animation", "effect", "audio", "scene", "code", "other"];
@@ -49,7 +51,14 @@ function typeIcon(type: string) {
   return TYPE_ICONS[type as keyof typeof TYPE_ICONS] ?? Box;
 }
 
-export default function AssetsScreen({ assets, importing, error, onImport, onOpenAsset }: Props) {
+export default function AssetsScreen({
+  assets,
+  importing,
+  error,
+  onImport,
+  onOpenAsset,
+  onDeleteAsset,
+}: Props) {
   const [query, setQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState("all");
   const [engineFilter, setEngineFilter] = useState("all");
@@ -292,6 +301,17 @@ export default function AssetsScreen({ assets, importing, error, onImport, onOpe
                     }}
                   >
                     <ChevronRight size={14} />
+                  </button>
+                  <button
+                    type="button"
+                    className="tk-icon-btn is-danger"
+                    title="Удалить ассет"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      onDeleteAsset(asset.id);
+                    }}
+                  >
+                    <Trash2 size={13} />
                   </button>
                 </span>
               </div>

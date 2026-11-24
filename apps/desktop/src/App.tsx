@@ -37,8 +37,10 @@ import {
   createSnapshot,
   createTask,
   deleteProjectCard,
+  deleteAsset,
   deleteProvider,
   deleteTask,
+  duplicateAsset,
   duplicateProjectCard,
   ensureBlenderWorkspace,
   getAssetChecks,
@@ -583,6 +585,35 @@ export default function App() {
     [loadProjectData],
   );
 
+  const handleDeleteAsset = useCallback(
+    async (assetId: string) => {
+      const asset = assets.find((item) => item.id === assetId);
+      if (!window.confirm(`Удалить ассет «${asset?.name ?? assetId}» и его файлы?`)) return;
+      try {
+        await deleteAsset(assetId);
+        if (openAssetId === assetId) setOpenAssetId(null);
+        await loadProjectData();
+      } catch (err) {
+        setAssetError(err instanceof Error ? err.message : "Не удалось удалить ассет");
+      }
+    },
+    [assets, loadProjectData, openAssetId],
+  );
+
+  const handleDuplicateAsset = useCallback(
+    async (assetId: string) => {
+      try {
+        const copy = await duplicateAsset(assetId);
+        await loadProjectData();
+        setOpenAssetId(copy.id);
+        setAssetChecks([]);
+      } catch (err) {
+        setAssetError(err instanceof Error ? err.message : "Не удалось создать копию");
+      }
+    },
+    [loadProjectData],
+  );
+
   const openAsset = useCallback(async (assetId: string) => {
     setOpenAssetId(assetId);
     setAssetError(null);
@@ -1011,6 +1042,12 @@ export default function App() {
                 onUpdateDescription={(text) => void handleAssetDescription(text)}
                 onAddVersion={() => void handleAddAssetVersion()}
                 onActivateVersion={(versionId) => void handleActivateAssetVersion(versionId)}
+                onDelete={() => void handleDeleteAsset(selectedAsset.id)}
+                onDuplicate={() => void handleDuplicateAsset(selectedAsset.id)}
+                onOpenEditor={() => {
+                  setOpenAssetId(null);
+                  setActive("Редактор");
+                }}
               />
             ) : (
               <AssetsScreen
@@ -1019,6 +1056,7 @@ export default function App() {
                 error={assetError}
                 onImport={() => void handleImportAsset()}
                 onOpenAsset={(assetId) => void openAsset(assetId)}
+                onDeleteAsset={(assetId) => void handleDeleteAsset(assetId)}
               />
             )
           ) : active === "Задачи" ? (

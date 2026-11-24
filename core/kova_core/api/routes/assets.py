@@ -16,6 +16,8 @@ from ...security.paths import resolve_inside
 from ...storage.assets import (
     activate_asset_version,
     add_asset_version,
+    delete_asset,
+    duplicate_asset,
     get_asset,
     import_asset,
     list_assets,
@@ -348,3 +350,36 @@ def run_checks_route(asset_id: str, hub: Path = Depends(require_hub)) -> list[Ch
         ),
     )
     return results
+
+
+@router.delete("/{asset_id}", status_code=204)
+def delete_asset_route(asset_id: str, hub: Path = Depends(require_hub)) -> None:
+    if not delete_asset(hub, asset_id):
+        raise HTTPException(status_code=404, detail="asset not found")
+    append_event(
+        hub,
+        LedgerEvent(
+            type="asset.deleted",
+            subject=asset_id,
+            data={"recoverable": False},
+        ),
+    )
+
+
+@router.post("/{asset_id}/duplicate", response_model=AssetPassport, status_code=201)
+def duplicate_asset_route(asset_id: str, hub: Path = Depends(require_hub)) -> AssetPassport:
+    try:
+        asset = duplicate_asset(hub, asset_id)
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    if asset is None:
+        raise HTTPException(status_code=404, detail="asset not found")
+    append_event(
+        hub,
+        LedgerEvent(
+            type="asset.duplicated",
+            subject=asset.id,
+            data={"source": asset_id},
+        ),
+    )
+    return asset

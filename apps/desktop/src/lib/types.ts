@@ -267,6 +267,12 @@ export type AssetMetrics = {
   animations: number | null;
 };
 
+export type AssetDependency = {
+  kind: string;
+  target_id: string;
+  label: string;
+};
+
 export type AssetPassport = {
   id: string;
   name: string;
@@ -285,6 +291,7 @@ export type AssetPassport = {
   license: string;
   metrics: AssetMetrics;
   versions: AssetVersion[];
+  dependencies: AssetDependency[];
   checks: string[];
   created_at: string;
   updated_at: string;

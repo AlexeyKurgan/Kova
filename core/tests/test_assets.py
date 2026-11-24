@@ -183,3 +183,48 @@ def test_import_rejects_missing_file(tmp_path: Path, monkeypatch) -> None:
 
     response = client.post("/assets/import", json={"path": str(tmp_path / "missing.glb")})
     assert response.status_code == 400
+
+
+def test_delete_asset_removes_file_and_task_link(tmp_path: Path, monkeypatch) -> None:
+    client = make_client(tmp_path, monkeypatch)
+    game = tmp_path / "game"
+    game.mkdir()
+    client.post("/project/open", json={"path": str(game), "engine": "roblox"})
+    task = client.post("/tasks", json={"title": "Asset owner"}).json()
+    source = tmp_path / "sword.glb"
+    source.write_bytes(b"sword-data")
+    asset = client.post(
+        "/assets/import",
+        json={"path": str(source), "task_id": task["id"]},
+    ).json()
+    linked = next(item for item in client.get("/tasks").json() if item["id"] == task["id"])
+    assert asset["id"] in linked["asset_ids"]
+    copied = game / asset["path"]
+    assert copied.is_file()
+
+    response = client.delete(f"/assets/{asset['id']}")
+    assert response.status_code == 204
+    assert not copied.exists()
+    assert not (game / ".hub" / "assets" / f"{asset['id']}.json").exists()
+    assert client.get("/assets").json() == []
+    updated = next(item for item in client.get("/tasks").json() if item["id"] == task["id"])
+    assert asset["id"] not in updated["asset_ids"]
+    assert client.delete(f"/assets/{asset['id']}").status_code == 404
+
+
+def test_duplicate_asset_copies_current_file(tmp_path: Path, monkeypatch) -> None:
+    client = make_client(tmp_path, monkeypatch)
+    game = tmp_path / "game"
+    game.mkdir()
+    client.post("/project/open", json={"path": str(game)})
+    source = tmp_path / "shield.glb"
+    source.write_bytes(b"shield")
+    asset = client.post("/assets/import", json={"path": str(source)}).json()
+    duplicate = client.post(f"/assets/{asset['id']}/duplicate")
+    assert duplicate.status_code == 201, duplicate.text
+    copy = duplicate.json()
+    assert copy["id"] != asset["id"]
+    assert copy["name"].endswith("copy")
+    assert copy["versions"][0]["path"] != asset["versions"][0]["path"]
+    assert (game / copy["versions"][0]["path"]).is_file()
+    assert len(client.get("/assets").json()) == 2

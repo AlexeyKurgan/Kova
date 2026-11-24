@@ -1,12 +1,16 @@
-import { lazy, Suspense, useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import {
   ArrowLeft,
+  ChevronLeft,
+  ChevronRight,
   Box,
   Check,
-  ChevronRight,
   ClipboardList,
+  ExternalLink,
   FolderOpen,
   ImageIcon,
+  Info,
+  Link2,
   Plus,
   ShieldCheck,
   Trash2,
@@ -14,7 +18,7 @@ import {
 } from "lucide-react";
 import BrandIcon from "../../components/BrandIcon";
 import { coreUrl } from "../../lib/coreClient";
-import { formatBytes, formatDate, plural } from "../../lib/format";
+import { formatBytes, formatDate } from "../../lib/format";
 import {
   ASSET_TYPE_LABELS,
   ASSET_VERSION_STATUS_LABELS,
@@ -47,6 +51,9 @@ type Props = {
   onAddVersion: () => void;
   onActivateVersion: (versionId: string) => void;
   onSelectVersion: (versionId: string) => void;
+  onDelete: () => void;
+  onDuplicate: () => void;
+  onOpenEditor: () => void;
 };
 
 const CHECK_TONES: Record<CheckStatus, string> = {
@@ -79,21 +86,23 @@ export default function AssetPassportScreen({
   onRunBlender,
   onOpenFolder,
   onLinkTasks,
-  onCreateTask,
   onOpenTask,
   onUpdateDescription,
   onAddVersion,
   onActivateVersion,
   onSelectVersion,
+  onDelete,
+  onDuplicate,
+  onOpenEditor,
 }: Props) {
   const [description, setDescription] = useState(asset.description);
   const [versionId, setVersionId] = useState(
     asset.current_version_id ?? asset.versions[asset.versions.length - 1]?.id ?? "",
   );
   const [previewMode, setPreviewMode] = useState<"3d" | "render">("render");
-  const [tab, setTab] = useState<"overview" | "versions" | "checks" | "usage" | "notes">(
-    "overview",
-  );
+  const [tab, setTab] = useState<"overview" | "files" | "usage" | "related">("overview");
+  const [editingDescription, setEditingDescription] = useState(false);
+  const stripRef = useRef<HTMLDivElement | null>(null);
   const currentVersion =
     asset.versions.find((item) => item.id === asset.current_version_id) ??
     asset.versions[asset.versions.length - 1] ??
@@ -151,7 +160,6 @@ export default function AssetPassportScreen({
           : warnings.length > 0
             ? { label: "Есть предупреждения", tone: "is-review", icon: TriangleAlert }
             : { label: "Blender-проверка пройдена", tone: "is-done", icon: Check };
-  const CheckIcon = checkState.icon;
 
   const addTask = (taskId: string) => {
     if (!taskId) return;
@@ -162,89 +170,89 @@ export default function AssetPassportScreen({
     onLinkTasks(asset.task_ids.filter((item) => item !== taskId));
   };
 
+  const verified = failed.length === 0 && (checks.length > 0 || blenderChecked);
+  const statusLabel = failed.length > 0
+    ? "Есть ошибки"
+    : verified
+      ? "Проверен"
+      : "Не проверялся";
+  const fileFormat = versionPath.includes(".")
+    ? `.${versionPath.split(".").pop()?.toUpperCase()}`
+    : "—";
+
+  const scrollStrip = (direction: number) => {
+    stripRef.current?.scrollBy({ left: direction * 220, behavior: "smooth" });
+  };
+
   return (
-    <section className="assets-screen asset-detail ad2-page">
-      <div className="ad2-topbar">
+    <section className="assets-screen asset-detail ad3-page">
+      <div className="ad3-topbar">
         <button type="button" className="btn btn-secondary btn-small" onClick={onBack}>
           <ArrowLeft size={14} />
-          Ассеты
+          Назад
         </button>
-        <span className="task-status is-draft">
-          {ASSET_TYPE_LABELS[asset.type] ?? asset.type}
+        <span className={`ad3-status ${verified ? "is-ok" : failed.length ? "is-fail" : "is-idle"}`}>
+          {failed.length ? <TriangleAlert size={11} /> : <Check size={11} />}
+          {statusLabel}
         </span>
-        <span className={`task-status ${checkState.tone}`}>
-          <CheckIcon size={11} />
-          {checkState.label}
-        </span>
-        <span className="ad2-version">
-          {selectedVersion?.label ?? "v1"}
-          {selectedVersion && !isCurrent ? " · не текущая" : ""}
-        </span>
-        <span className="ad2-spacer" />
+        <span className="ad3-spacer" />
         <button
           type="button"
-          className="icon-btn action-btn"
-          title="Открыть папку проекта"
-          aria-label="Открыть папку проекта"
-          onClick={onOpenFolder}
+          className="icon-btn is-danger"
+          title="Удалить ассет"
+          aria-label="Удалить ассет"
+          onClick={onDelete}
         >
-          <FolderOpen size={16} />
+          <Trash2 size={15} />
         </button>
       </div>
 
-      <header className="ad2-head">
-        <span className="ad2-head-icon">
+      <header className="ad3-head">
+        <span className="ad3-head-icon">
           <Box size={30} strokeWidth={1.35} />
         </span>
-        <div className="ad2-head-copy">
-          <h1>{asset.name}</h1>
+        <div className="ad3-head-copy">
+          <div className="ad3-title-row">
+            <h1>{asset.name}</h1>
+            <span className={`ad3-status ${verified ? "is-ok" : failed.length ? "is-fail" : "is-idle"}`}>
+              {verified ? <Check size={11} /> : <ShieldCheck size={11} />}
+              {statusLabel}
+            </span>
+          </div>
           <p>
             {ASSET_TYPE_LABELS[asset.type] ?? asset.type} · {ENGINE_LABELS[asset.engine]} ·
             импортирован {formatDate(asset.created_at)}
           </p>
         </div>
-        <div className="ad2-head-actions">
+        <div className="ad3-head-actions">
           <button
             type="button"
             className="btn btn-secondary btn-small"
-            disabled={checking || blenderRunning || !isCurrent}
+            disabled={checking || !isCurrent}
             onClick={onRunChecks}
             title={isCurrent ? "Проверить текущую версию" : "Сначала сделай версию текущей"}
           >
             <ShieldCheck size={14} />
             {checking ? "Проверка…" : "Проверить"}
           </button>
-          <button
-            type="button"
-            className="btn btn-secondary btn-small"
-            disabled={!blenderInstalled || blenderRunning || checking || !isCurrent}
-            onClick={onRunBlender}
-            title={
-              !blenderInstalled
-                ? "Blender не найден"
-                : isCurrent
-                  ? "Открыть или проверить в Blender"
-                  : "Сначала сделай версию текущей"
-            }
-          >
-            <BrandIcon name="blender" size={14} />
-            {blenderRunning ? "Blender…" : "Blender"}
+          <button type="button" className="btn btn-secondary btn-small" onClick={onOpenEditor}>
+            <ExternalLink size={14} />
+            Открыть в редакторе
           </button>
-          <button type="button" className="btn btn-primary btn-small" onClick={onCreateTask}>
+          <button type="button" className="btn btn-primary btn-small" onClick={onDuplicate}>
             <Plus size={14} />
-            Создать задачу
+            Создать копию
           </button>
         </div>
       </header>
 
-      <div className="ad2-tabs">
+      <div className="ad3-tabs">
         {(
           [
             ["overview", "Обзор", undefined],
-            ["versions", "Версии", asset.versions.length],
-            ["checks", "Проверки", checks.length],
+            ["files", "Файлы", asset.versions.length],
             ["usage", "Использование", usage.length],
-            ["notes", "Описание", undefined],
+            ["related", "Связанные", usage.length + asset.dependencies.length],
           ] as const
         ).map(([id, label, count]) => (
           <button
@@ -260,38 +268,47 @@ export default function AssetPassportScreen({
       </div>
 
       {tab === "overview" ? (
-        <div className="ad2-stack">
-          <div className="ad2-stats">
-            <article className="ad2-stat">
-              <span>Версия</span>
-              <b>{selectedVersion?.label ?? "—"}</b>
-              <small>{isCurrent ? "текущая" : "не текущая"}</small>
-            </article>
-            <article className="ad2-stat">
-              <span>Размер</span>
-              <b>{formatBytes(versionSize)}</b>
-              <small>{versionPath.split(/[\\/]/).pop()}</small>
-            </article>
-            <article className="ad2-stat">
-              <span>Геометрия</span>
-              <b>{metrics.triangles === null ? "Unknown" : `${metrics.triangles} трис.`}</b>
-              <small>
-                {metrics.vertices === null ? "метрик нет" : `${metrics.vertices} вершин`}
-              </small>
-            </article>
-            <article className="ad2-stat">
-              <span>Проверки</span>
-              <b>{checkState.label}</b>
-              <small>
-                {checks.length > 0
-                  ? `${passed.length} / ${warnings.length} / ${failed.length}`
-                  : "ещё не запускались"}
-              </small>
-            </article>
-          </div>
-
-          <div className="ad2-grid">
-            <article className="ad2-card ad2-preview-card">
+        <div className="ad3-stack">
+          <div className="ad3-overview">
+            <article className="ad3-preview">
+              <div className="ad3-preview-toolbar">
+                {can3d ? (
+                  <div className="asset-preview-modes">
+                    <button
+                      type="button"
+                      className={previewMode === "3d" ? "is-active" : ""}
+                      onClick={() => setPreviewMode("3d")}
+                    >
+                      3D
+                    </button>
+                    <button
+                      type="button"
+                      className={previewMode === "render" ? "is-active" : ""}
+                      disabled={!previewUrl}
+                      onClick={() => setPreviewMode("render")}
+                    >
+                      Рендер
+                    </button>
+                  </div>
+                ) : null}
+                <button
+                  type="button"
+                  className="icon-btn"
+                  title="Открыть папку проекта"
+                  onClick={onOpenFolder}
+                >
+                  <FolderOpen size={14} />
+                </button>
+                <button
+                  type="button"
+                  className="icon-btn"
+                  title="Проверить в Blender"
+                  disabled={!blenderInstalled || blenderRunning || checking}
+                  onClick={onRunBlender}
+                >
+                  <BrandIcon name="blender" size={14} />
+                </button>
+              </div>
               {can3d && previewMode === "3d" ? (
                 <Suspense
                   fallback={
@@ -312,257 +329,237 @@ export default function AssetPassportScreen({
                 <div className="asset-preview2 is-empty">
                   <ImageIcon size={30} />
                   <b>Превью ещё нет</b>
-                  <span>
-                    {isCurrent
-                      ? "Blender может отрендерить модель и сохранить изображение."
-                      : "У этой версии нет превью. Сделай её текущей и запусти Blender."}
-                  </span>
-                  {isCurrent ? (
-                    <button
-                      type="button"
-                      className="btn btn-secondary btn-small"
-                      disabled={!blenderInstalled || blenderRunning}
-                      onClick={onRunBlender}
-                    >
-                      <BrandIcon name="blender" size={13} />
-                      Проверить в Blender
-                    </button>
-                  ) : (
-                    <button
-                      type="button"
-                      className="btn btn-secondary btn-small"
-                      onClick={() => onActivateVersion(selectedVersion?.id ?? "")}
-                    >
-                      Сделать текущей
-                    </button>
-                  )}
+                  <span>Blender может отрендерить модель и сохранить изображение.</span>
                 </div>
               )}
-              {!isCurrent ? (
-                <div className="asset-version-note">
-                  Просмотр {selectedVersion?.label}. Проект использует{" "}
-                  {currentVersion?.label ?? "другую версию"}.
+              <div className="ad3-strip-wrap">
+                <button
+                  type="button"
+                  className="ad3-strip-arrow"
+                  onClick={() => scrollStrip(-1)}
+                  aria-label="Назад"
+                >
+                  <ChevronLeft size={14} />
+                </button>
+                <div className="ad3-strip" ref={stripRef}>
+                  {asset.versions.map((item) => {
+                    const preview = item.preview
+                      ? `${coreUrl(`/assets/${asset.id}/preview`)}?version_id=${encodeURIComponent(
+                          item.id,
+                        )}&v=${encodeURIComponent(item.preview)}`
+                      : "";
+                    return (
+                      <button
+                        type="button"
+                        key={item.id}
+                        className={`ad3-thumb${item.id === versionId ? " is-active" : ""}`}
+                        title={item.label}
+                        onClick={() => pickVersion(item.id)}
+                      >
+                        {preview ? (
+                          <img src={preview} alt="" />
+                        ) : (
+                          <Box size={18} />
+                        )}
+                      </button>
+                    );
+                  })}
                 </div>
-              ) : null}
-              <div className="asset-preview-foot">
-                <span title={versionPath}>{versionPath}</span>
-                <span>{formatBytes(versionSize)}</span>
-                {can3d ? (
-                  <span className="asset-preview-modes">
-                    <button
-                      type="button"
-                      className={previewMode === "3d" ? "is-active" : ""}
-                      onClick={() => setPreviewMode("3d")}
-                    >
-                      3D
-                    </button>
-                    <button
-                      type="button"
-                      className={previewMode === "render" ? "is-active" : ""}
-                      disabled={!previewUrl}
-                      onClick={() => setPreviewMode("render")}
-                    >
-                      Рендер
-                    </button>
-                  </span>
-                ) : null}
+                <button
+                  type="button"
+                  className="ad3-strip-arrow"
+                  onClick={() => scrollStrip(1)}
+                  aria-label="Вперёд"
+                >
+                  <ChevronRight size={14} />
+                </button>
               </div>
             </article>
 
-            <article className="ad2-card ad2-info">
-              <div className="ad2-card-head">
-                <h2>Информация</h2>
-                <span className="asset-hash">{versionHash.slice(0, 10) || "hash —"}</span>
+            <article className="ad3-info">
+              <h2>
+                <Info size={14} />
+                Информация
+              </h2>
+              <div className="ad3-info-rows">
+                <div><span>Название</span><b>{asset.name}</b></div>
+                <div><span>Категория</span><b>{ASSET_TYPE_LABELS[asset.type] ?? asset.type}</b></div>
+                <div><span>Размер</span><b>{formatBytes(versionSize)}</b></div>
+                <div><span>Формат</span><b>{fileFormat}</b></div>
+                <div><span>Импортирован</span><b>{formatDate(asset.created_at)}</b></div>
+                <div><span>Движок</span><b>{ENGINE_LABELS[asset.engine]}</b></div>
+                <div><span>Лицензия</span><b>{asset.license || "Не указана"}</b></div>
+                <div><span>Версия</span><b>{selectedVersion?.label ?? "—"}{isCurrent ? " · текущая" : ""}</b></div>
               </div>
-              <div className="ad2-props">
-                <div>
-                  <span>Версия</span>
-                  <select
-                    value={versionId}
-                    onChange={(event) => pickVersion(event.target.value)}
-                    aria-label="Версия ассета"
-                  >
-                    {asset.versions.map((item) => (
-                      <option key={item.id} value={item.id}>
-                        {item.label} · {ASSET_VERSION_STATUS_LABELS[item.status]}
-                      </option>
-                    ))}
-                  </select>
+
+              <div className="ad3-description">
+                <div className="ad3-section-head">
+                  <h3>Описание</h3>
+                  {!editingDescription ? (
+                    <button
+                      type="button"
+                      className="agent-link"
+                      onClick={() => setEditingDescription(true)}
+                    >
+                      Редактировать
+                    </button>
+                  ) : null}
                 </div>
+                {editingDescription ? (
+                  <>
+                    <textarea
+                      rows={4}
+                      value={description}
+                      onChange={(event) => setDescription(event.target.value)}
+                    />
+                    <div className="ad3-description-actions">
+                      <button
+                        type="button"
+                        className="btn btn-primary btn-small"
+                        onClick={() => {
+                          onUpdateDescription(description);
+                          setEditingDescription(false);
+                        }}
+                      >
+                        Сохранить
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn-secondary btn-small"
+                        onClick={() => {
+                          setDescription(asset.description);
+                          setEditingDescription(false);
+                        }}
+                      >
+                        Отмена
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <p>{asset.description || "Описание не задано."}</p>
+                )}
+              </div>
+
+              <div className="ad3-tags">
+                <h3>Теги</h3>
                 <div>
-                  <span>Лицензия</span>
-                  <b>{asset.license || "Не указана"}</b>
-                </div>
-                <div>
-                  <span>Движок</span>
-                  <b>{ENGINE_LABELS[asset.engine]}</b>
-                </div>
-                <div>
-                  <span>Происхождение</span>
-                  <b>{asset.origin || "Не указано"}</b>
-                </div>
-                <div className="is-wide">
-                  <span>Путь</span>
-                  <b className="mono-inline" title={versionPath}>
-                    {versionPath}
-                  </b>
+                  <span>{asset.name}</span>
+                  <span>{ASSET_TYPE_LABELS[asset.type] ?? asset.type}</span>
+                  <span>{ENGINE_LABELS[asset.engine]}</span>
                 </div>
               </div>
-              {!isCurrent ? (
-                <button
-                  type="button"
-                  className="btn btn-secondary btn-small"
-                  onClick={() => onActivateVersion(versionId)}
-                >
-                  Сделать текущей
-                </button>
-              ) : null}
-              <h2 className="ad2-subhead">Метрики Blender</h2>
-              {metrics.triangles === null ? (
-                <div className="asset-metrics-empty">
-                  <BrandIcon name="blender" size={18} />
-                  <span>Метрик пока нет. Запусти Blender-проверку.</span>
-                </div>
+            </article>
+          </div>
+
+          <div className="ad3-lower">
+            <article className="ad3-card">
+              <div className="ad3-card-head">
+                <h2><Link2 size={14} /> Связанные задачи</h2>
+                <span>{usage.length}</span>
+              </div>
+              {usage.length === 0 ? (
+                <p className="ad3-empty">Ассет пока не привязан к задачам.</p>
               ) : (
-                <div className="asset-metrics">
-                  <span>Треугольники <b>{metrics.triangles}</b></span>
-                  <span>Вершины <b>{metrics.vertices ?? 0}</b></span>
-                  <span>Материалы <b>{metrics.materials ?? 0}</b></span>
-                  <span>Текстуры <b>{metrics.textures ?? 0}</b></span>
-                  <span>Кости <b>{metrics.bones ?? 0}</b></span>
-                  <span>Анимации <b>{metrics.animations ?? 0}</b></span>
+                <div className="ad3-related-list">
+                  {usage.slice(0, 3).map((task) => (
+                    <button type="button" key={task.id} onClick={() => onOpenTask(task.id)}>
+                      <ClipboardList size={15} />
+                      <span>
+                        <b>{task.title}</b>
+                        <small>{TASK_STATUS_LABELS[task.status]}</small>
+                      </span>
+                      <ChevronRight size={14} />
+                    </button>
+                  ))}
                 </div>
+              )}
+            </article>
+
+            <article className="ad3-card">
+              <div className="ad3-card-head">
+                <h2><Box size={14} /> Использование</h2>
+                <span>{usage.length} задач</span>
+              </div>
+              <div className="ad3-usage">
+                <b>{usage.length}</b>
+                <span>Раз в проектах</span>
+              </div>
+              {asset.dependencies.length > 0 ? (
+                <p className="ad3-empty">{asset.dependencies.length} связанных ресурсов</p>
+              ) : (
+                <p className="ad3-empty">Связанных ресурсов нет.</p>
               )}
             </article>
           </div>
         </div>
       ) : null}
 
-      {tab === "versions" ? (
-        <div className="ad2-stack">
-          <div className="ad2-stats is-three">
-            <article className="ad2-stat">
-              <span>Всего версий</span>
-              <b>{asset.versions.length}</b>
-              <small>история сохраняется</small>
-            </article>
-            <article className="ad2-stat">
-              <span>Текущая</span>
-              <b>{currentVersion?.label ?? "—"}</b>
-              <small>{currentVersion ? ASSET_VERSION_STATUS_LABELS[currentVersion.status] : "нет"}</small>
-            </article>
-            <article className="ad2-stat">
-              <span>Размер текущей</span>
-              <b>{formatBytes(currentVersion?.file_size ?? asset.file_size)}</b>
-              <small>{currentVersion ? formatDate(currentVersion.created_at) : "—"}</small>
-            </article>
-          </div>
-          <article className="ad2-card">
-            <div className="ad2-card-head">
-              <h2>История версий</h2>
+      {tab === "files" ? (
+        <div className="ad3-stack">
+          <article className="ad3-card">
+            <div className="ad3-card-head">
+              <h2><Box size={14} /> Файлы и версии</h2>
               <button type="button" className="btn btn-secondary btn-small" onClick={onAddVersion}>
                 <Plus size={13} />
                 Добавить версию
               </button>
             </div>
-            {asset.versions.length === 0 ? (
-              <p className="detail-muted">Версий пока нет</p>
-            ) : (
-              <div className="ad2-version-table">
-                <div className="ad2-version-row is-head">
-                  <span>Версия</span>
-                  <span>Статус</span>
-                  <span>Причина</span>
-                  <span>Размер</span>
-                  <span>Дата</span>
-                  <span />
-                </div>
-                {asset.versions.map((item) => (
-                  <div
-                    className={`ad2-version-row${
-                      item.id === asset.current_version_id ? " is-current" : ""
-                    }${item.id === versionId ? " is-selected" : ""}`}
-                    key={item.id}
-                    onClick={() => pickVersion(item.id)}
-                  >
-                    <span className="mono-inline">{item.label}</span>
-                    <span>
-                      <span className={`task-status is-${item.status}`}>
-                        {ASSET_VERSION_STATUS_LABELS[item.status]}
-                      </span>
-                    </span>
-                    <span className="detail-muted">{item.reason || "без описания"}</span>
-                    <span className="detail-muted">{formatBytes(item.file_size)}</span>
-                    <span className="detail-muted">{formatDate(item.created_at)}</span>
-                    <span className="ad2-version-action">
-                      {item.id === asset.current_version_id ? (
-                        <span className="asset-current-tag">Текущая</span>
-                      ) : (
-                        <button
-                          type="button"
-                          className="btn btn-secondary btn-small"
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            onActivateVersion(item.id);
-                          }}
-                        >
-                          Сделать текущей
-                        </button>
-                      )}
-                    </span>
-                  </div>
-                ))}
+            <div className="ad3-version-table">
+              <div className="ad3-version-row is-head">
+                <span>Версия</span>
+                <span>Статус</span>
+                <span>Файл</span>
+                <span>Размер</span>
+                <span>Дата</span>
+                <span />
               </div>
-            )}
+              {asset.versions.map((item) => (
+                <div
+                  className={`ad3-version-row${item.id === versionId ? " is-selected" : ""}`}
+                  key={item.id}
+                  onClick={() => pickVersion(item.id)}
+                >
+                  <span className="mono-inline">{item.label}</span>
+                  <span>
+                    <span className={`task-status is-${item.status}`}>
+                      {ASSET_VERSION_STATUS_LABELS[item.status]}
+                    </span>
+                  </span>
+                  <span className="detail-muted" title={item.path}>{item.path.split(/[\\/]/).pop()}</span>
+                  <span className="detail-muted">{formatBytes(item.file_size)}</span>
+                  <span className="detail-muted">{formatDate(item.created_at)}</span>
+                  <span className="ad3-version-action">
+                    {item.id === asset.current_version_id ? (
+                      <span className="asset-current-tag">Текущая</span>
+                    ) : (
+                      <button
+                        type="button"
+                        className="btn btn-secondary btn-small"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          onActivateVersion(item.id);
+                        }}
+                      >
+                        Сделать текущей
+                      </button>
+                    )}
+                  </span>
+                </div>
+              ))}
+            </div>
           </article>
-        </div>
-      ) : null}
 
-      {tab === "checks" ? (
-        <div className="ad2-stack">
-          <div className="ad2-stats is-three">
-            <article className="ad2-stat">
-              <span>Пройдено</span>
-              <b>{passed.length}</b>
-              <small>без замечаний</small>
-            </article>
-            <article className="ad2-stat">
-              <span>Внимание</span>
-              <b>{warnings.length}</b>
-              <small>стоит проверить</small>
-            </article>
-            <article className="ad2-stat">
-              <span>Ошибки</span>
-              <b>{failed.length}</b>
-              <small>{failed.length === 0 ? "критичных нет" : "нужно исправить"}</small>
-            </article>
-          </div>
-          <article className="ad2-card">
-            <div className="ad2-card-head">
-              <h2>Проверки</h2>
-              <span className={`task-status ${checkState.tone}`}>{checkState.label}</span>
+          <article className="ad3-card">
+            <div className="ad3-card-head">
+              <h2><ShieldCheck size={14} /> Проверки</h2>
+              <span className={`task-status ${checkState.tone}`}>
+                {passed.length} / {warnings.length} / {failed.length}
+              </span>
             </div>
             {checks.length === 0 ? (
-              <div className="ad2-empty-state">
-                <ShieldCheck size={26} />
-                <b>Проверок пока нет</b>
-                <p>
-                  {blenderChecked
-                    ? "Метрики сохранены, но список проверок пуст."
-                    : "Нажми «Проверить» или запусти Blender, чтобы получить список."}
-                </p>
-                <button
-                  type="button"
-                  className="btn btn-secondary btn-small"
-                  disabled={checking || !isCurrent}
-                  onClick={onRunChecks}
-                >
-                  <ShieldCheck size={13} />
-                  {checking ? "Проверка…" : "Запустить проверки"}
-                </button>
-              </div>
+              <p className="ad3-empty">Проверки ещё не запускались.</p>
             ) : (
-              <div className="check-list ad2-check-list">
+              <div className="ad3-checks">
                 {checks.map((check) => (
                   <div className="check-row" key={check.id}>
                     <span className={`ad2-check-dot is-${CHECK_TONES[check.status]}`}>
@@ -584,20 +581,14 @@ export default function AssetPassportScreen({
       ) : null}
 
       {tab === "usage" ? (
-        <div className="ad2-split">
-          <article className="ad2-card">
-            <div className="ad2-card-head">
-              <h2>Использование</h2>
-              <span className="asset-usage-count">
-                {usage.length} {plural(usage.length, ["задача", "задачи", "задач"])}
-              </span>
+        <div className="ad3-split">
+          <article className="ad3-card">
+            <div className="ad3-card-head">
+              <h2><ClipboardList size={14} /> Использование</h2>
+              <span>{usage.length} задач</span>
             </div>
             {usage.length === 0 ? (
-              <div className="ad2-empty-state">
-                <ClipboardList size={26} />
-                <b>Ассет пока свободен</b>
-                <p>Он хранится в библиотеке и не привязан к задачам. Это нормально.</p>
-              </div>
+              <p className="ad3-empty">Ассет хранится в библиотеке и пока не привязан к задачам.</p>
             ) : (
               <div className="asset-usage-list">
                 {usage.map((task) => (
@@ -623,15 +614,12 @@ export default function AssetPassportScreen({
               </div>
             )}
           </article>
-          <article className="ad2-card">
-            <div className="ad2-card-head">
-              <h2>Привязать к задаче</h2>
+          <article className="ad3-card">
+            <div className="ad3-card-head">
+              <h2><Plus size={14} /> Привязать к задаче</h2>
             </div>
-            <div className="ad2-link-panel">
-              <p>
-                Привязка не копирует файл. Задача просто получает ссылку на этот ассет и его
-                текущую версию.
-              </p>
+            <div className="ad3-link-panel">
+              <p>Привязка не копирует файл. Задача получает ссылку на текущую версию ассета.</p>
               <select
                 value=""
                 onChange={(event) => addTask(event.target.value)}
@@ -649,57 +637,47 @@ export default function AssetPassportScreen({
         </div>
       ) : null}
 
-      {tab === "notes" ? (
-        <div className="ad2-split">
-          <article className="ad2-card">
-            <div className="ad2-card-head">
-              <h2>Описание ассета</h2>
+      {tab === "related" ? (
+        <div className="ad3-stack">
+          <article className="ad3-card">
+            <div className="ad3-card-head">
+              <h2><Link2 size={14} /> Связанные задачи</h2>
+              <span>{usage.length}</span>
             </div>
-            <textarea
-              className="asset-description"
-              value={description}
-              onChange={(event) => setDescription(event.target.value)}
-              placeholder="Назначение ассета, заметки и ограничения"
-              rows={7}
-            />
-            <div className="asset-description-foot">
-              <span>Заметки хранятся в паспорте ассета</span>
-              <button
-                type="button"
-                className="btn btn-secondary btn-small"
-                disabled={description === asset.description}
-                onClick={() => onUpdateDescription(description)}
-              >
-                Сохранить
-              </button>
-            </div>
+            {usage.length === 0 ? (
+              <p className="ad3-empty">Связанных задач нет.</p>
+            ) : (
+              <div className="ad3-related-list">
+                {usage.map((task) => (
+                  <button type="button" key={task.id} onClick={() => onOpenTask(task.id)}>
+                    <ClipboardList size={15} />
+                    <span>
+                      <b>{task.title}</b>
+                      <small>{TASK_STATUS_LABELS[task.status]}</small>
+                    </span>
+                    <ChevronRight size={14} />
+                  </button>
+                ))}
+              </div>
+            )}
           </article>
-          <article className="ad2-card">
-            <div className="ad2-card-head">
-              <h2>О файле</h2>
+          <article className="ad3-card">
+            <div className="ad3-card-head">
+              <h2><Box size={14} /> Зависимости</h2>
+              <span>{asset.dependencies.length}</span>
             </div>
-            <div className="ad2-props is-single">
-              <div>
-                <span>Тип</span>
-                <b>{ASSET_TYPE_LABELS[asset.type] ?? asset.type}</b>
-              </div>
-              <div>
-                <span>Движок</span>
-                <b>{ENGINE_LABELS[asset.engine]}</b>
-              </div>
-              <div>
-                <span>Лицензия</span>
-                <b>{asset.license || "Не указана"}</b>
-              </div>
-              <div>
-                <span>Происхождение</span>
-                <b>{asset.origin || "Не указано"}</b>
-              </div>
-              <div>
-                <span>Импортирован</span>
-                <b>{formatDate(asset.created_at)}</b>
-              </div>
-            </div>
+            {asset.dependencies.length === 0 ? (
+              <p className="ad3-empty">Зависимостей нет.</p>
+            ) : (
+              <ul className="td2-list">
+                {asset.dependencies.map((dependency, index) => (
+                  <li key={`${dependency.kind}:${dependency.target_id}:${index}`}>
+                    <span>{dependency.label || dependency.kind}</span>
+                    <small>{dependency.target_id}</small>
+                  </li>
+                ))}
+              </ul>
+            )}
           </article>
         </div>
       ) : null}
