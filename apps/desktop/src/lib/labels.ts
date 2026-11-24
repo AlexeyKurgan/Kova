@@ -93,4 +93,5 @@ export const LEDGER_TYPE_LABELS: Record<string, string> = {
   "ai.run.started": "AI-запуск начат",
   "ai.run.finished": "AI завершил задачу",
   "ai.run.failed": "AI завершился с ошибкой",
+  "agent.run.interrupted": "Запуск агента прерван",
 };

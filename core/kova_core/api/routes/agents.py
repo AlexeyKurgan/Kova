@@ -21,6 +21,7 @@ class RunInfo(BaseModel):
     id: str
     task_id: str
     task_title: str = ""
+    session_id: str = ""
     provider_id: str = ""
     provider_name: str = ""
     status: str = "queued"
@@ -38,6 +39,8 @@ class RunInfo(BaseModel):
     command: str = ""
     args: list[str] = Field(default_factory=list)
     cancel_requested: bool = False
+    pid: int | None = None
+    interrupted_reason: str = ""
 
 
 @router.post("/runs", response_model=RunInfo, status_code=201)

@@ -15,11 +15,13 @@ from ..storage.projects import load_project
 from ..storage.responses import record_response
 from ..storage.snapshots import create_snapshot
 from ..storage.tasks import get_task, save_task
+from . import sessions
 from .providers import build_command, get_provider, provider_env
 
 RUNS: dict[str, dict[str, Any]] = {}
 PROCESSES: dict[str, subprocess.Popen[str]] = {}
 LOCK = threading.Lock()
+RECONCILED: set[str] = set()
 
 
 def _now() -> str:
@@ -68,7 +70,47 @@ def get_run(hub: Path, run_id: str) -> dict[str, Any] | None:
     return payload if isinstance(payload, dict) else None
 
 
+def reconcile_runs(hub: Path) -> None:
+    key = str(hub)
+    with LOCK:
+        if key in RECONCILED:
+            return
+        RECONCILED.add(key)
+    reason = "core перезапущен до завершения запуска"
+    directory = runs_dir(hub)
+    if directory.is_dir():
+        for path in directory.glob("run_*.json"):
+            try:
+                payload = json.loads(path.read_text(encoding="utf-8"))
+            except (OSError, ValueError):
+                continue
+            if not isinstance(payload, dict):
+                continue
+            if payload.get("status") not in {"queued", "running"}:
+                continue
+            run_id = str(payload.get("id") or "")
+            if not run_id or run_id in RUNS:
+                continue
+            payload["status"] = "interrupted"
+            payload["finished_at"] = _now()
+            payload["error"] = reason
+            payload["interrupted_reason"] = reason
+            _save(hub, payload)
+            sessions.finish_session(hub, str(payload.get("session_id") or ""), "interrupted")
+            append_event(
+                hub,
+                LedgerEvent(
+                    type="agent.run.interrupted",
+                    subject=str(payload.get("task_id") or ""),
+                    actor=str(payload.get("provider_name") or "AI"),
+                    data={"run_id": run_id, "session_id": payload.get("session_id") or ""},
+                ),
+            )
+    sessions.interrupt_active_sessions(hub, set(RUNS.keys()))
+
+
 def list_runs(hub: Path, task_id: str | None = None, limit: int = 50) -> list[dict[str, Any]]:
+    reconcile_runs(hub)
     rows: list[dict[str, Any]] = []
     directory = runs_dir(hub)
     if directory.is_dir():
@@ -128,6 +170,17 @@ def _kill(process: subprocess.Popen[str]) -> None:
 
 
 def _execute(hub: Path, run_id: str, provider: dict[str, Any], argv: list[str], cwd: Path) -> None:
+    current = get_run(hub, run_id) or {}
+    if current.get("cancel_requested"):
+        _finish(
+            hub,
+            run_id,
+            status="cancelled",
+            output="",
+            exit_code=None,
+            error="запуск отменён",
+        )
+        return
     _update(hub, run_id, status="running", started_at=_now())
     timeout = int(provider.get("timeout") or 1800)
     env = provider_env()
@@ -148,6 +201,20 @@ def _execute(hub: Path, run_id: str, provider: dict[str, Any], argv: list[str], 
         )
         with LOCK:
             PROCESSES[run_id] = process
+        _update(hub, run_id, pid=process.pid)
+        current = get_run(hub, run_id) or {}
+        if current.get("cancel_requested"):
+            _kill(process)
+            output, _ = process.communicate()
+            _finish(
+                hub,
+                run_id,
+                status="cancelled",
+                output=output or "",
+                exit_code=process.returncode,
+                error="запуск отменён",
+            )
+            return
         try:
             output, _ = process.communicate(timeout=timeout)
         except subprocess.TimeoutExpired:
@@ -206,6 +273,7 @@ def _finish(
     output: str,
     exit_code: int | None,
     error: str = "",
+    interrupted_reason: str = "",
 ) -> None:
     record = get_run(hub, run_id) or {}
     finished = _now()
@@ -239,10 +307,15 @@ def _finish(
             review_id = review.id
 
     if status != "succeeded" or not review_id:
+        event_type = "ai.run.finished"
+        if status == "interrupted":
+            event_type = "agent.run.interrupted"
+        elif status != "succeeded":
+            event_type = "ai.run.failed"
         append_event(
             hub,
             LedgerEvent(
-                type="ai.run.finished" if status == "succeeded" else "ai.run.failed",
+                type=event_type,
                 subject=str(record.get("task_id") or ""),
                 actor=str(record.get("provider_name") or "AI"),
                 data={
@@ -250,6 +323,7 @@ def _finish(
                     "status": status,
                     "exit_code": exit_code,
                     "review_id": review_id,
+                    "session_id": record.get("session_id") or "",
                 },
             ),
         )
@@ -260,11 +334,13 @@ def _finish(
         output=clipped,
         exit_code=exit_code,
         error=error,
+        interrupted_reason=interrupted_reason,
         finished_at=finished,
         log_path=log_path,
         artifact_path=artifact_path,
         review_id=review_id,
     )
+    sessions.finish_session(hub, str(record.get("session_id") or ""), status)
 
 
 def start_run(
@@ -273,6 +349,7 @@ def start_run(
     provider_id: str | None = None,
     snapshot: bool = True,
 ) -> dict[str, Any]:
+    reconcile_runs(hub)
     task = get_task(hub, task_id)
     if task is None:
         raise FileNotFoundError("task not found")
@@ -306,10 +383,25 @@ def start_run(
         except (OSError, ValueError) as exc:
             snapshot_error = str(exc)
 
+    try:
+        session = sessions.get_or_create_session(
+            hub,
+            task.id,
+            task.title,
+            str(provider["id"]),
+            str(provider["name"]),
+            snapshot_id,
+        )
+        session = sessions.attach_run(hub, str(session["id"]), run_id) or session
+        session_id = str(session.get("id") or "")
+    except OSError:
+        session_id = ""
+
     record: dict[str, Any] = {
         "id": run_id,
         "task_id": task.id,
         "task_title": task.title,
+        "session_id": session_id,
         "provider_id": provider["id"],
         "provider_name": provider["name"],
         "status": "queued",
@@ -326,6 +418,8 @@ def start_run(
         "snapshot_error": snapshot_error,
         "command": provider.get("command"),
         "args": provider.get("args"),
+        "pid": None,
+        "interrupted_reason": "",
     }
     with LOCK:
         RUNS[run_id] = record
@@ -350,6 +444,7 @@ def start_run(
 
 
 def cancel_run(hub: Path, run_id: str) -> dict[str, Any] | None:
+    reconcile_runs(hub)
     record = get_run(hub, run_id)
     if record is None:
         return None
@@ -360,4 +455,13 @@ def cancel_run(hub: Path, run_id: str) -> dict[str, Any] | None:
         process = PROCESSES.get(run_id)
     if process is not None:
         _kill(process)
+    elif run_id not in RUNS:
+        _finish(
+            hub,
+            run_id,
+            status="cancelled",
+            output=str(record.get("output") or ""),
+            exit_code=None,
+            error="процесс уже завершился",
+        )
     return get_run(hub, run_id)

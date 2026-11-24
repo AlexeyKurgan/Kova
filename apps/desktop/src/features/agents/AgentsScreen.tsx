@@ -1,17 +1,19 @@
 import { useEffect, useState } from "react";
 import {
   Bot,
-  Check,
-  ChevronRight,
-  Play,
+  Pencil,
   Plus,
   RefreshCw,
+  Search,
+  Star,
   Trash2,
   X,
 } from "lucide-react";
 import BrandIcon from "../../components/BrandIcon";
 import { providerBrand } from "../../lib/brands";
-import type { ProviderInfo } from "../../lib/types";
+import { listRecentAiRuns } from "../../lib/coreClient";
+import { formatDate } from "../../lib/format";
+import type { AiRun, AiRunStatus, ProviderInfo } from "../../lib/types";
 
 type Props = {
   providers: ProviderInfo[];
@@ -39,6 +41,7 @@ type Props = {
   onCheck: (providerId: string) => Promise<void>;
   onSetDefault: (providerId: string) => Promise<void>;
   onDelete: (providerId: string) => Promise<void>;
+  onOpenTask: (taskId: string) => void;
 };
 
 type Dialog =
@@ -46,14 +49,37 @@ type Dialog =
   | { kind: "create" }
   | null;
 
+const RUN_LABELS: Record<AiRunStatus, string> = {
+  queued: "В очереди",
+  running: "Работает",
+  succeeded: "Готово",
+  failed: "Ошибка",
+  cancelled: "Отменено",
+  interrupted: "Прервано",
+};
+
+const RUN_DOT: Record<AiRunStatus, string> = {
+  queued: "is-queued",
+  running: "is-running",
+  succeeded: "is-succeeded",
+  failed: "is-failed",
+  cancelled: "is-cancelled",
+  interrupted: "is-interrupted",
+};
+
 function parseArgs(text: string) {
   const matches = text.match(/(?:[^\s"]+|"[^"]*")+/g) ?? [];
   return matches.map((item) => item.replace(/^"|"$/g, ""));
 }
 
-function statusLabel(provider: ProviderInfo) {
-  if (!provider.installed) return "CLI не найден";
-  return provider.version || "Установлен";
+function providerState(provider: ProviderInfo) {
+  if (!provider.installed) return { label: "не найден", dot: "is-off" };
+  if (!provider.enabled) return { label: "выключен", dot: "is-warn" };
+  return { label: "готов", dot: "is-on" };
+}
+
+function commandLine(provider: ProviderInfo) {
+  return [provider.command, ...provider.args].filter(Boolean).join(" ");
 }
 
 export default function AgentsScreen({
@@ -64,6 +90,7 @@ export default function AgentsScreen({
   onCheck,
   onSetDefault,
   onDelete,
+  onOpenTask,
 }: Props) {
   const [dialog, setDialog] = useState<Dialog>(null);
   const [name, setName] = useState("");
@@ -74,7 +101,11 @@ export default function AgentsScreen({
   const [enabled, setEnabled] = useState(true);
   const [setDefault, setSetDefault] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [checkingId, setCheckingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [runs, setRuns] = useState<AiRun[]>([]);
+  const [runsError, setRunsError] = useState<string | null>(null);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
     if (!dialog) return;
@@ -84,6 +115,28 @@ export default function AgentsScreen({
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [dialog, busy]);
+
+  useEffect(() => {
+    let alive = true;
+    const load = () => {
+      listRecentAiRuns(8)
+        .then((rows) => {
+          if (!alive) return;
+          setRuns(rows);
+          setRunsError(null);
+        })
+        .catch(() => {
+          if (!alive) return;
+          setRunsError("История запусков недоступна");
+        });
+    };
+    void load();
+    const timer = window.setInterval(load, 10000);
+    return () => {
+      alive = false;
+      window.clearInterval(timer);
+    };
+  }, [refreshKey]);
 
   const openEdit = (provider: ProviderInfo) => {
     setName(provider.name);
@@ -143,7 +196,61 @@ export default function AgentsScreen({
     }
   };
 
-  const installedCount = providers.filter((provider) => provider.installed && provider.enabled).length;
+  const check = async (provider: ProviderInfo) => {
+    setCheckingId(provider.id);
+    setError(null);
+    try {
+      await onCheck(provider.id);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Проверка не удалась");
+    } finally {
+      setCheckingId(null);
+    }
+  };
+
+  const makeDefault = async (provider: ProviderInfo) => {
+    setError(null);
+    try {
+      await onSetDefault(provider.id);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Не удалось выбрать основного");
+    }
+  };
+
+  const remove = async (provider: ProviderInfo) => {
+    if (!window.confirm(`Удалить провайдера «${provider.name}»?`)) return;
+    setError(null);
+    try {
+      await onDelete(provider.id);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Не удалось удалить провайдера");
+    }
+  };
+
+  const refreshAll = () => {
+    onRefresh();
+    setRefreshKey((value) => value + 1);
+  };
+
+  const ready = providers.filter((provider) => provider.installed && provider.enabled);
+  const defaultProvider = providers.find((provider) => provider.default) ?? null;
+  const groups = [
+    {
+      key: "ready",
+      label: "Доступны",
+      items: providers.filter((provider) => provider.installed && provider.enabled),
+    },
+    {
+      key: "disabled",
+      label: "Выключены",
+      items: providers.filter((provider) => provider.installed && !provider.enabled),
+    },
+    {
+      key: "missing",
+      label: "Не найдены",
+      items: providers.filter((provider) => !provider.installed),
+    },
+  ].filter((group) => group.items.length > 0);
 
   return (
     <section className="assets-screen agents-screen">
@@ -152,8 +259,8 @@ export default function AgentsScreen({
         <div className="assets-heading-copy">
           <h1>Агенты и AI</h1>
           <p className="subtitle">
-            Kova запускает установленные CLI-агенты в папке проекта. Ключи и логин остаются в
-            самих инструментах — Kova их не хранит.
+            CLI-агенты работают в папке проекта. Kova запускает процесс, делает снапшот и
+            показывает результат.
           </p>
         </div>
         <div className="header-actions">
@@ -161,137 +268,221 @@ export default function AgentsScreen({
             <Plus size={15} />
             Свой CLI
           </button>
-          <button type="button" className="btn btn-secondary" onClick={onRefresh}>
-            <RefreshCw size={14} />
-            Обновить
+          <button
+            type="button"
+            className="icon-btn action-btn"
+            title="Обновить провайдеров и запуски"
+            aria-label="Обновить провайдеров и запуски"
+            onClick={refreshAll}
+          >
+            <RefreshCw size={15} />
           </button>
         </div>
       </div>
 
-      <div className="agents-summary">
-        <span className="agents-summary-dot" />
-        {installedCount > 0
-          ? `Готовы к запуску: ${installedCount}`
-          : "Пока не найден ни один CLI-агент"}
-        <span className="agents-summary-note">
-          Установка и логин — через сам CLI, например <code>claude</code>, <code>codex</code>,{" "}
-          <code>gemini</code>.
+      <div className="agents-statusbar">
+        <span className={`agents-dot ${ready.length > 0 ? "is-on" : "is-off"}`} />
+        <span>
+          {ready.length > 0
+            ? `Готовы к запуску: ${ready.length} из ${providers.length}`
+            : "Ни один CLI не найден"}
         </span>
+        {defaultProvider ? (
+          <>
+            <span className="agents-sep">·</span>
+            <span>основной — {defaultProvider.name}</span>
+          </>
+        ) : null}
       </div>
 
-      {error && !dialog ? <p className="modal-error">{error}</p> : null}
+      {error ? <p className="agents-error">{error}</p> : null}
 
-      <div className="agents-grid">
-        {providers.map((provider) => {
-          const brand = providerBrand(provider.id);
-          return (
-            <article
-              className={`agent-card${provider.default ? " is-default" : ""}${
-                !provider.installed ? " is-missing" : ""
-              }`}
-              key={provider.id}
-            >
-              <div className="agent-card-head">
-                <span className={`agent-glyph is-${provider.id}`}>
-                  {brand ? (
-                    <BrandIcon name={brand} size={22} />
-                  ) : (
-                    <Bot size={20} strokeWidth={1.7} />
-                  )}
-                </span>
-                <div className="agent-title">
-                  <h2>{provider.name}</h2>
-                  <span className="agent-meta">
-                    {provider.builtin ? "Встроенный пресет" : "Свой CLI"} ·{" "}
-                    {provider.installed ? "найден" : "не найден"}
-                  </span>
+      <div className="agents-layout">
+        <section className="agent-panel">
+          <div className="agent-panel-head">
+            <h2>Провайдеры</h2>
+            <span>{providers.length}</span>
+          </div>
+
+          {providers.length === 0 ? (
+            <div className="agent-empty">
+              <b>Провайдеров пока нет</b>
+              <span>Добавь свой CLI или верни встроенные пресеты.</span>
+            </div>
+          ) : (
+            <div className="agent-list">
+              {groups.map((group) => (
+                <div className="agent-group" key={group.key}>
+                  <div className="agent-group-head">
+                    <span>{group.label}</span>
+                    <span>{group.items.length}</span>
+                  </div>
+                  {group.items.map((provider) => {
+                    const brand = providerBrand(provider.id);
+                    const state = providerState(provider);
+                    const checking = checkingId === provider.id;
+                    return (
+                      <article
+                        className={`agent-row${!provider.installed ? " is-missing" : ""}${
+                          provider.default ? " is-default" : ""
+                        }`}
+                        key={provider.id}
+                      >
+                        <span className="agent-icon">
+                          {brand ? (
+                            <BrandIcon name={brand} size={21} />
+                          ) : (
+                            <Bot size={19} strokeWidth={1.6} />
+                          )}
+                        </span>
+
+                        <div className="agent-main">
+                          <div className="agent-name-line">
+                            <span className={`agent-dot ${state.dot}`} />
+                            <b title={provider.description || undefined}>{provider.name}</b>
+                            {provider.default ? (
+                              <span className="agent-tag is-default">основной</span>
+                            ) : null}
+                            {!provider.enabled ? (
+                              <span className="agent-tag">выключен</span>
+                            ) : null}
+                            {!provider.installed ? (
+                              <span className="agent-tag is-off">не найден</span>
+                            ) : null}
+                          </div>
+                          <div className="agent-meta-line">
+                            <span>{provider.builtin ? "пресет" : "свой CLI"}</span>
+                            <span className="agents-sep">·</span>
+                            <span>
+                              {provider.version ||
+                                (provider.installed ? "CLI готов" : "команда не найдена")}
+                            </span>
+                            {provider.path ? (
+                              <code title={provider.path}>{provider.path}</code>
+                            ) : null}
+                          </div>
+                          <code className="agent-cmd" title={commandLine(provider)}>
+                            {commandLine(provider)}
+                          </code>
+                        </div>
+
+                        <div className="agent-actions2">
+                          <button
+                            type="button"
+                            className="agent-link"
+                            disabled={checking}
+                            title="Проверить, что CLI доступен"
+                            onClick={() => void check(provider)}
+                          >
+                            {provider.installed ? (
+                              <RefreshCw size={11} />
+                            ) : (
+                              <Search size={11} />
+                            )}
+                            {checking
+                              ? "Проверка…"
+                              : provider.installed
+                                ? "Проверить"
+                                : "Найти"}
+                          </button>
+                          <button
+                            type="button"
+                            className="agent-link"
+                            title="Настроить провайдера"
+                            onClick={() => openEdit(provider)}
+                          >
+                            <Pencil size={11} />
+                            Настроить
+                          </button>
+                          {!provider.default && provider.installed ? (
+                            <button
+                              type="button"
+                              className="agent-link"
+                              title="Сделать основным"
+                              aria-label="Сделать основным"
+                              onClick={() => void makeDefault(provider)}
+                            >
+                              <Star size={12} />
+                            </button>
+                          ) : null}
+                          {!provider.builtin ? (
+                            <button
+                              type="button"
+                              className="agent-link is-danger"
+                              title="Удалить провайдера"
+                              aria-label="Удалить провайдера"
+                              onClick={() => void remove(provider)}
+                            >
+                              <Trash2 size={12} />
+                            </button>
+                          ) : null}
+                        </div>
+                      </article>
+                    );
+                  })}
                 </div>
-                {provider.default ? <span className="agent-default">Основной</span> : null}
+              ))}
+            </div>
+          )}
+        </section>
+
+        <aside className="agents-side">
+          <section className="agent-panel">
+            <div className="agent-panel-head">
+              <h2>Последние запуски</h2>
+            </div>
+            {runsError ? (
+              <div className="agent-empty">
+                <span>{runsError}</span>
               </div>
-
-              <p className="agent-desc">{provider.description || "CLI-агент в папке проекта."}</p>
-
-              <div className="agent-status">
-                <span className={`dot ${provider.installed ? "is-on" : "is-off"}`} />
-                <span>{statusLabel(provider)}</span>
-                {provider.installed && provider.path ? (
-                  <code title={provider.path}>{provider.path}</code>
-                ) : null}
+            ) : runs.length === 0 ? (
+              <div className="agent-empty">
+                <b>Запусков пока нет</b>
+                <span>Запусти задачу из карточки — здесь появится история.</span>
               </div>
-
-              <div className="agent-command">
-                <code>
-                  {provider.command} {provider.args.join(" ")}
-                </code>
-              </div>
-
-              <div className="agent-actions">
-                <button
-                  type="button"
-                  className="btn btn-secondary btn-small"
-                  onClick={() => {
-                    void onCheck(provider.id).catch((err) => {
-                      setError(err instanceof Error ? err.message : "Проверка не удалась");
-                    });
-                  }}
-                >
-                  <Play size={13} />
-                  Проверить
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-secondary btn-small"
-                  onClick={() => openEdit(provider)}
-                >
-                  Настроить
-                </button>
-                <span className="modal-footer-spacer" />
-                {!provider.default && provider.installed ? (
+            ) : (
+              <div className="run-list">
+                {runs.map((run) => (
                   <button
                     type="button"
-                    className="agent-default-btn"
-                    onClick={() => {
-                      void onSetDefault(provider.id).catch((err) => {
-                        setError(err instanceof Error ? err.message : "Не удалось выбрать");
-                      });
-                    }}
+                    className="run-row"
+                    key={run.id}
+                    title={`Открыть задачу «${run.task_title}»`}
+                    onClick={() => onOpenTask(run.task_id)}
                   >
-                    <Check size={13} />
-                    Сделать основным
+                    <span className={`run-dot ${RUN_DOT[run.status]}`} />
+                    <span className="run-copy">
+                      <b>{run.task_title}</b>
+                      <small>
+                        {run.provider_name} · {formatDate(run.started_at || run.created_at)}
+                      </small>
+                    </span>
+                    <span className={`run-label ${RUN_DOT[run.status]}`}>
+                      {RUN_LABELS[run.status]}
+                    </span>
                   </button>
-                ) : null}
-                {!provider.builtin ? (
-                  <button
-                    type="button"
-                    className="icon-btn is-danger"
-                    title="Удалить провайдера"
-                    aria-label="Удалить провайдера"
-                    onClick={() => {
-                      if (window.confirm(`Удалить провайдера «${provider.name}»?`)) {
-                        void onDelete(provider.id).catch((err) => {
-                          setError(err instanceof Error ? err.message : "Не удалось удалить");
-                        });
-                      }
-                    }}
-                  >
-                    <Trash2 size={13} />
-                  </button>
-                ) : null}
-                {!provider.installed ? (
-                  <span className="agent-hint">укажи полный путь в настройках</span>
-                ) : null}
+                ))}
               </div>
-            </article>
-          );
-        })}
+            )}
+          </section>
+
+          <section className="agent-panel agent-facts">
+            <div className="agent-panel-head">
+              <h2>Границы</h2>
+            </div>
+            <ul>
+              <li>Kova запускает CLI в папке проекта и делает снапшот перед стартом.</li>
+              <li>Запись и команды ограничивает сам CLI, а не Kova.</li>
+              <li>Логин и ключи остаются внутри CLI; Kova их не хранит.</li>
+            </ul>
+          </section>
+        </aside>
       </div>
 
-      <div className="agents-note">
-        <ChevronRight size={14} />
-        Kova не подставляет ключи и не обходит логин. Если CLI не установлен — установи его
-        в системе и нажми «Обновить». Для моделей с API-ключом добавь свой CLI-обёртку или
-        используй OpenCode/Codex с настроенным провайдером.
-      </div>
+      <p className="agents-footnote">
+        Установка и вход выполняются в самом CLI. Если команда не находится — укажи полный путь
+        в настройках провайдера.
+      </p>
 
       {dialog ? (
         <div
@@ -303,7 +494,7 @@ export default function AgentsScreen({
           <div className="modal agent-dialog">
             <div className="modal-header">
               <span className="modal-title">
-                {dialog.kind === "edit" ? "Настроить агента" : "Свой CLI-агент"}
+                {dialog.kind === "edit" ? "Настроить провайдера" : "Свой CLI-агент"}
               </span>
               <button
                 type="button"

@@ -930,6 +930,10 @@ export default function App() {
               onCheck={handleCheckProvider}
               onSetDefault={handleSetDefaultProvider}
               onDelete={handleDeleteProvider}
+              onOpenTask={(taskId) => {
+                setActive("Задачи");
+                setOpenTaskId(taskId);
+              }}
             />
           ) : active === "Ассеты" ? (
             selectedAsset ? (

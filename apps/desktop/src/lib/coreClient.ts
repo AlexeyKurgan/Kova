@@ -406,6 +406,10 @@ export async function getAiRun(runId: string): Promise<AiRun> {
   return request<AiRun>(`/ai/runs/${encodeURIComponent(runId)}`);
 }
 
+export async function listRecentAiRuns(limit = 8): Promise<AiRun[]> {
+  return request<AiRun[]>(`/ai/runs?limit=${limit}`);
+}
+
 export async function listAiRuns(taskId: string): Promise<AiRun[]> {
   return request<AiRun[]>(`/ai/runs?task_id=${encodeURIComponent(taskId)}`);
 }

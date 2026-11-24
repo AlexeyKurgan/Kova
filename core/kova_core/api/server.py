@@ -1,4 +1,5 @@
 import os
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -30,12 +31,26 @@ ALLOWED_ORIGINS = [
 
 
 def create_app() -> FastAPI:
+    @asynccontextmanager
+    async def lifespan(_app: FastAPI):
+        from ..agents.runner import reconcile_runs
+        from ..storage.projects import read_active_hub
+
+        hub = read_active_hub()
+        if hub is not None:
+            try:
+                reconcile_runs(hub)
+            except OSError:
+                pass
+        yield
+
     app = FastAPI(
         title="Kova Core",
         version="0.0.0",
         docs_url=None,
         redoc_url=None,
         openapi_url=None,
+        lifespan=lifespan,
     )
     app.include_router(health.router)
     app.include_router(project.router)

@@ -216,12 +216,19 @@ export type ProvidersResponse = {
   default_provider: string;
 };
 
-export type AiRunStatus = "queued" | "running" | "succeeded" | "failed" | "cancelled";
+export type AiRunStatus =
+  | "queued"
+  | "running"
+  | "succeeded"
+  | "failed"
+  | "cancelled"
+  | "interrupted";
 
 export type AiRun = {
   id: string;
   task_id: string;
   task_title: string;
+  session_id: string;
   provider_id: string;
   provider_name: string;
   status: AiRunStatus;
@@ -239,6 +246,8 @@ export type AiRun = {
   command: string;
   args: string[];
   cancel_requested: boolean;
+  pid: number | null;
+  interrupted_reason: string;
 };
 
 export type BlenderScene = {

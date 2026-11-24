@@ -26,6 +26,7 @@ function statusText(run: AiRun) {
   if (run.status === "running") return "Работает";
   if (run.status === "succeeded") return "Готово";
   if (run.status === "cancelled") return "Отменено";
+  if (run.status === "interrupted") return "Прервано";
   return "Ошибка";
 }
 
@@ -248,6 +249,9 @@ export default function AiRunModal({
                     </div>
                   ) : null}
                   {run.error ? <div className="modal-error">{run.error}</div> : null}
+                  {run.interrupted_reason ? (
+                    <div className="ai-run-note is-warn">{run.interrupted_reason}</div>
+                  ) : null}
                   {run.output ? (
                     <pre className="ai-output">{cleanOutput(run.output)}</pre>
                   ) : running ? (
