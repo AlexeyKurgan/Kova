@@ -1,0 +1,23 @@
+# Engine adapter: Roblox (rules on top of the shared workflow)
+
+# The shared contract is AGENTS.md in the Kova Studio checkout; do not duplicate it here.
+# For Godot/Unity/Unreal use kova.init --engine <name> and edit this file for the project.
+
+engine = Roblox
+unit_scale: 1 Blender unit (m) = 20 studs
+poly_budget: 800-2500 polygons for a weapon (adjust to the project)
+part_roles: Handle, Blade, Decor, Core (optional)
+
+import_path: Studio -> 3D Importer -> fbx -> MeshPart -> ReplicatedStorage.Assets.Weapons.<Archetype>.StageN_*
+naming: <Model>_Handle, <Model>_Blade, <Model>_Decor, <Model>_Core
+export: kova.export <Name> (rbxmx or fbx); fbx is the reliable fallback for manual import
+
+role_rules:
+- do not edit Rojo-managed folders during an asset pass; import finished models manually
+- apply rotation and scale before export
+- keep weapons low-poly and readable at gameplay distance
+- verify stud dimensions and part roles against the game design
+
+context:
+- project weapon and progression specs live in the game's own docs/
+- the adapter is project data, not shared bridge code

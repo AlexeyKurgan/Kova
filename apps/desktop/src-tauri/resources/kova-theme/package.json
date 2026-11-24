@@ -1,0 +1,38 @@
+{
+  "name": "kova-theme",
+  "displayName": "Kova Theme",
+  "description": "Тёплая тема Kova для редактора",
+  "publisher": "kova",
+  "version": "0.2.0",
+  "engines": {
+    "vscode": "^1.80.0"
+  },
+  "categories": [
+    "Themes"
+  ],
+  "main": "./extension.js",
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "contributes": {
+    "themes": [
+      {
+        "label": "Kova Dark",
+        "uiTheme": "vs-dark",
+        "path": "./themes/kova-dark.json"
+      },
+      {
+        "label": "Kova Light",
+        "uiTheme": "vs",
+        "path": "./themes/kova-light.json"
+      }
+    ],
+    "commands": [
+      {
+        "command": "kova.switchTheme",
+        "title": "Сменить тему",
+        "category": "Kova"
+      }
+    ]
+  }
+}

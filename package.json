@@ -1,0 +1,23 @@
+{
+  "name": "kova-hub",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Local-first desktop workspace for AI-assisted game development",
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace @kova/desktop",
+    "build": "npm run build --workspace @kova/desktop",
+    "typecheck": "npm run typecheck --workspace @kova/desktop",
+    "tauri": "npm run tauri --workspace @kova/desktop",
+    "core:install": "python -m pip install -e ./core",
+    "core:dev": "python -m kova_core"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "devDependencies": {
+    "puppeteer-core": "^25.18.1"
+  }
+}

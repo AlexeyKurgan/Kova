@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 160" fill="none">
+  <g stroke="#2d3540" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+    <ellipse cx="118" cy="140" rx="78" ry="14" fill="#12161b" />
+    <path d="M52 124c-16-22-8-48 24-54 40-8 86 8 100 34 10 20-6 34-34 34H76c-12 0-20-4-24-14Z" fill="#151a20" />
+    <circle cx="78" cy="94" r="30" fill="#151a20" />
+    <path d="M54 76 50 46l22 18" fill="#151a20" />
+    <path d="M102 76 106 46 84 64" fill="#151a20" />
+    <path d="M58 54l-2-8 7 5" stroke-width="1.5" />
+    <path d="M98 54l2-8-7 5" stroke-width="1.5" />
+    <path d="M64 96c4 4 8 4 12 0" />
+    <path d="M84 96c4 4 8 4 12 0" />
+    <path d="M78 103l-3 3h6Z" fill="#2d3540" />
+    <path d="M78 106c-2 3-5 4-7 4M78 106c2 3 5 4 7 4" stroke-width="1.6" />
+    <path d="M54 104l-14-2M54 110l-14 2M102 104l14-2M102 110l14 2" stroke-width="1.4" />
+    <path d="M176 118c30 0 40 20 24 24" />
+    <path d="M138 118c12 10 28 12 44 6" stroke-width="1.6" opacity="0.5" />
+  </g>
+  <g fill="#2f3844" font-family="Inter, sans-serif" font-weight="600">
+    <text x="150" y="58" font-size="20">Z</text>
+    <text x="166" y="44" font-size="15">Z</text>
+    <text x="178" y="32" font-size="11">Z</text>
+  </g>
+  <g stroke="#2d3540" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M206 142h22l-3 16h-16Z" fill="#151a20" />
+    <path d="M206 142c0-3 22-3 22 0" />
+    <path d="M217 142v-12" />
+    <path d="M217 134c-7-2-11-7-11-14 7 0 11 6 11 14Z" fill="#1b222b" />
+    <path d="M217 128c7-2 11-7 11-14-7 0-11 6-11 14Z" fill="#1b222b" />
+  </g>
+</svg>

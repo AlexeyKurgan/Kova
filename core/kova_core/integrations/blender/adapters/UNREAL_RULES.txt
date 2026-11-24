@@ -1,0 +1,11 @@
+# Engine adapter: Unreal Engine
+
+engine = Unreal Engine
+unit_scale: 1 Blender unit (m) = 100 cm
+export: kova.export <Name> --format fbx
+import: Unreal -> Content Browser -> Import
+forward_axis: -Y, up_axis: Z (check the FBX importer dialog)
+rules:
+- apply rotation and scale before export
+- keep a single root at the model origin
+- verify the import scale in the target project

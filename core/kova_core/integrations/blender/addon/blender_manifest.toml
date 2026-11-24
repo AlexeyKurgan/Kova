@@ -1,0 +1,13 @@
+schema_version = "1.0.0"
+id = "kova_bridge"
+version = "1.0.0"
+name = "Kova Blender Bridge"
+tagline = "Drive Blender from Kova Hub over a local connection"
+maintainer = "Kova Hub"
+type = "add-on"
+tags = ["Interface"]
+blender_version_min = "4.2.0"
+license = ["SPDX:GPL-3.0-or-later"]
+
+[permissions]
+network = "Local loopback connection between Blender and Kova Hub."

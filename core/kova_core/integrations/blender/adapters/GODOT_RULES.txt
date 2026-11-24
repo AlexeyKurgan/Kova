@@ -1,0 +1,11 @@
+# Engine adapter: Godot
+
+engine = Godot
+unit_scale: 1 Blender unit (m) = 1 m
+export: kova.export <Name> --format glb (recommended) or fbx
+import: Godot -> drag the .glb into the project
+up_axis: glTF Y-up; Blender exporter converts automatically
+rules:
+- apply rotation and scale before export
+- keep a clean node hierarchy: <Model>_Handle, <Model>_Blade, <Model>_Decor
+- test the asset at the target gameplay scale

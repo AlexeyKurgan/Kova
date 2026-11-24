@@ -1,0 +1,59 @@
+# Node
+node_modules/
+dist/
+dist-ssr/
+.vite/
+*.local
+
+# Rust / Tauri
+target/
+**/src-tauri/gen/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+build/
+
+# Project memory local data (never committed)
+.hub/
+**/.hub/
+
+# Internal notes (README is public documentation)
+docs/
+
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Logs / temp
+*.log
+*.pid
+*.tsbuildinfo
+.tmp/
+.cache/
+.turbo/
+logs/
+*.bak
+*.orig
+*.swp
+.eslintcache
+.stylelintcache
+
+# Python tooling
+.coverage
+coverage.xml
+htmlcov/
+
+# OS / editors
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json

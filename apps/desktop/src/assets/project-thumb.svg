@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#24384c"/>
+      <stop offset="0.55" stop-color="#4a7484"/>
+      <stop offset="1" stop-color="#7d9f6b"/>
+    </linearGradient>
+    <linearGradient id="dirt" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#6d5138"/>
+      <stop offset="1" stop-color="#503b29"/>
+    </linearGradient>
+  </defs>
+  <rect width="96" height="96" fill="url(#sky)"/>
+  <rect x="8" y="16" width="20" height="5" rx="2" fill="#dce8ea" opacity="0.5"/>
+  <rect x="20" y="11" width="12" height="5" rx="2" fill="#dce8ea" opacity="0.4"/>
+  <rect x="0" y="62" width="96" height="34" fill="url(#dirt)"/>
+  <rect x="0" y="58" width="96" height="8" fill="#6f8f52"/>
+  <rect x="0" y="58" width="96" height="3" fill="#8aa963"/>
+  <rect x="56" y="42" width="9" height="24" fill="#5a3f2b"/>
+  <rect x="46" y="28" width="30" height="17" rx="2" fill="#3c6739"/>
+  <rect x="51" y="22" width="20" height="11" rx="2" fill="#4d7f46"/>
+  <rect x="60" y="18" width="12" height="7" rx="1" fill="#5c9150"/>
+  <rect x="12" y="50" width="13" height="13" fill="#7d5f42"/>
+  <rect x="12" y="50" width="13" height="4" fill="#7f9d5b"/>
+  <rect x="25" y="56" width="10" height="10" fill="#6b5038"/>
+  <rect x="25" y="56" width="10" height="3" fill="#78965a"/>
+  <rect x="72" y="66" width="12" height="12" fill="#5f7d4a"/>
+  <rect x="72" y="66" width="12" height="4" fill="#7fa35f"/>
+</svg>

@@ -1,0 +1,11 @@
+# Engine adapter: Unity
+
+engine = Unity
+unit_scale: 1 Blender unit (m) = 1 m
+export: kova.export <Name> --format fbx
+import: Unity -> drag the .fbx into Assets
+forward_axis: -Z, up_axis: Y
+rules:
+- apply rotation and scale before export
+- avoid negative scale and non-uniform scale on parent objects
+- keep materials and UVs inside the exported asset

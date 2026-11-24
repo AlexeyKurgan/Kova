@@ -1,0 +1,15 @@
+ENGINE: generic
+
+SCALE
+- 1 Blender unit = 1 meter.
+- Apply rotation and scale before export.
+
+NAMING
+- Objects: <Model>_<Part>, one model folder per asset.
+
+BUDGET
+- Default: 5000 triangles per prop, 15000 per character.
+- The task criteria override the default budget.
+
+EXPORT
+- glTF binary (.glb), Y-up, meters.
