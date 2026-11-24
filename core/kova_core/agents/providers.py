@@ -134,6 +134,7 @@ def _entry(provider_id: str, base: dict[str, Any], override: dict[str, Any]) -> 
         "description": str(override.get("description") or base.get("description") or ""),
         "url": str(base.get("url") or ""),
         "timeout": int(override.get("timeout") or 1800),
+        "models": [str(item) for item in (override.get("models") or base.get("models") or []) if str(item).strip()],
     }
 
 
@@ -198,6 +199,8 @@ def update_provider(provider_id: str, payload: dict[str, Any]) -> dict[str, Any]
             existing["timeout"] = max(60, min(7200, int(payload["timeout"])))
         except (TypeError, ValueError):
             pass
+    if "models" in payload and isinstance(payload["models"], list):
+        existing["models"] = [str(item).strip() for item in payload["models"] if str(item).strip()][:20]
     if payload.get("set_default"):
         config["default"] = provider_id
     _write_config(config)
@@ -222,7 +225,7 @@ def default_provider_id() -> str:
     return list_providers()[1]
 
 
-def build_command(provider: dict[str, Any], prompt: str) -> list[str]:
+def build_command(provider: dict[str, Any], prompt: str, model: str = "") -> list[str]:
     path = str(provider.get("path") or "")
     if not path or not Path(path).is_file():
         resolved = resolve_command(str(provider.get("command") or ""))
@@ -234,6 +237,8 @@ def build_command(provider: dict[str, Any], prompt: str) -> list[str]:
     replaced = False
     final: list[str] = []
     for item in args:
+        if "{model}" in item:
+            item = item.replace("{model}", model)
         if "{prompt}" in item:
             final.append(item.replace("{prompt}", prompt))
             replaced = True

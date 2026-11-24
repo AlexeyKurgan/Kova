@@ -28,6 +28,7 @@ class ProviderInfo(BaseModel):
     description: str = ""
     url: str = ""
     timeout: int = 1800
+    models: list[str] = Field(default_factory=list)
     default: bool = False
 
 
@@ -43,6 +44,7 @@ class UpdateProviderRequest(BaseModel):
     args: list[str] | None = None
     enabled: bool | None = None
     timeout: int | None = None
+    models: list[str] | None = None
     set_default: bool = False
 
 
@@ -52,6 +54,7 @@ class CreateProviderRequest(BaseModel):
     args: list[str] = Field(default_factory=list)
     description: str = ""
     timeout: int = 1800
+    models: list[str] = Field(default_factory=list)
     set_default: bool = False
 
 
@@ -92,6 +95,7 @@ def create_provider_route(payload: CreateProviderRequest) -> ProviderInfo:
             "args": payload.args,
             "description": payload.description,
             "timeout": payload.timeout,
+            "models": payload.models,
             "set_default": payload.set_default,
         },
     )

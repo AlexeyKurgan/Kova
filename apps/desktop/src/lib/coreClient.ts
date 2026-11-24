@@ -1,5 +1,6 @@
 import type {
   AiRun,
+  AgentSession,
   AssetPassport,
   BlenderInspectResult,
   BlenderSkill,
@@ -362,6 +363,7 @@ export async function updateProvider(
     args?: string[];
     enabled?: boolean;
     timeout?: number;
+    models?: string[];
     set_default?: boolean;
   },
 ): Promise<ProviderInfo> {
@@ -377,6 +379,7 @@ export async function createProvider(input: {
   args?: string[];
   description?: string;
   timeout?: number;
+  models?: string[];
   set_default?: boolean;
 }): Promise<ProviderInfo> {
   return request<ProviderInfo>("/providers", {
@@ -395,6 +398,8 @@ export async function startAiRun(input: {
   task_id: string;
   provider?: string;
   snapshot: boolean;
+  message?: string;
+  model?: string;
 }): Promise<AiRun> {
   return request<AiRun>("/ai/runs", {
     method: "POST",
@@ -408,6 +413,12 @@ export async function getAiRun(runId: string): Promise<AiRun> {
 
 export async function listRecentAiRuns(limit = 8): Promise<AiRun[]> {
   return request<AiRun[]>(`/ai/runs?limit=${limit}`);
+}
+
+export async function listAiSessions(taskId: string, limit = 20): Promise<AgentSession[]> {
+  return request<AgentSession[]>(
+    `/ai/sessions?task_id=${encodeURIComponent(taskId)}&limit=${limit}`,
+  );
 }
 
 export async function listAiRuns(taskId: string): Promise<AiRun[]> {

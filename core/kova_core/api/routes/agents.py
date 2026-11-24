@@ -4,7 +4,8 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
 from ...agents.providers import get_provider
-from ...agents.runner import cancel_run, get_run, list_runs, start_run
+from ...agents.runner import cancel_run, get_run, list_runs, reconcile_runs, start_run
+from ...agents.sessions import get_session, list_sessions
 from ...storage.tasks import get_task
 from ..deps import require_hub
 
@@ -15,6 +16,8 @@ class StartRunRequest(BaseModel):
     task_id: str
     provider: str | None = None
     snapshot: bool = True
+    message: str = ""
+    model: str | None = None
 
 
 class RunInfo(BaseModel):
@@ -41,6 +44,22 @@ class RunInfo(BaseModel):
     cancel_requested: bool = False
     pid: int | None = None
     interrupted_reason: str = ""
+    model: str = ""
+
+
+class SessionInfo(BaseModel):
+    id: str
+    task_id: str
+    task_title: str = ""
+    provider_id: str = ""
+    provider_name: str = ""
+    status: str = "active"
+    created_at: str = ""
+    updated_at: str = ""
+    finished_at: str = ""
+    snapshot_before: str = ""
+    run_ids: list[str] = Field(default_factory=list)
+    runs: list[RunInfo] = Field(default_factory=list)
 
 
 @router.post("/runs", response_model=RunInfo, status_code=201)
@@ -62,12 +81,48 @@ def start_run_route(
         raise HTTPException(status_code=409, detail="для задачи уже выполняется AI-запуск")
 
     try:
-        record = start_run(hub, payload.task_id, payload.provider, payload.snapshot)
+        record = start_run(
+            hub,
+            payload.task_id,
+            payload.provider,
+            payload.snapshot,
+            payload.message,
+            payload.model,
+        )
     except FileNotFoundError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
     except RuntimeError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     return RunInfo(**record)
+
+
+def _session_info(hub: Path, row: dict) -> SessionInfo:
+    rows = [
+        RunInfo(**run)
+        for run in list_runs(hub, str(row.get("task_id") or ""), limit=200)
+        if run.get("session_id") == row.get("id")
+    ]
+    rows.sort(key=lambda run: run.started_at or run.created_at)
+    return SessionInfo(**{**row, "runs": rows})
+
+
+@router.get("/sessions", response_model=list[SessionInfo])
+def get_sessions(
+    task_id: str | None = Query(default=None),
+    limit: int = Query(default=20, ge=1, le=100),
+    hub: Path = Depends(require_hub),
+) -> list[SessionInfo]:
+    reconcile_runs(hub)
+    return [_session_info(hub, row) for row in list_sessions(hub, task_id)[:limit]]
+
+
+@router.get("/sessions/{session_id}", response_model=SessionInfo)
+def get_session_route(session_id: str, hub: Path = Depends(require_hub)) -> SessionInfo:
+    reconcile_runs(hub)
+    row = get_session(hub, session_id)
+    if row is None:
+        raise HTTPException(status_code=404, detail="session not found")
+    return _session_info(hub, row)
 
 
 @router.get("/runs", response_model=list[RunInfo])

@@ -6,7 +6,6 @@ import TopBar from "./components/TopBar";
 import ConfirmModal from "./components/ConfirmModal";
 import ActivityModal from "./features/activity/ActivityModal";
 import AgentsScreen from "./features/agents/AgentsScreen";
-import AiRunModal from "./features/agents/AiRunModal";
 import AssetPassportScreen from "./features/assets/AssetPassportScreen";
 import AssetsScreen from "./features/assets/AssetsScreen";
 import BlenderModal from "./features/blender/BlenderModal";
@@ -118,8 +117,6 @@ export default function App() {
   const [projectsLoading, setProjectsLoading] = useState(false);
   const [providers, setProviders] = useState<ProviderInfo[]>([]);
   const [defaultProvider, setDefaultProvider] = useState("");
-  const [aiRunTaskId, setAiRunTaskId] = useState<string | null>(null);
-  const [aiRunningTaskId, setAiRunningTaskId] = useState<string | null>(null);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [trashTasks, setTrashTasks] = useState<Task[]>([]);
   const [taskToDelete, setTaskToDelete] = useState<Task | null>(null);
@@ -303,6 +300,7 @@ export default function App() {
         args?: string[];
         enabled?: boolean;
         timeout?: number;
+        models?: string[];
         set_default?: boolean;
       },
     ) => {
@@ -319,6 +317,7 @@ export default function App() {
       args?: string[];
       description?: string;
       timeout?: number;
+      models?: string[];
       set_default?: boolean;
     }) => {
       await createProvider(input);
@@ -843,7 +842,6 @@ export default function App() {
     : null;
   const openTask = tasks.find((task) => task.id === openTaskId) ?? null;
   const skillPickerTask = tasks.find((task) => task.id === skillPickerTaskId) ?? null;
-  const aiRunTask = tasks.find((task) => task.id === aiRunTaskId) ?? null;
   const selectedAsset = assets.find((asset) => asset.id === openAssetId) ?? null;
 
   return (
@@ -973,6 +971,8 @@ export default function App() {
               <TaskDetail
                 task={openTask}
                 assets={assets.filter((asset) => asset.task_ids.includes(openTask.id))}
+                providers={providers}
+                defaultProvider={defaultProvider}
                 events={ledger}
                 importing={importingAsset}
                 onBack={backToTasks}
@@ -985,8 +985,8 @@ export default function App() {
                   void openAsset(assetId);
                 }}
                 onEditSkills={() => setSkillPickerTaskId(openTask.id)}
-                onRunAi={() => setAiRunTaskId(openTask.id)}
-                aiRunning={aiRunningTaskId === openTask.id}
+                onOpenAgents={() => setActive("Агенты")}
+                onTaskChanged={loadProjectData}
                 onArchive={() => void handleArchiveTask(openTask.id)}
                 onRestore={() => void handleRestoreTask(openTask.id)}
                 onDelete={() => requestDeleteTask(openTask)}
@@ -1090,26 +1090,6 @@ export default function App() {
           events={ledger}
           tasks={tasks}
           onClose={() => setActivityOpen(false)}
-        />
-      ) : null}
-      {aiRunTask ? (
-        <AiRunModal
-          task={aiRunTask}
-          providers={providers}
-          defaultProvider={defaultProvider}
-          onClose={() => setAiRunTaskId(null)}
-          onOpenAgents={() => {
-            setAiRunTaskId(null);
-            setActive("Агенты");
-          }}
-          onOpenReview={() => {
-            setAiRunTaskId(null);
-            setActive("Review");
-          }}
-          onFinished={() => void loadProjectData()}
-          onRunningChange={(running) =>
-            setAiRunningTaskId(running ? aiRunTask.id : null)
-          }
         />
       ) : null}
       {skillPickerTask ? (

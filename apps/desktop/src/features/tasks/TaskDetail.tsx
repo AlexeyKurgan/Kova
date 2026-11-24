@@ -2,7 +2,6 @@ import {
   Archive,
   ArchiveRestore,
   ArrowLeft,
-  Bot,
   BookOpen,
   Check,
   ClipboardCopy,
@@ -19,9 +18,11 @@ import {
   TASK_STATUS_LABELS,
   TASK_TYPE_LABELS,
 } from "../../lib/labels";
+import TaskWorkPanel from "./TaskWorkPanel";
 import type {
   AssetPassport,
   LedgerEvent,
+  ProviderInfo,
   Task,
   TaskStatus,
 } from "../../lib/types";
@@ -29,6 +30,8 @@ import type {
 type Props = {
   task: Task;
   assets: AssetPassport[];
+  providers: ProviderInfo[];
+  defaultProvider: string;
   events: LedgerEvent[];
   importing: boolean;
   onBack: () => void;
@@ -38,8 +41,8 @@ type Props = {
   onImportAsset: () => void;
   onOpenAsset: (assetId: string) => void;
   onEditSkills: () => void;
-  onRunAi: () => void;
-  aiRunning: boolean;
+  onOpenAgents: () => void;
+  onTaskChanged: () => void;
   onArchive: () => void;
   onRestore: () => void;
   onDelete: () => void;
@@ -48,6 +51,8 @@ type Props = {
 export default function TaskDetail({
   task,
   assets,
+  providers,
+  defaultProvider,
   events,
   importing,
   onBack,
@@ -57,8 +62,8 @@ export default function TaskDetail({
   onImportAsset,
   onOpenAsset,
   onEditSkills,
-  onRunAi,
-  aiRunning,
+  onOpenAgents,
+  onTaskChanged,
   onArchive,
   onRestore,
   onDelete,
@@ -129,15 +134,6 @@ export default function TaskDetail({
             <ClipboardCopy size={15} />
             Подготовить капсулу
           </button>
-          <button
-            type="button"
-            className="btn btn-secondary"
-            onClick={onRunAi}
-            disabled={aiRunning}
-          >
-            <Bot size={15} />
-            {aiRunning ? "AI работает…" : "Запустить AI"}
-          </button>
           <button type="button" className="btn btn-secondary" onClick={onResponse}>
             <Inbox size={15} />
             Вставить ответ
@@ -172,6 +168,15 @@ export default function TaskDetail({
           <b>{task.id}</b>
         </div>
       </div>
+
+      <TaskWorkPanel
+        task={task}
+        providers={providers}
+        defaultProvider={defaultProvider}
+        onCapsule={onCapsule}
+        onOpenAgents={onOpenAgents}
+        onFinished={onTaskChanged}
+      />
 
       <div className="detail-grid">
         <article className="detail-card">

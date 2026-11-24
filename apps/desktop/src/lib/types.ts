@@ -208,6 +208,7 @@ export type ProviderInfo = {
   description: string;
   url: string;
   timeout: number;
+  models: string[];
   default: boolean;
 };
 
@@ -248,6 +249,22 @@ export type AiRun = {
   cancel_requested: boolean;
   pid: number | null;
   interrupted_reason: string;
+  model: string;
+};
+
+export type AgentSession = {
+  id: string;
+  task_id: string;
+  task_title: string;
+  provider_id: string;
+  provider_name: string;
+  status: "active" | "completed" | "failed" | "cancelled" | "interrupted";
+  created_at: string;
+  updated_at: string;
+  finished_at: string;
+  snapshot_before: string;
+  run_ids: string[];
+  runs: AiRun[];
 };
 
 export type BlenderScene = {

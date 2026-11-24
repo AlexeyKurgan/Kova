@@ -128,7 +128,7 @@ def list_runs(hub: Path, task_id: str | None = None, limit: int = 50) -> list[di
     return rows[:limit]
 
 
-def _prompt_for(hub: Path, task, provider: dict[str, Any]) -> str:
+def _prompt_for(hub: Path, task, provider: dict[str, Any], message: str = "") -> str:
     project = load_project(hub)
     capsule = build_capsule(task, project)
     text = capsule_text(capsule, task, project, hub)
@@ -153,6 +153,8 @@ def _prompt_for(hub: Path, task, provider: dict[str, Any]) -> str:
         "-H \"Content-Type: application/json\" -d \"{\\\"model\\\":\\\"Sword\\\"}\"\n"
         "\n"
     )
+    if message.strip():
+        return header + text + "\n## Текущий запрос\n" + message.strip() + "\n"
     return header + text
 
 
@@ -348,6 +350,8 @@ def start_run(
     task_id: str,
     provider_id: str | None = None,
     snapshot: bool = True,
+    message: str = "",
+    model: str | None = None,
 ) -> dict[str, Any]:
     reconcile_runs(hub)
     task = get_task(hub, task_id)
@@ -362,13 +366,15 @@ def start_run(
         )
     if not provider.get("enabled", True):
         raise RuntimeError(f"{provider.get('name')} выключен")
+    if any("{model}" in str(item) for item in provider.get("args") or []) and not model:
+        raise RuntimeError("выберите модель для этого провайдера")
 
     if task.status not in {TaskStatus.archived, TaskStatus.done}:
         task.status = TaskStatus.working
         save_task(hub, task)
 
-    prompt = _prompt_for(hub, task, provider)
-    argv = build_command(provider, prompt)
+    prompt = _prompt_for(hub, task, provider, message)
+    argv = build_command(provider, prompt, model or "")
     run_id = new_id("run")
     snapshot_id = ""
     snapshot_error = ""
@@ -418,6 +424,7 @@ def start_run(
         "snapshot_error": snapshot_error,
         "command": provider.get("command"),
         "args": provider.get("args"),
+        "model": model or "",
         "pid": None,
         "interrupted_reason": "",
     }

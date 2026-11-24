@@ -13,7 +13,8 @@ import BrandIcon from "../../components/BrandIcon";
 import { providerBrand } from "../../lib/brands";
 import { listRecentAiRuns } from "../../lib/coreClient";
 import { formatDate } from "../../lib/format";
-import type { AiRun, AiRunStatus, ProviderInfo } from "../../lib/types";
+import { RUN_DOT, RUN_LABELS } from "../../lib/runLabels";
+import type { AiRun, ProviderInfo } from "../../lib/types";
 
 type Props = {
   providers: ProviderInfo[];
@@ -27,6 +28,7 @@ type Props = {
       args?: string[];
       enabled?: boolean;
       timeout?: number;
+      models?: string[];
       set_default?: boolean;
     },
   ) => Promise<void>;
@@ -36,6 +38,7 @@ type Props = {
     args?: string[];
     description?: string;
     timeout?: number;
+    models?: string[];
     set_default?: boolean;
   }) => Promise<void>;
   onCheck: (providerId: string) => Promise<void>;
@@ -48,24 +51,6 @@ type Dialog =
   | { kind: "edit"; provider: ProviderInfo }
   | { kind: "create" }
   | null;
-
-const RUN_LABELS: Record<AiRunStatus, string> = {
-  queued: "В очереди",
-  running: "Работает",
-  succeeded: "Готово",
-  failed: "Ошибка",
-  cancelled: "Отменено",
-  interrupted: "Прервано",
-};
-
-const RUN_DOT: Record<AiRunStatus, string> = {
-  queued: "is-queued",
-  running: "is-running",
-  succeeded: "is-succeeded",
-  failed: "is-failed",
-  cancelled: "is-cancelled",
-  interrupted: "is-interrupted",
-};
 
 function parseArgs(text: string) {
   const matches = text.match(/(?:[^\s"]+|"[^"]*")+/g) ?? [];
@@ -97,6 +82,7 @@ export default function AgentsScreen({
   const [command, setCommand] = useState("");
   const [args, setArgs] = useState("");
   const [description, setDescription] = useState("");
+  const [models, setModels] = useState("");
   const [timeout, setTimeoutValue] = useState(1800);
   const [enabled, setEnabled] = useState(true);
   const [setDefault, setSetDefault] = useState(false);
@@ -143,6 +129,7 @@ export default function AgentsScreen({
     setCommand(provider.command);
     setArgs(provider.args.join(" "));
     setDescription(provider.description);
+    setModels(provider.models.join(", "));
     setTimeoutValue(provider.timeout);
     setEnabled(provider.enabled);
     setSetDefault(provider.default);
@@ -155,6 +142,7 @@ export default function AgentsScreen({
     setCommand("");
     setArgs("{prompt}");
     setDescription("");
+    setModels("");
     setTimeoutValue(1800);
     setEnabled(true);
     setSetDefault(false);
@@ -176,6 +164,7 @@ export default function AgentsScreen({
           args: parsed,
           enabled,
           timeout,
+          models: models.split(",").map((item) => item.trim()).filter(Boolean),
           set_default: setDefault,
         });
       } else {
@@ -185,6 +174,7 @@ export default function AgentsScreen({
           command: command.trim(),
           args: parsed,
           timeout,
+          models: models.split(",").map((item) => item.trim()).filter(Boolean),
           set_default: setDefault,
         });
       }
@@ -536,6 +526,18 @@ export default function AgentsScreen({
                 <span className="field-hint">
                   {"{prompt}"} заменяется на текст задачи. Если плейсхолдера нет, промпт
                   добавится в конец.
+                </span>
+              </div>
+              <div className="field">
+                <label htmlFor="agent-models">Модели</label>
+                <input
+                  id="agent-models"
+                  value={models}
+                  onChange={(event) => setModels(event.target.value)}
+                  placeholder="Например: gpt-5-codex, o3"
+                />
+                <span className="field-hint">
+                  Через запятую. Чтобы модель передавалась в CLI, добавь {"{model}"} в аргументы.
                 </span>
               </div>
               <div className="field-row">

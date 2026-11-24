@@ -80,6 +80,11 @@ def test_provider_config_and_run(tmp_path: Path, monkeypatch) -> None:
     assert any(item["task_id"] == task["id"] for item in reviews)
     assert client.get(f"/ai/runs?task_id={task['id']}").status_code == 200
 
+    session_rows = client.get(f"/ai/sessions?task_id={task['id']}").json()
+    assert len(session_rows) == 1
+    assert session_rows[0]["status"] == "completed"
+    assert session_rows[0]["runs"][0]["id"] == run["id"]
+
 
 def test_provider_validation(tmp_path: Path, monkeypatch) -> None:
     client = make_client(tmp_path, monkeypatch)
@@ -207,3 +212,56 @@ def test_cancel_stale_run(tmp_path: Path, monkeypatch) -> None:
     response = client.post(f"/ai/runs/{run_id}/cancel")
     assert response.status_code == 200
     assert response.json()["status"] == "interrupted"
+
+
+def test_run_message_and_model(tmp_path: Path, monkeypatch) -> None:
+    client = make_client(tmp_path, monkeypatch)
+    game = tmp_path / "game"
+    game.mkdir()
+    client.post("/project/open", json={"path": str(game)})
+    task = client.post("/tasks", json={"title": "Model task"}).json()
+    provider = client.post(
+        "/providers",
+        json={
+            "name": "Echo Model",
+            "command": sys.executable,
+            "args": [
+                "-c",
+                "import sys; print(sys.argv[1] + '|' + sys.argv[2])",
+                "{model}",
+                "{prompt}",
+            ],
+            "models": ["demo-model"],
+        },
+    ).json()
+
+    missing_model = client.post(
+        "/ai/runs",
+        json={"task_id": task["id"], "provider": provider["id"], "snapshot": False},
+    )
+    assert missing_model.status_code == 400
+    assert "модель" in missing_model.json()["detail"]
+
+    started = client.post(
+        "/ai/runs",
+        json={
+            "task_id": task["id"],
+            "provider": provider["id"],
+            "snapshot": False,
+            "model": "demo-model",
+            "message": "focus on hitboxes",
+        },
+    )
+    assert started.status_code == 201
+    run = started.json()
+    assert run["model"] == "demo-model"
+    final = None
+    for _ in range(100):
+        time.sleep(0.2)
+        final = client.get(f"/ai/runs/{run['id']}").json()
+        if final["status"] not in {"queued", "running"}:
+            break
+    assert final is not None
+    assert final["status"] == "succeeded", final
+    assert "demo-model" in final["output"]
+    assert "focus on hitboxes" in final["output"]
