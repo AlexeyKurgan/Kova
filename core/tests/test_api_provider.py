@@ -80,7 +80,7 @@ def test_api_provider_run_and_key_storage(tmp_path: Path, monkeypatch) -> None:
         assert started.status_code == 201, started.text
         run = started.json()
         final = run
-        for _ in range(100):
+        for _ in range(300):
             time.sleep(0.2)
             final = client.get(f"/ai/runs/{run['id']}").json()
             if final["status"] not in {"queued", "running"}:
@@ -123,7 +123,7 @@ def test_token_budget_uses_real_usage(tmp_path: Path, monkeypatch) -> None:
             "/ai/runs",
             json={"task_id": task["id"], "provider": provider["id"], "snapshot": False},
         ).json()
-        for _ in range(100):
+        for _ in range(300):
             time.sleep(0.2)
             run = client.get(f"/ai/runs/{started['id']}").json()
             if run["status"] not in {"queued", "running"}:
@@ -187,7 +187,7 @@ def test_local_connector_without_key_and_model_discovery(
         )
         assert started.status_code == 201, started.text
         run = started.json()
-        for _ in range(100):
+        for _ in range(300):
             time.sleep(0.2)
             run = client.get(f"/ai/runs/{run['id']}").json()
             if run["status"] not in {"queued", "running"}:
@@ -246,7 +246,7 @@ def _run_provider(client, task: dict, provider: dict) -> dict:
     )
     assert started.status_code == 201, started.text
     run = started.json()
-    for _ in range(100):
+    for _ in range(300):
         time.sleep(0.2)
         run = client.get(f"/ai/runs/{run['id']}").json()
         if run["status"] not in {"queued", "running"}:

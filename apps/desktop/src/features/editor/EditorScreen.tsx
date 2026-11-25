@@ -55,7 +55,6 @@ export default function EditorScreen({ projectPath }: Props) {
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("all");
   const [tab, setTab] = useState<Tab>("extensions");
-  const [vscodeInstalled, setVscodeInstalled] = useState(false);
   const desktop = inTauri();
 
   const refresh = useCallback(async () => {
@@ -69,11 +68,6 @@ export default function EditorScreen({ projectPath }: Props) {
 
   useEffect(() => {
     void refresh();
-    if (desktop) {
-      invoke<boolean>("vscode_status")
-        .then(setVscodeInstalled)
-        .catch(() => setVscodeInstalled(false));
-    }
     const timer = window.setInterval(() => void refresh(), 5000);
     return () => window.clearInterval(timer);
   }, [refresh, desktop]);
@@ -153,7 +147,7 @@ export default function EditorScreen({ projectPath }: Props) {
             />
           </div>
           <p className="subtitle">
-            VS Code внутри Kova или твой VS Code — проект открывается сразу.
+            Kova Editor с задачами и чатом — проект открывается сразу.
           </p>
         </div>
         <div className="header-actions">
@@ -205,20 +199,6 @@ export default function EditorScreen({ projectPath }: Props) {
               <Square size={15} fill="currentColor" strokeWidth={0} />
             </button>
           ) : null}
-          <button
-            type="button"
-            className={`icon-btn action-btn vscode-btn${vscodeInstalled ? "" : " is-missing"}`}
-            disabled={!desktop || !vscodeInstalled || busy || !projectPath}
-            title={vscodeInstalled ? "Открыть в VS Code" : "VS Code не найден"}
-            aria-label={vscodeInstalled ? "Открыть в VS Code" : "VS Code не найден"}
-            onClick={() =>
-              void run(async () => {
-                await invoke("editor_open_external", { projectPath: projectPath ?? "" });
-              })
-            }
-          >
-            <Code2 size={18} className="vscode-logo" />
-          </button>
           <button
             type="button"
             className="icon-btn action-btn"

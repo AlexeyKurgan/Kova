@@ -308,10 +308,11 @@ def _execute(hub: Path, run_id: str, provider: dict[str, Any], argv: list[str], 
     chunks_lock = threading.Lock()
 
     try:
+        use_stdin = bool(provider.get("prompt_via_stdin"))
         process = subprocess.Popen(
             argv,
             cwd=str(cwd),
-            stdin=subprocess.DEVNULL,
+            stdin=subprocess.PIPE if use_stdin else subprocess.DEVNULL,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             text=True,
@@ -320,6 +321,9 @@ def _execute(hub: Path, run_id: str, provider: dict[str, Any], argv: list[str], 
             env=env,
             creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
         )
+        if use_stdin and process.stdin is not None:
+            process.stdin.write(prompt)
+            process.stdin.close()
         with LOCK:
             PROCESSES[run_id] = process
         _update(hub, run_id, pid=process.pid)
@@ -972,7 +976,13 @@ def start_run(
                 "Верни план, анализ или код текстом.\n"
             )
         else:
-            argv = build_command(provider, prompt, model or "", read_only=read_only)
+            argv = build_command(
+                provider,
+                prompt,
+                model or "",
+                read_only=read_only,
+                prompt_via_stdin=bool(provider.get("prompt_via_stdin")),
+            )
     role = routing.get_role(role_id) if role_id else None
     if role is not None and not resume_from_session:
         prompt = (

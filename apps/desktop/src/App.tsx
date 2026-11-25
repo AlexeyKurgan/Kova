@@ -6,6 +6,7 @@ import TopBar from "./components/TopBar";
 import { useConfirm } from "./components/ConfirmProvider";
 import ActivityModal from "./features/activity/ActivityModal";
 import AgentsScreen from "./features/agents/AgentsScreen";
+import ChatScreen from "./features/chat/ChatScreen";
 import AssetPassportScreen from "./features/assets/AssetPassportScreen";
 import AssetsScreen from "./features/assets/AssetsScreen";
 import BlenderModal from "./features/blender/BlenderModal";
@@ -1090,6 +1091,18 @@ export default function App() {
                 onDeleteAsset={(assetId) => void handleDeleteAsset(assetId)}
               />
             )
+          ) : active === "Чат" ? (
+            <ChatScreen
+              providers={providers}
+              defaultProvider={defaultProvider}
+              tasks={tasks}
+              engine={project?.engine ?? "generic"}
+              onOpenTask={(taskId) => {
+                setActive("Задачи");
+                setOpenTaskId(taskId);
+              }}
+              onTasksChanged={() => void loadProjectData()}
+            />
           ) : active === "Задачи" ? (
             openTask ? (
               <TaskDetail

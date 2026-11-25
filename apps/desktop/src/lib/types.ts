@@ -2,6 +2,7 @@ export const SECTIONS = [
   "Обзор",
   "Проекты",
   "Задачи",
+  "Чат",
   "Review",
   "Ассеты",
   "Скиллы",
@@ -265,6 +266,63 @@ export type AssetMetrics = {
   textures: number | null;
   bones: number | null;
   animations: number | null;
+};
+
+export type ChatAction = {
+  id: string;
+  type: "create_task" | "update_task" | "start_agent_run";
+  payload: Record<string, unknown>;
+  status: "pending" | "approved" | "rejected" | "failed";
+  result: Record<string, unknown>;
+  error: string;
+};
+
+export type ChatAttachment = {
+  id: string;
+  name: string;
+  mime: string;
+  kind: "image" | "video" | "text" | "file";
+  size: number;
+  path: string;
+  text?: string;
+};
+
+export type ChatMessage = {
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+  raw_content?: string;
+  actions?: ChatAction[];
+  attachments?: ChatAttachment[];
+  created_at: string;
+};
+
+export type ChatSummary = {
+  id: string;
+  title: string;
+  scope: "project" | "task";
+  task_id: string;
+  provider_id: string;
+  model: string;
+  status: "idle" | "running" | "failed";
+  updated_at: string;
+  message_count: number;
+  last_message: string;
+};
+
+export type ChatSession = {
+  id: string;
+  title: string;
+  scope: "project" | "task";
+  task_id: string;
+  provider_id: string;
+  model: string;
+  status: "idle" | "running" | "failed";
+  streaming_output: string;
+  error: string;
+  messages: ChatMessage[];
+  created_at: string;
+  updated_at: string;
 };
 
 export type AssetDependency = {

@@ -1,0 +1,70 @@
+{
+  "name": "kova-chat",
+  "displayName": "Kova Chat",
+  "description": "Tasks and agent chat from Kova Hub",
+  "publisher": "kova",
+  "version": "0.3.0",
+  "engines": {
+    "vscode": "^1.80.0"
+  },
+  "main": "./extension.js",
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "contributes": {
+    "viewsContainers": {
+      "secondarySidebar": [
+        {
+          "id": "kova-chat-sidebar",
+          "title": "Kova Chat",
+          "icon": "media/icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "kova-chat-sidebar": [
+        {
+          "id": "kova.chatView",
+          "name": "Kova Chat",
+          "type": "webview"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "kova.openChatView",
+        "title": "Kova: Открыть чат",
+        "icon": "$(comment-discussion)"
+      },
+      {
+        "command": "kova.newChat",
+        "title": "Kova: Новый чат",
+        "icon": "$(add)"
+      },
+      {
+        "command": "kova.refresh",
+        "title": "Kova: Обновить",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "kova.showRun",
+        "title": "Kova: Результат запуска"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "kova.openChatView",
+        "key": "ctrl+alt+k",
+        "mac": "cmd+alt+k"
+      }
+    ],
+    "menus": {
+      "editor/title": [
+        {
+          "command": "kova.openChatView",
+          "group": "navigation@100"
+        }
+      ]
+    }
+  }
+}

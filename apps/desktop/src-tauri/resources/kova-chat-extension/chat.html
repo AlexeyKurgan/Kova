@@ -1,0 +1,898 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; connect-src http://127.0.0.1:8765; img-src http://127.0.0.1:8765 data:; media-src http://127.0.0.1:8765 data:;">
+<style>
+:root {
+  --gold: #d9a441;
+  --gold-soft: rgba(217, 164, 65, 0.12);
+  --gold-line: rgba(217, 164, 65, 0.34);
+  --bg: var(--vscode-sideBar-background, #0f1319);
+  --card: var(--vscode-sideBarSectionHeader-background, #151a22);
+  --inset: var(--vscode-input-background, #1b222c);
+  --fg: var(--vscode-foreground, #c2c8d2);
+  --strong: var(--vscode-sideBarTitle-foreground, #eef1f6);
+  --muted: var(--vscode-descriptionForeground, #758296);
+  --border: var(--vscode-panel-border, #252b35);
+  --danger: #e26d6d;
+  --success: #5cc8a1;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--fg);
+  font: 12px/1.55 var(--vscode-font-family, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif);
+}
+button, select, textarea, input { font: inherit; color: inherit; }
+button { cursor: pointer; }
+button:disabled { opacity: 0.45; cursor: default; }
+
+.top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px 9px;
+  border-bottom: 1px solid var(--border);
+}
+.brand { display: flex; min-width: 0; flex: 1; align-items: center; gap: 9px; }
+.brand-mark {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  flex: none;
+  place-items: center;
+  border: 1px solid var(--gold-line);
+  border-radius: 8px;
+  background: var(--gold-soft);
+  color: var(--gold);
+}
+.brand-copy { display: flex; min-width: 0; flex-direction: column; }
+.brand-copy b { color: var(--strong); font-size: 13px; font-weight: 650; }
+.brand-copy small { overflow: hidden; color: var(--muted); font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
+.top-actions { display: flex; gap: 3px; }
+.icon-btn {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  place-items: center;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: none;
+  color: var(--muted);
+}
+.icon-btn:hover, .icon-btn.is-active { border-color: var(--border); background: var(--card); color: var(--strong); }
+.icon-btn svg { width: 15px; height: 15px; }
+
+.history-panel {
+  position: absolute;
+  z-index: 20;
+  top: 51px;
+  right: 8px;
+  bottom: 8px;
+  display: none;
+  width: min(360px, calc(100% - 16px));
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--bg);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
+}
+.history-panel.is-open { display: flex; }
+.history-head { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; border-bottom: 1px solid var(--border); }
+.history-head b { color: var(--strong); font-size: 12px; }
+.history-search { margin: 8px 10px; }
+.history-search input {
+  width: 100%;
+  height: 32px;
+  padding: 0 9px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--inset);
+  outline: none;
+  font-size: 11px;
+}
+.history-list { display: flex; min-height: 0; flex: 1; flex-direction: column; gap: 2px; overflow-y: auto; padding: 0 6px 8px; }
+.history-item { display: flex; align-items: center; gap: 8px; padding: 8px; border-radius: 7px; cursor: pointer; }
+.history-item:hover { background: var(--card); }
+.history-item.is-active { background: var(--gold-soft); }
+.history-copy { display: flex; min-width: 0; flex: 1; flex-direction: column; }
+.history-copy b { overflow: hidden; color: var(--fg); font-size: 11px; font-weight: 550; text-overflow: ellipsis; white-space: nowrap; }
+.history-copy small { overflow: hidden; color: var(--muted); font-size: 9.5px; text-overflow: ellipsis; white-space: nowrap; }
+.history-date { color: var(--muted); font-size: 9px; }
+
+.context-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+}
+.segmented { display: flex; flex: none; padding: 2px; border: 1px solid var(--border); border-radius: 7px; background: var(--inset); }
+.segmented button {
+  height: 26px;
+  padding: 0 9px;
+  border: 0;
+  border-radius: 5px;
+  background: none;
+  color: var(--muted);
+  font-size: 10.5px;
+}
+.segmented button.is-active { background: var(--card); color: var(--strong); box-shadow: 0 0 0 1px var(--border); }
+.context-bar select {
+  height: 32px;
+  min-width: 0;
+  flex: 1;
+  padding: 0 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--inset);
+  color: var(--fg);
+  font-size: 11px;
+  outline: none;
+}
+.context-bar select:focus { border-color: var(--gold-line); }
+.context-bar .icon-btn { flex: none; }
+.quick-btn {
+  height: 32px;
+  flex: none;
+  padding: 0 9px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--inset);
+  color: var(--muted);
+  font-size: 10.5px;
+}
+.quick-btn:hover { border-color: var(--gold-line); color: var(--gold); }
+.settings-panel {
+  display: none;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+  background: var(--card);
+}
+.settings-panel.is-open { display: flex; }
+.settings-panel label { display: flex; flex-direction: column; gap: 4px; color: var(--muted); font-size: 9.5px; }
+.settings-panel select {
+  height: 34px;
+  padding: 0 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--inset);
+  color: var(--fg);
+  font-size: 11px;
+  outline: none;
+}
+.settings-actions { display: flex; gap: 6px; }
+.settings-actions button {
+  height: 32px;
+  flex: 1;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--inset);
+  color: var(--fg);
+  font-size: 10.5px;
+}
+.settings-actions button.primary { border-color: var(--gold); background: var(--gold); color: #1a1409; font-weight: 650; }
+
+.thread {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 16px;
+  overflow-y: auto;
+  padding: 16px 14px 22px;
+  scrollbar-width: thin;
+}
+.thread::-webkit-scrollbar { width: 7px; }
+.thread::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+.welcome { display: flex; flex-direction: column; padding: 10px 4px; }
+.hero { display: flex; align-items: center; flex-direction: column; gap: 8px; padding: 18px 8px 22px; text-align: center; }
+.cat { width: 118px; color: var(--gold); overflow: visible; filter: drop-shadow(0 12px 24px rgba(0, 0, 0, 0.3)); animation: float 4.2s ease-in-out infinite; }
+.cat path, .cat ellipse, .cat circle { fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+.cat .tail { transform-box: fill-box; transform-origin: 12% 80%; animation: tail 2.6s ease-in-out infinite; }
+.cat .eyes { transform-box: fill-box; transform-origin: center; animation: catblink 5.2s infinite; }
+@keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+@keyframes tail { 0%, 100% { transform: rotate(-5deg); } 50% { transform: rotate(7deg); } }
+@keyframes catblink { 0%, 91%, 100% { opacity: 1; } 94%, 96% { opacity: 0; } }
+.hero h1 { margin: 0; color: var(--strong); font-size: 23px; font-weight: 600; letter-spacing: -0.02em; }
+.hero h1 em { color: var(--gold); font-style: italic; }
+.hero p { max-width: 320px; margin: 0; color: var(--muted); font-size: 11.5px; line-height: 1.55; }
+.suggestions { display: flex; flex-direction: column; gap: 7px; margin-bottom: 18px; }
+.suggestion {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 10px 11px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--card);
+  color: var(--fg);
+  text-align: left;
+  font-size: 11px;
+}
+.suggestion:hover { border-color: var(--gold-line); background: var(--gold-soft); }
+.suggestion svg { width: 15px; height: 15px; flex: none; color: var(--gold); }
+.recent-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+.recent-head b { color: var(--strong); font-size: 11px; }
+.recent-head button { border: 0; background: none; color: var(--gold); font-size: 10px; }
+.recent-list { display: flex; flex-direction: column; gap: 2px; }
+.recent-item { display: flex; align-items: center; gap: 8px; padding: 8px; border-radius: 7px; cursor: pointer; }
+.recent-item:hover { background: var(--card); }
+.recent-item span { display: flex; min-width: 0; flex: 1; flex-direction: column; }
+.recent-item b { overflow: hidden; color: var(--fg); font-size: 11px; font-weight: 550; text-overflow: ellipsis; white-space: nowrap; }
+.recent-item small { overflow: hidden; color: var(--muted); font-size: 9.5px; text-overflow: ellipsis; white-space: nowrap; }
+.recent-item time { color: var(--muted); font-size: 9px; }
+
+.msg { display: flex; flex-direction: column; gap: 5px; }
+.msg.user { align-items: flex-end; }
+.msg-head { display: flex; align-items: center; gap: 6px; }
+.msg-avatar { display: grid; width: 24px; height: 24px; place-items: center; border-radius: 6px; background: var(--card); color: var(--muted); }
+.msg.assistant .msg-avatar { background: var(--gold-soft); color: var(--gold); }
+.msg-name { color: var(--muted); font-size: 9.5px; }
+.msg-body { width: 100%; color: var(--fg); font-size: 12.5px; line-height: 1.65; white-space: pre-wrap; overflow-wrap: anywhere; }
+.msg.user .msg-body { width: auto; max-width: 90%; padding: 9px 12px; border: 1px solid var(--border); border-radius: 12px 12px 3px 12px; background: var(--card); }
+.msg-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; width: 100%; }
+.msg.user .msg-foot { justify-content: flex-end; }
+.msg-foot small { color: var(--muted); font-size: 8.5px; }
+.link-btn { border: 0; background: none; padding: 2px 0; color: var(--gold); font-size: 9px; }
+.link-btn:hover { text-decoration: underline; }
+.msg.stream .msg-body { color: var(--muted); font-family: var(--vscode-editor-font-family, Consolas, monospace); font-size: 11px; }
+.thinking { display: inline-flex; gap: 3px; margin-left: 4px; }
+.thinking i { width: 4px; height: 4px; border-radius: 50%; background: var(--gold); opacity: 0.3; animation: blink 1.1s infinite; }
+.thinking i:nth-child(2) { animation-delay: 0.15s; }
+.thinking i:nth-child(3) { animation-delay: 0.3s; }
+@keyframes blink { 0%, 100% { opacity: 0.25; } 50% { opacity: 1; } }
+
+.media { display: flex; flex-wrap: wrap; gap: 8px; margin: 2px 0; }
+.media img, .media video { display: block; width: 180px; max-width: 100%; max-height: 220px; border: 1px solid var(--border); border-radius: 9px; object-fit: cover; background: #000; }
+.file-card { display: flex; align-items: center; gap: 8px; min-width: 190px; max-width: 300px; padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--card); color: var(--fg); text-decoration: none; }
+.file-card:hover { border-color: var(--gold-line); }
+.file-card span { display: flex; min-width: 0; flex: 1; flex-direction: column; }
+.file-card b { overflow: hidden; font-size: 10.5px; text-overflow: ellipsis; white-space: nowrap; }
+.file-card small { color: var(--muted); font-size: 9px; }
+
+.action { display: flex; flex-direction: column; gap: 6px; padding: 9px; border: 1px solid var(--gold-line); border-radius: 8px; background: var(--gold-soft); }
+.action.is-approved { border-color: rgba(92, 200, 161, 0.4); background: rgba(92, 200, 161, 0.07); }
+.action.is-rejected, .action.is-failed { border-color: rgba(226, 109, 109, 0.35); background: rgba(226, 109, 109, 0.06); }
+.action-head { display: flex; align-items: flex-start; gap: 7px; }
+.action-icon { display: grid; width: 24px; height: 24px; flex: none; place-items: center; border-radius: 6px; background: rgba(217, 164, 65, 0.16); color: var(--gold); }
+.action-copy { display: flex; min-width: 0; flex-direction: column; gap: 1px; }
+.action-copy b { color: var(--strong); font-size: 11px; }
+.action-copy small { color: var(--muted); font-size: 9.5px; overflow-wrap: anywhere; }
+.action-buttons { display: flex; gap: 6px; }
+.action-buttons button { height: 28px; padding: 0 10px; border: 1px solid var(--border); border-radius: 5px; background: var(--inset); color: var(--fg); font-size: 9.5px; }
+.action-buttons button.primary { border-color: var(--gold); background: var(--gold); color: #1a1409; font-weight: 650; }
+.action-state { color: var(--muted); font-size: 9.5px; }
+.action-state.is-approved { color: var(--success); }
+.action-state.is-rejected, .action-state.is-failed { color: var(--danger); }
+.action-error { color: var(--danger); font-size: 9.5px; overflow-wrap: anywhere; }
+
+.attach { display: none; align-items: center; gap: 6px; margin: 0 12px; padding: 6px 8px; border: 1px solid var(--gold-line); border-radius: 6px; background: var(--gold-soft); font-size: 9.5px; }
+.attach.show { display: flex; }
+.attach span { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.attach button { display: grid; place-items: center; padding: 0; border: 0; background: none; color: var(--muted); }
+.pending { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 12px 7px; }
+.pending:empty { display: none; }
+.pending-item { position: relative; display: flex; width: 150px; height: 56px; align-items: center; gap: 7px; padding: 6px 7px; border: 1px solid var(--gold-line); border-radius: 7px; background: var(--card); }
+.pending-item img, .pending-item video { width: 40px; height: 40px; flex: none; border-radius: 5px; object-fit: cover; background: #000; }
+.pending-item > svg { flex: none; color: var(--gold); }
+.pending-item span { display: flex; min-width: 0; flex: 1; flex-direction: column; }
+.pending-item b { overflow: hidden; font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
+.pending-item small { color: var(--muted); font-size: 8px; }
+.pending-item > button { position: absolute; top: 2px; right: 2px; display: grid; width: 18px; height: 18px; place-items: center; border: 1px solid var(--border); border-radius: 50%; background: var(--bg); color: var(--muted); font-size: 10px; }
+
+.composer { padding: 8px 12px 11px; border-top: 1px solid var(--border); background: var(--bg); }
+.composer-box { display: flex; align-items: flex-end; gap: 7px; padding: 7px 7px 7px 10px; border: 1px solid var(--border); border-radius: 11px; background: var(--inset); }
+.composer-box:focus-within { border-color: var(--gold-line); box-shadow: 0 0 0 2px rgba(217, 164, 65, 0.1); }
+.composer textarea { min-height: 38px; max-height: 150px; flex: 1; resize: none; padding: 3px 0; border: 0; background: none; color: var(--fg); font-size: 12px; line-height: 1.5; outline: none; }
+.composer-tools { display: flex; gap: 4px; }
+.tool-btn { display: grid; width: 32px; height: 32px; place-items: center; border: 1px solid transparent; border-radius: 7px; background: none; color: var(--muted); }
+.tool-btn:hover { border-color: var(--border); background: var(--card); color: var(--gold); }
+.send-btn { display: grid; width: 34px; height: 34px; place-items: center; border: 1px solid var(--gold); border-radius: 8px; background: var(--gold); color: #1a1409; }
+.send-btn:disabled { opacity: 0.4; }
+.tool-btn svg, .send-btn svg { width: 15px; height: 15px; }
+.composer-hint { margin: 5px 2px 0; color: var(--muted); font-size: 8.5px; text-align: right; }
+
+.error { display: none; margin: 0 12px 7px; padding: 7px 9px; border: 1px solid rgba(226, 109, 109, 0.35); border-radius: 6px; background: rgba(226, 109, 109, 0.08); color: var(--danger); font-size: 10px; }
+.error.show { display: block; }
+
+.empty-tip { margin: auto; padding: 20px; color: var(--muted); font-size: 11px; text-align: center; }
+@media (prefers-reduced-motion: reduce) { .cat, .cat .tail, .cat .eyes, .thinking i { animation: none; } }
+
+/* final control sizing */
+.icon-btn { width: 32px; height: 32px; }
+.segmented button { height: 30px; padding: 0 11px; font-size: 11.5px; }
+.context-bar select { height: 34px; font-size: 11.5px; }
+.quick-btn { height: 34px; font-size: 11px; }
+.brand-copy b { font-size: 14px; }
+.brand-copy small { font-size: 10.5px; }
+.hero p { font-size: 12px; }
+.suggestion { padding: 11px; font-size: 11.5px; }
+.msg-body { font-size: 13px; }
+.msg.user .msg-body { padding: 10px 13px; }
+.composer textarea { min-height: 42px; font-size: 12.5px; }
+.tool-btn { width: 34px; height: 34px; }
+.send-btn { width: 36px; height: 36px; }
+
+.msg-body h1, .msg-body h2, .msg-body h3 { margin: 8px 0 4px; color: var(--strong); line-height: 1.3; }
+.msg-body h1 { font-size: 16px; }
+.msg-body h2 { font-size: 14px; }
+.msg-body h3 { font-size: 13px; }
+.msg-body strong { color: var(--strong); font-weight: 650; }
+.msg-body .li { padding-left: 2px; }
+.msg-body .inline { padding: 1px 4px; border: 1px solid var(--border); border-radius: 4px; background: var(--inset); color: var(--strong); font-family: var(--vscode-editor-font-family, Consolas, monospace); font-size: 0.92em; }
+.msg-body .code { margin: 7px 0; padding: 9px 10px; overflow-x: auto; border: 1px solid var(--border); border-radius: 7px; background: #0c1117; color: #c9d5e2; font: 10.5px/1.55 var(--vscode-editor-font-family, Consolas, monospace); white-space: pre-wrap; word-break: break-word; }
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="brand">
+    <span class="brand-mark">
+      <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11 6 4l4 3h4l4-3 2 7v5a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4Z"/><path d="M9 13h.01M15 13h.01M10 16c1.4 1 2.6 1 4 0"/></svg>
+    </span>
+    <span class="brand-copy">
+      <b>Kova Chat</b>
+      <small id="subtitle">Проект и задачи</small>
+    </span>
+  </div>
+  <div class="top-actions">
+    <button class="icon-btn" id="historyBtn" title="История чатов">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l3 2"/></svg>
+    </button>
+    <button class="icon-btn" id="new" title="Новый чат">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+    </button>
+  </div>
+</header>
+
+<div class="history-panel" id="historyPanel">
+  <div class="history-head"><b>История</b><button class="icon-btn" id="historyClose" title="Закрыть">×</button></div>
+  <div class="history-search"><input id="historySearch" placeholder="Поиск чатов…" /></div>
+  <div class="history-list" id="historyList"></div>
+</div>
+
+<div class="context-bar">
+  <div class="segmented" id="scopeSwitch">
+    <button type="button" data-scope="project">Проект</button>
+    <button type="button" data-scope="task">Задача</button>
+  </div>
+  <select id="taskSelect" title="Задача"></select>
+  <button class="quick-btn" id="runQuick" title="Последний результат запуска">Результат</button>
+  <button class="icon-btn" id="settingsBtn" title="Провайдер и модель">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1 1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1Z"/></svg>
+  </button>
+</div>
+
+<div class="settings-panel" id="settingsPanel">
+  <label>Провайдер<select id="provider"></select></label>
+  <label>Модель<select id="model"></select></label>
+  <div class="settings-actions">
+    <button type="button" id="run">Результат запуска</button>
+    <button type="button" class="primary" id="settingsClose">Готово</button>
+  </div>
+</div>
+
+<main class="thread" id="thread"></main>
+
+<div class="attach" id="attach"></div>
+<div class="pending" id="pending"></div>
+<div class="error" id="error"></div>
+
+<footer class="composer">
+  <input id="fileInput" type="file" multiple hidden accept="image/*,video/*,.txt,.md,.json,.yaml,.yml,.toml,.ini,.cfg,.csv,.cs,.lua,.py,.ts,.tsx,.js,.jsx,.html,.css,.glsl,.hlsl,.shader,.xml" />
+  <div class="composer-box">
+    <textarea id="text" rows="2" placeholder="Спроси про проект, задачу или следующий шаг…"></textarea>
+    <div class="composer-tools">
+      <button class="tool-btn" id="file" title="Прикрепить изображение, видео или файл">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m21 11-8.5 8.5a5 5 0 0 1-7-7L14 4a3.5 3.5 0 0 1 5 5l-8.5 8.5a2 2 0 0 1-3-3L15 6"/></svg>
+      </button>
+      <button class="send-btn" id="send" title="Отправить">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
+      </button>
+    </div>
+  </div>
+  <div class="composer-hint">Enter — отправить · Shift+Enter — новая строка</div>
+</footer>
+
+<script>
+const vscode = acquireVsCodeApi();
+const API = 'http://127.0.0.1:8765';
+const initial = __INITIAL_CHAT__;
+const FENCE = String.fromCharCode(96).repeat(3);
+const CAT = '<svg class="cat" viewBox="0 0 120 112" aria-hidden="true"><g class="tail"><path d="M86 94c16 2 24-7 22-18-2-9-9-13-15-11"/></g><ellipse cx="58" cy="84" rx="31" ry="23" fill="currentColor" opacity="0.1"/><circle cx="52" cy="50" r="24" fill="currentColor" opacity="0.1"/><path d="M31 39 28 20l17 12M73 39l3-19-17 12" fill="currentColor" opacity="0.1"/><g class="eyes"><path d="M40 49c2.5 2.6 5.2 2.6 7.8 0M56 49c2.5 2.6 5.2 2.6 7.8 0"/></g><path d="M52 57l-2 2h4Z" fill="currentColor"/><path d="M52 59c-1.5 2.5-4 3-6 3M52 59c1.5 2.5 4 3 6 3"/><path d="M31 55l-10-1M31 60l-10 2M73 55l10-1M73 60l10 2"/><path d="M37 67c9 4 21 4 30 0"/><ellipse cx="44" cy="102" rx="7" ry="3.5" fill="currentColor" opacity="0.14"/><ellipse cx="70" cy="102" rx="7" ry="3.5" fill="currentColor" opacity="0.14"/></svg>';
+
+let chat = null;
+let chats = [];
+let providers = [];
+let tasks = [];
+let pending = [];
+let chatStream = null;
+let listStream = null;
+let busy = false;
+let renderTimer = null;
+let projectEngine = 'generic';
+let historyOpen = false;
+
+const $ = (id) => document.getElementById(id);
+const esc = (value) => String(value ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+function formatBytes(size) {
+  if (!size) return '';
+  if (size < 1024) return size + ' Б';
+  if (size < 1024 * 1024) return (size / 1024).toFixed(1) + ' КБ';
+  return (size / (1024 * 1024)).toFixed(1) + ' МБ';
+}
+
+function formatDate(value) {
+  if (!value) return '';
+  const date = new Date(value);
+  return date.toLocaleDateString([], { day: 'numeric', month: 'short' });
+}
+
+async function api(path, method = 'GET', body) {
+  const response = await fetch(API + path, {
+    method,
+    headers: body ? { 'Content-Type': 'application/json' } : {},
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  const text = await response.text();
+  if (!response.ok) {
+    let detail = text || ('HTTP ' + response.status);
+    try { const parsed = JSON.parse(text); if (parsed && parsed.detail) detail = parsed.detail; } catch {}
+    throw new Error(detail);
+  }
+  return text ? JSON.parse(text) : null;
+}
+
+function showError(message) {
+  const node = $('error');
+  node.textContent = message || '';
+  node.className = message ? 'error show' : 'error';
+}
+
+function currentProvider() {
+  return providers.find((item) => item.id === $('provider').value) || null;
+}
+
+function renderMarkdown(value) {
+  const NL = String.fromCharCode(10);
+  const TICK = String.fromCharCode(96);
+  const lines = String(value || '').split(NL);
+  const out = [];
+  let code = [];
+  let inCode = false;
+  for (const raw of lines) {
+    const line = raw.replace(/\s+$/, '');
+    if (line.trimStart().startsWith(TICK.repeat(3))) {
+      if (inCode) {
+        out.push('<pre class="code"><code>' + esc(code.join(NL)) + '</code></pre>');
+        code = [];
+        inCode = false;
+      } else {
+        inCode = true;
+      }
+      continue;
+    }
+    if (inCode) { code.push(line); continue; }
+    if (!line.trim()) { out.push(''); continue; }
+    let html = esc(line);
+    html = html.split(TICK).map((part, index) => index % 2 === 1 ? '<code class="inline">' + part + '</code>' : part).join('');
+    html = html.replace(/[*][*]([^*]+)[*][*]/g, '<strong>$1</strong>');
+    if (/^### /.test(html)) out.push('<h3>' + html.slice(4) + '</h3>');
+    else if (/^## /.test(html)) out.push('<h2>' + html.slice(3) + '</h2>');
+    else if (/^# /.test(html)) out.push('<h1>' + html.slice(2) + '</h1>');
+    else if (/^[-*] /.test(html)) out.push('<div class="li">• ' + html.slice(2) + '</div>');
+    else out.push(html);
+  }
+  if (inCode && code.length) out.push('<pre class="code"><code>' + esc(code.join(NL)) + '</code></pre>');
+  return out.join('<br/>');
+}
+
+function scheduleRender() {
+  if (renderTimer) return;
+  renderTimer = setTimeout(() => { renderTimer = null; render(); }, 140);
+}
+
+function renderHistory() {
+  const query = ($('historySearch').value || '').trim().toLowerCase();
+  const rows = chats.filter((item) => ((item.title || '') + ' ' + (item.last_message || '')).toLowerCase().includes(query));
+  $('historyList').innerHTML = rows.length
+    ? rows.map((item) => '<div class="history-item ' + (chat && chat.id === item.id ? 'is-active' : '') + '" data-chat="' + esc(item.id) + '"><span class="history-copy"><b>' + esc(item.title) + '</b><small>' + esc(item.last_message || 'Пустой чат') + '</small></span><time class="history-date">' + esc(formatDate(item.updated_at)) + '</time></div>').join('')
+    : '<div class="empty-tip">Чатов пока нет</div>';
+}
+
+function renderProviders() {
+  const available = providers.filter((item) => item.installed && item.enabled);
+  $('provider').innerHTML = available.map((item) => '<option value="' + esc(item.id) + '">' + esc(item.name) + '</option>').join('') || '<option value="">Нет провайдеров</option>';
+  if (chat) $('provider').value = chat.provider_id || (available[0] && available[0].id) || '';
+  renderModels();
+}
+
+function renderModels() {
+  const provider = currentProvider();
+  const models = (provider && provider.models) || [];
+  $('model').innerHTML = models.map((model) => '<option value="' + esc(model) + '">' + esc(model) + '</option>').join('');
+  $('model').parentElement.style.display = models.length ? '' : 'none';
+  const value = (chat && chat.model) || (provider && provider.default_model) || '';
+  if (value && models.includes(value)) $('model').value = value;
+}
+
+function renderTasks() {
+  $('taskSelect').innerHTML = '<option value="">Выбери задачу</option>' + tasks.map((task) => '<option value="' + esc(task.id) + '">' + esc(task.title) + '</option>').join('');
+  const scope = (chat && chat.scope) || 'project';
+  document.querySelectorAll('#scopeSwitch button').forEach((button) => button.classList.toggle('is-active', button.dataset.scope === scope));
+  $('taskSelect').style.display = scope === 'task' ? '' : 'none';
+  if (chat) $('taskSelect').value = chat.task_id || '';
+  $('runQuick').style.display = chat && chat.scope === 'task' && chat.task_id ? '' : 'none';
+}
+
+function recentHtml(limit) {
+  const rows = chats.slice(0, limit);
+  if (!rows.length) return '';
+  return '<div class="recent"><div class="recent-head"><b>Недавние</b><button data-all="1">Все чаты</button></div><div class="recent-list">'
+    + rows.map((item) => '<div class="recent-item" data-chat="' + esc(item.id) + '"><span><b>' + esc(item.title) + '</b><small>' + esc(item.last_message || 'Пустой чат') + '</small></span><time>' + esc(formatDate(item.updated_at)) + '</time></div>').join('')
+    + '</div></div>';
+}
+
+function welcomeHtml(withRecent) {
+  return '<div class="welcome"><div class="hero">' + CAT + '<h1>Что мы <em>создаём?</em></h1><p>Я вижу проект, задачи и ассеты. Спроси что угодно или прикрепи файл.</p></div>'
+    + '<div class="suggestions">'
+    + '<button class="suggestion" data-prompt="Что сейчас по проекту? Какие задачи в работе и что делать дальше?"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V5a2 2 0 0 1 2-2h9l5 5v11a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2Z"/><path d="M14 3v6h6M8 13h8M8 17h5"/></svg>Что сейчас по проекту?</button>'
+    + '<button class="suggestion" data-prompt="Какие задачи сейчас в работе и что нужно сделать дальше?"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3 8-8"/><path d="M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h9"/></svg>Какие задачи в работе?</button>'
+    + '<button class="suggestion" data-prompt="Предложи следующий шаг для проекта и объясни почему."><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3 2.2 6.3L21 11l-6.8 1.7L12 19l-2.2-6.3L3 11l6.8-1.7Z"/></svg>Предложи следующий шаг</button>'
+    + '</div>' + (withRecent ? recentHtml(5) : '') + '</div>';
+}
+
+function actionsHtml(message) {
+  if (!message.actions || !message.actions.length) return '';
+  return '<div class="actions">' + message.actions.map((action) => {
+    const taskId = action.result && action.result.task_id ? String(action.result.task_id) : '';
+    const buttons = action.status === 'pending'
+      ? '<div class="action-buttons"><button class="primary" data-action="approve" data-id="' + esc(action.id) + '">' + (action.type === 'start_agent_run' ? 'Запустить' : 'Подтвердить') + '</button><button data-action="reject" data-id="' + esc(action.id) + '">Отклонить</button></div>'
+      : '<small class="action-state is-' + esc(action.status) + '">' + (action.status === 'approved' ? 'Выполнено' : action.status === 'rejected' ? 'Отклонено' : 'Ошибка') + '</small>';
+    const result = taskId ? '<button class="link-btn" data-open-task="' + esc(taskId) + '">Открыть задачу →</button>' : '';
+    const error = action.error ? '<small class="action-error">' + esc(action.error) + '</small>' : '';
+    return '<div class="action is-' + esc(action.status) + '"><div class="action-head"><span class="action-icon">▣</span><span class="action-copy"><b>' + esc(actionLabel(action)) + '</b><small>' + esc(actionDetail(action)) + '</small></span></div>' + buttons + error + result + '</div>';
+  }).join('') + '</div>';
+}
+
+function actionLabel(action) {
+  if (action.type === 'create_task') return 'Создать задачу';
+  if (action.type === 'update_task') return 'Обновить задачу';
+  return 'Запустить агента';
+}
+
+function actionDetail(action) {
+  const payload = action.payload || {};
+  if (action.type === 'create_task') return String(payload.title || 'Задача из чата');
+  const parts = [String(payload.task_id || '')];
+  if (payload.status) parts.push('статус: ' + payload.status);
+  if (payload.provider_id) parts.push(payload.provider_id);
+  return parts.filter(Boolean).join(' · ');
+}
+
+function attachmentsHtml(message) {
+  if (!message.attachments || !message.attachments.length || !chat) return '';
+  return '<div class="media">' + message.attachments.map((item) => {
+    const url = API + '/chats/' + encodeURIComponent(chat.id) + '/attachments/' + encodeURIComponent(item.id);
+    if (item.kind === 'image') return '<a href="' + url + '" target="_blank" rel="noreferrer" title="' + esc(item.name) + '"><img src="' + url + '" alt="' + esc(item.name) + '"/></a>';
+    if (item.kind === 'video') return '<video controls preload="metadata" src="' + url + '"></video>';
+    return '<a class="file-card" href="' + url + '" download="' + esc(item.name) + '"><span class="action-icon">▣</span><span><b>' + esc(item.name) + '</b><small>' + formatBytes(item.size) + '</small></span></a>';
+  }).join('') + '</div>';
+}
+
+function render() {
+  renderProviders();
+  renderTasks();
+  renderHistory();
+  const scope = chat ? (chat.scope === 'task' ? 'Чат по задаче' : 'Чат по проекту') : 'Проект и задачи';
+  $('subtitle').textContent = chat ? scope : 'Проект и задачи';
+
+  if (!chat) {
+    $('thread').innerHTML = welcomeHtml(true);
+    return;
+  }
+
+  const messages = (chat.messages || []).map((message) => {
+    const isUser = message.role === 'user';
+    const canTask = !isUser && message.content && !(message.actions && message.actions.length);
+    return '<article class="msg ' + (isUser ? 'user' : 'assistant') + '">'
+      + '<div class="msg-head"><span class="msg-avatar">' + (isUser ? '●' : '◆') + '</span><span class="msg-name">' + (isUser ? 'Вы' : 'Kova') + '</span></div>'
+      + '<div class="msg-body">' + renderMarkdown(message.content) + '</div>'
+      + attachmentsHtml(message)
+      + actionsHtml(message)
+      + '<div class="msg-foot"><small>' + esc(new Date(message.created_at).toLocaleString()) + '</small>'
+      + (canTask ? '<button class="link-btn" data-make-task="' + esc(message.id) + '">Создать задачу</button>' : '')
+      + '</div></article>';
+  }).join('');
+
+  const stream = chat.status === 'running'
+    ? '<article class="msg assistant stream"><div class="msg-head"><span class="msg-avatar">◆</span><span class="msg-name">Kova</span></div><div class="msg-body">' + esc(chat.streaming_output || '') + '<span class="thinking"><i></i><i></i><i></i></span></div></article>'
+    : '';
+
+  const content = messages + stream;
+  $('thread').innerHTML = content || welcomeHtml(false);
+  $('thread').scrollTop = $('thread').scrollHeight;
+}
+
+function renderPending() {
+  $('pending').innerHTML = pending.map((item, index) => {
+    const preview = item.kind === 'image'
+      ? '<img src="' + item.dataUrl + '" alt=""/>'
+      : item.kind === 'video'
+        ? '<video src="' + item.dataUrl + '" muted preload="metadata"></video>'
+        : '<span class="action-icon">▣</span>';
+    return '<div class="pending-item">' + preview + '<span><b>' + esc(item.name) + '</b><small>' + formatBytes(item.size) + '</small></span><button data-remove="' + index + '">×</button></div>';
+  }).join('');
+  $('attach') && ($('attach').className = 'attach');
+}
+
+function connectList() {
+  if (listStream) listStream.close();
+  listStream = new EventSource(API + '/chats/events');
+  listStream.onmessage = (event) => {
+    try {
+      const data = JSON.parse(event.data);
+      if (data.type === 'chats') { chats = data.chats || []; renderHistory(); if (!chat) render(); }
+    } catch {}
+  };
+}
+
+function connectChat(id) {
+  if (chatStream) chatStream.close();
+  chatStream = new EventSource(API + '/chats/' + encodeURIComponent(id) + '/events');
+  chatStream.onmessage = (event) => {
+    try {
+      const data = JSON.parse(event.data);
+      if (data.type === 'deleted') { chat = null; render(); return; }
+      if (data.type === 'chat' && data.chat && chat && data.chat.id === chat.id) {
+        chat = data.chat;
+        scheduleRender();
+      }
+    } catch {}
+  };
+}
+
+async function refreshChats() {
+  chats = await api('/chats');
+  renderHistory();
+}
+
+async function openChat(id) {
+  if (!id) return;
+  try {
+    showError('');
+    chat = await api('/chats/' + encodeURIComponent(id));
+    pending = [];
+    historyOpen = false;
+    $('historyPanel').className = 'history-panel';
+    vscode.postMessage({ type: 'chatChanged', chatId: id });
+    renderPending();
+    render();
+    connectChat(id);
+  } catch (error) {
+    showError(error.message || String(error));
+  }
+}
+
+async function newChat() {
+  const provider = currentProvider() || providers.find((item) => item.installed && item.enabled);
+  if (!provider) { showError('Нет доступных провайдеров. Настрой их в Kova Hub → Агенты.'); return; }
+  try {
+    showError('');
+    const created = await api('/chats', 'POST', {
+      title: 'Новый чат',
+      scope: 'project',
+      provider_id: provider.id,
+      model: provider.default_model || (provider.models && provider.models[0]) || '',
+    });
+    await refreshChats();
+    await openChat(created.id);
+  } catch (error) {
+    showError(error.message || String(error));
+  }
+}
+
+async function updateChat(payload) {
+  if (!chat) return;
+  try {
+    chat = await api('/chats/' + encodeURIComponent(chat.id), 'PATCH', payload);
+    render();
+  } catch (error) {
+    showError(error.message || String(error));
+  }
+}
+
+async function send() {
+  const text = $('text').value.trim();
+  if (busy || (chat && chat.status === 'running') || (!text && !pending.length)) return;
+  if (!chat) {
+    const provider = currentProvider() || providers.find((item) => item.installed && item.enabled);
+    if (!provider) { showError('Нет доступных провайдеров. Настрой их в Kova Hub → Агенты.'); return; }
+    try {
+      chat = await api('/chats', 'POST', {
+        title: 'Новый чат',
+        scope: 'project',
+        provider_id: provider.id,
+        model: provider.default_model || (provider.models && provider.models[0]) || '',
+      });
+      await refreshChats();
+      connectChat(chat.id);
+      vscode.postMessage({ type: 'chatChanged', chatId: chat.id });
+    } catch (error) {
+      showError(error.message || String(error));
+      return;
+    }
+  }
+  const attachments = pending.map((item) => ({ name: item.name, mime: item.mime, data: item.data }));
+  $('text').value = '';
+  busy = true;
+  showError('');
+  try {
+    chat = await api('/chats/' + encodeURIComponent(chat.id) + '/messages', 'POST', { text, attachments });
+    pending = [];
+    renderPending();
+    render();
+    connectChat(chat.id);
+  } catch (error) {
+    showError(error.message || String(error));
+    $('text').value = text;
+  } finally {
+    busy = false;
+  }
+}
+
+async function addFiles(files) {
+  if (!files || !files.length) return;
+  const room = 4 - pending.length;
+  if (room <= 0) { showError('Можно прикрепить не больше 4 файлов.'); return; }
+  const rows = [];
+  for (const file of Array.from(files).slice(0, room)) {
+    if (file.size > 12_000_000) { showError(file.name + ': файл больше 12 МБ'); continue; }
+    const dataUrl = await new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result || ''));
+      reader.onerror = () => resolve('');
+      reader.readAsDataURL(file);
+    });
+    if (!dataUrl) continue;
+    rows.push({
+      name: file.name,
+      mime: file.type || 'application/octet-stream',
+      size: file.size,
+      kind: file.type.startsWith('image/') ? 'image' : file.type.startsWith('video/') ? 'video' : file.type.startsWith('text/') ? 'text' : 'file',
+      dataUrl,
+      data: dataUrl.split(',')[1] || '',
+    });
+  }
+  pending = pending.concat(rows).slice(0, 4);
+  renderPending();
+  showError('');
+}
+
+async function decide(actionId, decision) {
+  if (!chat) return;
+  busy = true;
+  showError('');
+  try {
+    chat = await api('/chats/' + encodeURIComponent(chat.id) + '/actions/' + encodeURIComponent(actionId), 'POST', { decision });
+    vscode.postMessage({ type: 'refreshTrees' });
+    render();
+  } catch (error) {
+    showError(error.message || String(error));
+  } finally {
+    busy = false;
+  }
+}
+
+async function makeTask(messageId) {
+  if (!chat) return;
+  const message = (chat.messages || []).find((item) => item.id === messageId);
+  if (!message) return;
+  const title = message.content.split('\n').map((line) => line.replace(/^#+\s*/, '').trim()).find(Boolean)?.slice(0, 80) || 'Задача из чата';
+  try {
+    await api('/tasks', 'POST', { title, type: 'code', engine: projectEngine, goal: message.content, criteria: [] });
+    tasks = await api('/tasks');
+    vscode.postMessage({ type: 'refreshTrees' });
+    renderTasks();
+    showError('');
+  } catch (error) {
+    showError(error.message || String(error));
+  }
+}
+
+$('new').onclick = () => void newChat();
+$('historyBtn').onclick = () => { historyOpen = !historyOpen; $('historyPanel').className = 'history-panel' + (historyOpen ? ' is-open' : ''); renderHistory(); };
+$('historyClose').onclick = () => { historyOpen = false; $('historyPanel').className = 'history-panel'; };
+$('historySearch').oninput = renderHistory;
+$('send').onclick = () => void send();
+$('file').onclick = () => $('fileInput').click();
+$('fileInput').onchange = (event) => { void addFiles(event.target.files); event.target.value = ''; };
+$('settingsBtn').onclick = () => $('settingsPanel').classList.toggle('is-open');
+$('settingsClose').onclick = () => $('settingsPanel').classList.remove('is-open');
+$('scopeSwitch').onclick = (event) => {
+  const button = event.target.closest('button[data-scope]');
+  if (!button || !chat) return;
+  const scope = button.dataset.scope;
+  void updateChat({ scope, task_id: scope === 'task' ? ($('taskSelect').value || (tasks[0] && tasks[0].id) || '') : '' });
+};
+$('taskSelect').onchange = (event) => { if (event.target.value) void updateChat({ scope: 'task', task_id: event.target.value }); };
+$('provider').onchange = (event) => {
+  const provider = providers.find((item) => item.id === event.target.value);
+  void updateChat({ provider_id: event.target.value, model: (provider && (provider.default_model || (provider.models && provider.models[0]))) || '' });
+};
+$('model').onchange = (event) => void updateChat({ model: event.target.value });
+$('run').onclick = () => { if (chat && chat.task_id) { vscode.postMessage({ type: 'openRun', taskId: chat.task_id }); $('settingsPanel').classList.remove('is-open'); } };
+$('runQuick').onclick = () => { if (chat && chat.task_id) vscode.postMessage({ type: 'openRun', taskId: chat.task_id }); };
+$('text').addEventListener('keydown', (event) => { if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); void send(); } });
+
+$('thread').addEventListener('click', (event) => {
+  const prompt = event.target.closest('[data-prompt]');
+  if (prompt) { $('text').value = prompt.dataset.prompt; $('text').focus(); return; }
+  const recent = event.target.closest('[data-chat]');
+  if (recent) { void openChat(recent.dataset.chat); return; }
+  const all = event.target.closest('[data-all]');
+  if (all) { historyOpen = true; $('historyPanel').className = 'history-panel is-open'; renderHistory(); return; }
+  const target = event.target.closest('button');
+  if (!target) return;
+  if (target.dataset.makeTask) void makeTask(target.dataset.makeTask);
+  if (target.dataset.openTask) vscode.postMessage({ type: 'openTask', taskId: target.dataset.openTask });
+  if (target.dataset.action && target.dataset.id) void decide(target.dataset.id, target.dataset.action);
+});
+
+$('historyList').addEventListener('click', (event) => {
+  const row = event.target.closest('[data-chat]');
+  if (row) void openChat(row.dataset.chat);
+});
+
+window.addEventListener('message', (event) => {
+  const message = event.data;
+  if (!message) return;
+  if (message.type === 'openChat') void openChat(message.chatId);
+  else if (message.type === 'reload') { void reload(); }
+  else if (message.type === 'error') showError(message.message || 'Ошибка');
+});
+
+async function reload() {
+  try {
+    const [chatRows, providerRows, taskRows, project] = await Promise.all([
+      api('/chats'),
+      api('/providers').then((data) => data.providers || []),
+      api('/tasks'),
+      api('/project').catch(() => null),
+    ]);
+    chats = chatRows;
+    providers = providerRows;
+    tasks = taskRows;
+    projectEngine = (project && project.engine) || 'generic';
+    if (chat) {
+      try { chat = await api('/chats/' + encodeURIComponent(chat.id)); } catch { chat = null; }
+    }
+    render();
+    connectList();
+    if (chat) connectChat(chat.id);
+  } catch (error) {
+    showError(error.message || String(error));
+  }
+}
+
+async function boot() {
+  await reload();
+  if (initial) await openChat(initial);
+}
+
+void boot();
+</script>
+</body>
+</html>

@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; connect-src http://127.0.0.1:8765;">
+<style>
+:root {
+  --gold: #d9a441;
+  --gold-soft: rgba(217, 164, 65, 0.12);
+  --gold-line: rgba(217, 164, 65, 0.3);
+  --bg: var(--vscode-editor-background, #0f1319);
+  --panel: var(--vscode-sideBar-background, #151a22);
+  --inset: var(--vscode-input-background, #1b222c);
+  --fg: var(--vscode-editor-foreground, #c2c8d2);
+  --strong: var(--vscode-editor-foreground, #eef1f6);
+  --muted: var(--vscode-descriptionForeground, #6f7c8e);
+  --border: var(--vscode-panel-border, #252b35);
+  --danger: #e26d6d;
+  --success: #5cc8a1;
+}
+* { box-sizing: border-box; }
+html, body { min-height: 100%; }
+body {
+  margin: 0;
+  padding: 22px 26px 40px;
+  background: var(--bg);
+  color: var(--fg);
+  font: 13px/1.55 var(--vscode-font-family, -apple-system, "Segoe UI", sans-serif);
+}
+h1 { margin: 0; color: var(--strong); font-size: 20px; font-weight: 650; }
+h2 { margin: 0 0 8px; color: var(--strong); font-size: 13px; font-weight: 600; }
+.wrap { max-width: 1100px; margin: 0 auto; }
+.head { display: flex; align-items: flex-start; gap: 14px; padding-bottom: 16px; border-bottom: 1px solid var(--border); }
+.mark { display: grid; width: 42px; height: 42px; flex: none; place-items: center; border: 1px solid var(--gold-line); border-radius: 10px; background: var(--gold-soft); color: var(--gold); }
+.head-copy { display: flex; min-width: 0; flex: 1; flex-direction: column; gap: 3px; }
+.head-copy small { color: var(--muted); font-size: 11px; }
+.badge { display: inline-flex; align-items: center; gap: 5px; padding: 3px 8px; border-radius: 999px; background: var(--inset); color: var(--muted); font-size: 10px; }
+.badge.ok { background: rgba(92, 200, 161, 0.12); color: var(--success); }
+.badge.bad { background: rgba(226, 109, 109, 0.12); color: var(--danger); }
+.badge.run { background: var(--gold-soft); color: var(--gold); }
+.stats { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0; }
+.stat { min-width: 130px; padding: 8px 10px; border: 1px solid var(--border); border-radius: 7px; background: var(--panel); }
+.stat small { display: block; color: var(--muted); font-size: 9px; text-transform: uppercase; letter-spacing: 0.06em; }
+.stat b { color: var(--strong); font-size: 13px; font-weight: 600; }
+.section { margin-top: 18px; }
+pre { margin: 0; padding: 12px; overflow: auto; border: 1px solid var(--border); border-radius: 7px; background: var(--inset); color: var(--fg); font: 12px/1.5 var(--vscode-editor-font-family, Consolas, monospace); white-space: pre-wrap; overflow-wrap: anywhere; }
+pre.output { max-height: 460px; }
+pre.diff { max-height: 520px; margin-top: 8px; }
+.error { border-color: rgba(226, 109, 109, 0.4); color: var(--danger); background: rgba(226, 109, 109, 0.07); }
+.muted { color: var(--muted); }
+.empty { margin-top: 24px; padding: 26px; border: 1px dashed var(--border); border-radius: 9px; color: var(--muted); text-align: center; }
+.change { margin-bottom: 8px; border: 1px solid var(--border); border-radius: 7px; background: var(--panel); overflow: hidden; }
+.change-head { display: flex; align-items: center; gap: 8px; padding: 8px 10px; }
+.change-path { flex: 1; overflow: hidden; color: var(--strong); font-family: var(--vscode-editor-font-family, Consolas, monospace); font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
+.add { color: var(--success); }
+.del { color: var(--danger); }
+.change button { height: 24px; padding: 0 8px; border: 1px solid var(--border); border-radius: 4px; background: var(--inset); color: var(--fg); font-size: 10px; cursor: pointer; }
+.change button:hover { border-color: var(--gold-line); color: var(--gold); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="head">
+    <span class="mark">
+      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11 6 4l4 3h4l4-3 2 7v5a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4Z"/><path d="M9 13h.01M15 13h.01M10 16c1.4 1 2.6 1 4 0"/></svg>
+    </span>
+    <div class="head-copy">
+      <h1>Результат запуска</h1>
+      <small id="subtitle">Kova</small>
+    </div>
+    <span class="badge" id="status">—</span>
+  </header>
+  <div id="content"></div>
+</div>
+<script>
+const API = 'http://127.0.0.1:8765';
+const run = __RUN__;
+const $ = (id) => document.getElementById(id);
+const esc = (value) => String(value ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+function badge(status) {
+  const node = $('status');
+  const value = String(status || 'unknown');
+  node.textContent = value;
+  node.className = 'badge ' + (value === 'done' || value === 'success' ? 'ok' : value === 'failed' || value === 'error' ? 'bad' : value === 'running' || value === 'queued' ? 'run' : '');
+}
+
+function duration() {
+  if (!run.started_at) return '—';
+  const start = new Date(run.started_at).getTime();
+  const end = run.finished_at ? new Date(run.finished_at).getTime() : Date.now();
+  if (!Number.isFinite(start) || !Number.isFinite(end)) return '—';
+  const seconds = Math.max(0, Math.round((end - start) / 1000));
+  if (seconds < 60) return seconds + ' с';
+  return Math.floor(seconds / 60) + ' мин ' + (seconds % 60) + ' с';
+}
+
+async function loadPatch(change, index, button) {
+  button.disabled = true;
+  try {
+    const response = await fetch(API + '/ai/runs/' + encodeURIComponent(run.id) + '/changes/' + index);
+    if (!response.ok) throw new Error('HTTP ' + response.status);
+    const patch = await response.text();
+    const pre = document.createElement('pre');
+    pre.className = 'diff';
+    pre.textContent = patch || 'Патч пуст';
+    button.closest('.change').appendChild(pre);
+    button.remove();
+  } catch (error) {
+    button.textContent = 'Ошибка: ' + (error.message || error);
+  } finally {
+    button.disabled = false;
+  }
+}
+
+function render() {
+  if (!run) {
+    $('content').innerHTML = '<div class="empty">Запусков пока нет.</div>';
+    $('subtitle').textContent = 'Нет данных';
+    return;
+  }
+  badge(run.status);
+  $('subtitle').textContent = (run.task_title || run.task_id || 'Задача') + ' · ' + (run.provider_name || run.provider_id || 'AI');
+  const changes = run.changes || [];
+  const additions = changes.reduce((sum, item) => sum + (item.additions || 0), 0);
+  const deletions = changes.reduce((sum, item) => sum + (item.deletions || 0), 0);
+  const stats = '<div class="stats">'
+    + '<div class="stat"><small>Провайдер</small><b>' + esc(run.provider_name || run.provider_id || '—') + '</b></div>'
+    + '<div class="stat"><small>Длительность</small><b>' + esc(duration()) + '</b></div>'
+    + '<div class="stat"><small>Изменения</small><b>' + changes.length + '</b></div>'
+    + '<div class="stat"><small>Строки</small><b><span class="add">+' + additions + '</span> / <span class="del">−' + deletions + '</span></b></div>'
+    + '</div>';
+
+  const output = '<div class="section"><h2>Вывод</h2><pre class="output">' + esc(run.output || 'Пусто') + '</pre></div>';
+  const error = run.error ? '<div class="section"><h2>Ошибка</h2><pre class="error">' + esc(run.error) + '</pre></div>' : '';
+  const changeRows = changes.map((change, index) => {
+    return '<div class="change"><div class="change-head"><span class="change-path">' + esc(change.path) + '</span><span class="add">+' + (change.additions || 0) + '</span><span class="del">−' + (change.deletions || 0) + '</span><button data-patch="' + index + '">Показать дифф</button></div></div>';
+  }).join('');
+  const diffSection = changes.length
+    ? '<div class="section"><h2>Изменённые файлы</h2>' + changeRows + '</div>'
+    : '<div class="section"><h2>Изменённые файлы</h2><div class="empty">Изменений нет.</div></div>';
+
+  $('content').innerHTML = stats + output + error + diffSection;
+  document.querySelectorAll('button[data-patch]').forEach((button) => {
+    button.addEventListener('click', () => {
+      const index = Number(button.dataset.patch);
+      void loadPatch(changes[index], index, button);
+    });
+  });
+}
+
+render();
+</script>
+</body>
+</html>

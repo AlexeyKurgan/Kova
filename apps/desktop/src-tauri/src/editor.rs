@@ -68,6 +68,79 @@ fn ensure_branding() -> Result<(), String> {
     Ok(())
 }
 
+fn ensure_kova_chat_extension() -> Result<(), String> {
+    let directory = editor_root()
+        .join("extensions")
+        .join("kova.kova-chat-0.3.0");
+    let files: [(&str, &str); 5] = [
+        (
+            "package.json",
+            include_str!("../resources/kova-chat-extension/package.json"),
+        ),
+        (
+            "extension.js",
+            include_str!("../resources/kova-chat-extension/extension.js"),
+        ),
+        (
+            "chat.html",
+            include_str!("../resources/kova-chat-extension/chat.html"),
+        ),
+        (
+            "run.html",
+            include_str!("../resources/kova-chat-extension/run.html"),
+        ),
+        (
+            "media/icon.svg",
+            include_str!("../resources/kova-chat-extension/media/icon.svg"),
+        ),
+    ];
+    for (relative, content) in files {
+        let target = directory.join(relative);
+        if let Some(parent) = target.parent() {
+            fs::create_dir_all(parent).map_err(|e| e.to_string())?;
+        }
+        fs::write(target, content).map_err(|e| e.to_string())?;
+    }
+    if let Some(parent) = directory.parent() {
+        if let Ok(entries) = fs::read_dir(parent) {
+            for entry in entries.flatten() {
+                let name = entry.file_name();
+                let text = name.to_string_lossy();
+                if text.starts_with("kova.kova-chat-") && text != "kova.kova-chat-0.3.0" {
+                    let _ = fs::remove_dir_all(entry.path());
+                }
+            }
+        }
+        let registry_path = parent.join("extensions.json");
+        let mut registry: Vec<serde_json::Value> = fs::read_to_string(&registry_path)
+            .ok()
+            .and_then(|raw| serde_json::from_str(&raw).ok())
+            .unwrap_or_default();
+        registry.retain(|entry| {
+            entry
+                .get("identifier")
+                .and_then(|value| value.get("id"))
+                .and_then(|value| value.as_str())
+                != Some("kova.kova-chat")
+        });
+        let mut path = directory.to_string_lossy().replace('\\', "/");
+        if !path.starts_with('/') {
+            path.insert(0, '/');
+        }
+        registry.push(serde_json::json!({
+            "identifier": { "id": "kova.kova-chat" },
+            "version": "0.3.0",
+            "location": { "$mid": 1, "path": path, "scheme": "file" },
+            "relativeLocation": "kova.kova-chat-0.3.0"
+        }));
+        let _ = fs::write(
+            registry_path,
+            serde_json::to_string(&registry).unwrap_or_else(|_| "[]".to_string()),
+        );
+    }
+    Ok(())
+}
+
 fn ensure_theme_extension() -> Result<(), String> {
     let directory = editor_root()
         .join("extensions")
@@ -261,6 +334,7 @@ fn spawn_server(port: u16) -> Result<Child, String> {
     fs::create_dir_all(&user_data).map_err(|e| e.to_string())?;
     fs::create_dir_all(&extensions).map_err(|e| e.to_string())?;
     ensure_theme_extension()?;
+    ensure_kova_chat_extension()?;
     ensure_branding()?;
     ensure_profile()?;
 
@@ -512,42 +586,6 @@ pub fn editor_close(app: tauri::AppHandle) {
     }
 }
 
-fn vscode_exe() -> Option<PathBuf> {
-    let mut candidates = Vec::new();
-    if let Ok(local) = std::env::var("LOCALAPPDATA") {
-        candidates.push(
-            PathBuf::from(local)
-                .join("Programs")
-                .join("Microsoft VS Code")
-                .join("Code.exe"),
-        );
-    }
-    for variable in ["ProgramFiles", "ProgramFiles(x86)"] {
-        if let Ok(base) = std::env::var(variable) {
-            candidates.push(
-                PathBuf::from(base)
-                    .join("Microsoft VS Code")
-                    .join("Code.exe"),
-            );
-        }
-    }
-    candidates.into_iter().find(|path| path.is_file())
-}
-
-#[tauri::command]
-pub fn vscode_status() -> bool {
-    if vscode_exe().is_some() {
-        return true;
-    }
-    Command::new("where.exe")
-        .arg("code")
-        .stdout(Stdio::null())
-        .stderr(Stdio::null())
-        .status()
-        .map(|status| status.success())
-        .unwrap_or(false)
-}
-
 #[tauri::command]
 pub fn open_project_folder(path: String) -> Result<(), String> {
     Command::new("explorer.exe")
@@ -555,29 +593,4 @@ pub fn open_project_folder(path: String) -> Result<(), String> {
         .spawn()
         .map(|_| ())
         .map_err(|e| e.to_string())
-}
-
-#[tauri::command]
-pub fn editor_open_external(project_path: String) -> Result<(), String> {
-    if !vscode_status() {
-        return Err("VS Code не найден на компьютере".to_string());
-    }
-
-    let mut cmd = if let Some(exe) = vscode_exe() {
-        let mut command = Command::new(exe);
-        command.arg(&project_path);
-        command
-    } else {
-        let mut command = Command::new("cmd.exe");
-        command.args(["/C", "code"]).arg(&project_path);
-        command
-    };
-
-    #[cfg(windows)]
-    {
-        use std::os::windows::process::CommandExt;
-        cmd.creation_flags(0x0800_0000);
-    }
-    cmd.spawn().map_err(|e| e.to_string())?;
-    Ok(())
 }

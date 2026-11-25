@@ -116,10 +116,22 @@ def _codex_text(rows: list[dict[str, Any]]) -> list[str]:
 def _generic_text(rows: list[dict[str, Any]]) -> list[str]:
     texts: list[str] = []
     for row in rows:
+        found = ""
         for key in ("result", "text", "content"):
             value = row.get(key)
             if isinstance(value, str) and value.strip():
-                texts.append(value.strip())
+                found = value.strip()
+                break
+        if not found:
+            part = row.get("part")
+            if isinstance(part, dict):
+                for key in ("text", "content"):
+                    value = part.get(key)
+                    if isinstance(value, str) and value.strip():
+                        found = value.strip()
+                        break
+        if found:
+            texts.append(found)
     return texts
 
 

@@ -9,6 +9,7 @@ from .routes import (
     agents,
     assets,
     blender,
+    chats,
     doctor,
     health,
     ledger,
@@ -70,6 +71,7 @@ def create_app() -> FastAPI:
     app.include_router(providers.router)
     app.include_router(skills.router)
     app.include_router(agents.router)
+    app.include_router(chats.router)
 
     @app.middleware("http")
     async def require_token(request: Request, call_next):
@@ -82,6 +84,7 @@ def create_app() -> FastAPI:
     app.add_middleware(
         CORSMiddleware,
         allow_origins=ALLOWED_ORIGINS,
+        allow_origin_regex=r"vscode-webview://.*|http://(localhost|127\.0\.0\.1):\d+",
         allow_methods=["*"],
         allow_headers=["*"],
     )

@@ -43,8 +43,17 @@ PRESETS: dict[str, dict[str, Any]] = {
             "--color",
             "never",
             "--json",
-            "{prompt}",
         ],
+        "chat_args": [
+            "exec",
+            "--skip-git-repo-check",
+            "--sandbox",
+            "read-only",
+            "--color",
+            "never",
+            "--json",
+        ],
+        "prompt_via_stdin": True,
         "resume_args": [
             "exec",
             "resume",
@@ -55,7 +64,6 @@ PRESETS: dict[str, dict[str, Any]] = {
             "--color",
             "never",
             "--json",
-            "{prompt}",
         ],
         "session_regex": '"thread_id"\s*:\s*"([^"]+)"',
         "output_mode": "codex-jsonl",
@@ -82,8 +90,17 @@ PRESETS: dict[str, dict[str, Any]] = {
             "json",
             "--model",
             "{model}",
-            "{prompt}",
         ],
+        "chat_args": [
+            "run",
+            "--agent",
+            "plan",
+            "--format",
+            "json",
+            "--model",
+            "{model}",
+        ],
+        "prompt_via_stdin": True,
         "resume_args": [
             "run",
             "--auto",
@@ -93,7 +110,6 @@ PRESETS: dict[str, dict[str, Any]] = {
             "{model}",
             "--session",
             "{session}",
-            "{prompt}",
         ],
         "models_args": ["models"],
         "session_regex": '"sessionID"\s*:\s*"([^"]+)"',
@@ -328,6 +344,13 @@ def _entry(provider_id: str, base: dict[str, Any], override: dict[str, Any]) -> 
         "output_mode": str(
             override.get("output_mode") or base.get("output_mode") or "auto"
         ),
+        "chat_args": [
+            str(item)
+            for item in (override.get("chat_args") or base.get("chat_args") or [])
+        ],
+        "prompt_via_stdin": bool(
+            override.get("prompt_via_stdin", base.get("prompt_via_stdin", False))
+        ),
     }
 
 
@@ -480,6 +503,7 @@ def build_command(
     prompt: str,
     model: str = "",
     read_only: bool = False,
+    prompt_via_stdin: bool = False,
 ) -> list[str]:
     path = str(provider.get("path") or "")
     if not path or not Path(path).is_file():
@@ -506,7 +530,7 @@ def build_command(
             replaced = True
         else:
             final.append(item)
-    if not replaced:
+    if not replaced and not prompt_via_stdin:
         final.append(prompt)
     return _argv(path, final)
 
@@ -530,6 +554,7 @@ def build_resume_command(
     session_id: str,
     model: str = "",
     read_only: bool = False,
+    prompt_via_stdin: bool = False,
 ) -> list[str]:
     resume_args = [str(item) for item in provider.get("resume_args") or []]
     if not resume_args:
@@ -547,6 +572,7 @@ def build_resume_command(
         prompt,
         model,
         read_only=False,
+        prompt_via_stdin=prompt_via_stdin,
     )
 
 

@@ -10,6 +10,7 @@ import {
   Code2,
   FolderKanban,
   LayoutDashboard,
+  MessageSquare,
   PanelLeftClose,
   PanelLeftOpen,
   Puzzle,
@@ -42,6 +43,7 @@ const GROUPS: NavGroup[] = [
       { label: "Обзор", icon: LayoutDashboard },
       { label: "Проекты", icon: FolderKanban },
       { label: "Задачи", icon: ClipboardList },
+      { label: "Чат", icon: MessageSquare },
     ],
   },
   {

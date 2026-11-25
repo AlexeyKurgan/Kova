@@ -3,6 +3,8 @@ import type {
   AgentSession,
   AssetPassport,
   BlenderInspectResult,
+  ChatSession,
+  ChatSummary,
   BlenderStatus,
   BlenderWorkspace,
   CapsuleResponse,
@@ -30,7 +32,7 @@ import type {
   ValidationSuggestion,
 } from "./types";
 
-const BASE_URL = import.meta.env.VITE_CORE_URL ?? "http://127.0.0.1:8765";
+export const CORE_URL = import.meta.env.VITE_CORE_URL ?? "http://127.0.0.1:8765";
 const TOKEN = import.meta.env.VITE_CORE_TOKEN ?? "";
 
 export type HealthResponse = {
@@ -49,7 +51,7 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   if (init.body && !headers.has("Content-Type")) {
     headers.set("Content-Type", "application/json");
   }
-  const response = await fetch(`${BASE_URL}${path}`, { ...init, headers });
+  const response = await fetch(`${CORE_URL}${path}`, { ...init, headers });
   if (!response.ok) {
     let detail = `${init.method ?? "GET"} ${path}: ${response.status}`;
     try {
@@ -65,7 +67,7 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
 }
 
 export async function coreHealth(): Promise<HealthResponse> {
-  const response = await fetch(`${BASE_URL}/health`, { headers: withAuth() });
+  const response = await fetch(`${CORE_URL}/health`, { headers: withAuth() });
   if (!response.ok) {
     throw new Error(`Core health check failed: ${response.status}`);
   }
@@ -73,7 +75,7 @@ export async function coreHealth(): Promise<HealthResponse> {
 }
 
 export async function getProject(): Promise<ProjectResponse | null> {
-  const response = await fetch(`${BASE_URL}/project`, { headers: withAuth() });
+  const response = await fetch(`${CORE_URL}/project`, { headers: withAuth() });
   if (response.status === 404) return null;
   if (!response.ok) {
     throw new Error(`GET /project: ${response.status}`);
@@ -242,7 +244,7 @@ export async function getStats(): Promise<ProjectStats> {
 }
 
 export function coreUrl(path: string): string {
-  return `${BASE_URL}${path}`;
+  return `${CORE_URL}${path}`;
 }
 
 export async function getBlenderStatus(): Promise<BlenderStatus> {
@@ -263,6 +265,94 @@ export async function getBlenderWorkspace(): Promise<BlenderWorkspace> {
 
 export async function ensureBlenderWorkspace(): Promise<BlenderWorkspace> {
   return request<BlenderWorkspace>("/blender/workspace", { method: "POST" });
+}
+
+export async function listChats(): Promise<ChatSummary[]> {
+  return request<ChatSummary[]>("/chats");
+}
+
+export async function getChat(chatId: string): Promise<ChatSession> {
+  return request<ChatSession>(`/chats/${encodeURIComponent(chatId)}`);
+}
+
+export async function createChat(input: {
+  title?: string;
+  scope?: "project" | "task";
+  task_id?: string;
+  provider_id?: string;
+  model?: string;
+}): Promise<ChatSession> {
+  return request<ChatSession>("/chats", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export async function updateChat(
+  chatId: string,
+  input: {
+    title?: string;
+    provider_id?: string;
+    model?: string;
+    scope?: "project" | "task";
+    task_id?: string;
+  },
+): Promise<ChatSession> {
+  return request<ChatSession>(`/chats/${encodeURIComponent(chatId)}`, {
+    method: "PATCH",
+    body: JSON.stringify(input),
+  });
+}
+
+export async function deleteChat(chatId: string): Promise<void> {
+  await request<void>(`/chats/${encodeURIComponent(chatId)}`, { method: "DELETE" });
+}
+
+export type ChatAttachmentInput = {
+  name: string;
+  mime: string;
+  data: string;
+};
+
+export async function sendChatMessage(
+  chatId: string,
+  text: string,
+  attachments: ChatAttachmentInput[] = [],
+): Promise<ChatSession> {
+  return request<ChatSession>(`/chats/${encodeURIComponent(chatId)}/messages`, {
+    method: "POST",
+    body: JSON.stringify({ text, attachments }),
+  });
+}
+
+export function chatAttachmentUrl(chatId: string, attachmentId: string): string {
+  return `${CORE_URL}/chats/${encodeURIComponent(chatId)}/attachments/${encodeURIComponent(attachmentId)}`;
+}
+
+export async function cancelChat(chatId: string): Promise<ChatSession> {
+  return request<ChatSession>(`/chats/${encodeURIComponent(chatId)}/cancel`, {
+    method: "POST",
+  });
+}
+
+export async function decideChatAction(
+  chatId: string,
+  actionId: string,
+  decision: "approve" | "reject",
+): Promise<ChatSession> {
+  return request<ChatSession>(
+    `/chats/${encodeURIComponent(chatId)}/actions/${encodeURIComponent(actionId)}`,
+    {
+      method: "POST",
+      body: JSON.stringify({ decision }),
+    },
+  );
+}
+
+export function chatEventsUrl(chatId?: string): string {
+  return chatId
+    ? `${CORE_URL}/chats/${encodeURIComponent(chatId)}/events`
+    : `${CORE_URL}/chats/events`;
 }
 
 export async function listSkills(): Promise<Skill[]> {
@@ -320,7 +410,7 @@ export async function getBlenderSkill(name: string): Promise<SkillDetail> {
 
 export async function captureBlenderScreenshot(): Promise<string> {
   await request<{ path: string }>("/blender/screenshot", { method: "POST" });
-  return `${BASE_URL}/blender/screenshot?v=${Date.now()}`;
+  return `${CORE_URL}/blender/screenshot?v=${Date.now()}`;
 }
 
 export async function inspectAssetWithBlender(
@@ -634,7 +724,7 @@ export async function cleanupAgentHistory(
 
 export async function getRunChangePatch(runId: string, index: number): Promise<string> {
   const response = await fetch(
-    `${BASE_URL}/ai/runs/${encodeURIComponent(runId)}/changes/${index}`,
+    `${CORE_URL}/ai/runs/${encodeURIComponent(runId)}/changes/${index}`,
     { headers: withAuth() },
   );
   if (!response.ok) {

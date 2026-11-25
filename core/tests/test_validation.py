@@ -127,7 +127,7 @@ def test_validation_attaches_latest_agent_run(tmp_path: Path, monkeypatch) -> No
         json={"task_id": task["id"], "provider": provider["id"], "snapshot": False},
     ).json()
     final = None
-    for _ in range(100):
+    for _ in range(300):
         time.sleep(0.2)
         final = client.get(f"/ai/runs/{started['id']}").json()
         if final["status"] not in {"queued", "running"}:

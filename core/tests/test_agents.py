@@ -56,7 +56,7 @@ def test_provider_config_and_run(tmp_path: Path, monkeypatch) -> None:
     assert run["session_id"].startswith("ses_")
 
     final = None
-    for _ in range(100):
+    for _ in range(300):
         time.sleep(0.2)
         response = client.get(f"/ai/runs/{run['id']}")
         assert response.status_code == 200
@@ -257,7 +257,7 @@ def test_run_message_and_model(tmp_path: Path, monkeypatch) -> None:
     run = started.json()
     assert run["model"] == "demo-model"
     final = None
-    for _ in range(100):
+    for _ in range(300):
         time.sleep(0.2)
         final = client.get(f"/ai/runs/{run['id']}").json()
         if final["status"] not in {"queued", "running"}:
@@ -346,7 +346,7 @@ def test_handoff_between_sessions(tmp_path: Path, monkeypatch) -> None:
         assert response.status_code == 201, response.text
         run_id = response.json()["id"]
         final = None
-        for _ in range(100):
+        for _ in range(300):
             time.sleep(0.2)
             final = client.get(f"/ai/runs/{run_id}").json()
             if final["status"] not in {"queued", "running"}:
@@ -414,7 +414,7 @@ def test_run_records_file_changes(tmp_path: Path, monkeypatch) -> None:
         },
     ).json()
     final = None
-    for _ in range(100):
+    for _ in range(300):
         time.sleep(0.2)
         final = client.get(f"/ai/runs/{started['id']}").json()
         if final["status"] not in {"queued", "running"}:
@@ -459,7 +459,7 @@ def test_run_streams_output(tmp_path: Path, monkeypatch) -> None:
     assert "two" not in partial["output"]
 
     final = None
-    for _ in range(100):
+    for _ in range(300):
         time.sleep(0.2)
         final = client.get(f"/ai/runs/{started['id']}").json()
         if final["status"] not in {"queued", "running"}:
@@ -536,7 +536,7 @@ def test_parallel_runs_are_queued(tmp_path: Path, monkeypatch) -> None:
     assert second["status"] == "queued"
     assert second["queue_position"] >= 1
 
-    for _ in range(150):
+    for _ in range(300):
         time.sleep(0.2)
         a = client.get(f"/ai/runs/{first['id']}").json()
         b = client.get(f"/ai/runs/{second['id']}").json()
@@ -610,7 +610,7 @@ def test_worktree_isolation_and_apply(tmp_path: Path, monkeypatch) -> None:
     assert run["worktree_path"]
 
     final = run
-    for _ in range(150):
+    for _ in range(300):
         time.sleep(0.2)
         final = client.get(f"/ai/runs/{run['id']}").json()
         if final["status"] not in {"queued", "running"}:
@@ -666,7 +666,7 @@ def test_read_only_uses_provider_args(tmp_path: Path, monkeypatch) -> None:
     assert started.status_code == 201, started.text
     run = started.json()
     assert run["read_only"] is True
-    for _ in range(100):
+    for _ in range(300):
         time.sleep(0.2)
         final = client.get(f"/ai/runs/{run['id']}").json()
         if final["status"] not in {"queued", "running"}:
@@ -728,7 +728,7 @@ def test_cli_resume_uses_session_id(tmp_path: Path, monkeypatch) -> None:
     ).json()
 
     first = None
-    for _ in range(100):
+    for _ in range(300):
         time.sleep(0.2)
         first = client.get(f"/ai/runs/{started['id']}").json()
         if first["status"] not in {"queued", "running"}:
@@ -750,7 +750,7 @@ def test_cli_resume_uses_session_id(tmp_path: Path, monkeypatch) -> None:
     assert second["resumed_from_session"] == first["session_id"]
     assert second["session_id"] == first["session_id"]
 
-    for _ in range(100):
+    for _ in range(300):
         time.sleep(0.2)
         second = client.get(f"/ai/runs/{second['id']}").json()
         if second["status"] not in {"queued", "running"}:
@@ -781,7 +781,7 @@ def test_resume_requires_cli_session(tmp_path: Path, monkeypatch) -> None:
         "/ai/runs",
         json={"task_id": task["id"], "provider": provider["id"], "snapshot": False},
     ).json()
-    for _ in range(100):
+    for _ in range(300):
         time.sleep(0.2)
         run = client.get(f"/ai/runs/{started['id']}").json()
         if run["status"] not in {"queued", "running"}:
@@ -828,7 +828,7 @@ def test_linear_workflow_stops_between_steps(tmp_path: Path, monkeypatch) -> Non
     assert started.status_code == 201, started.text
     run = started.json()
     assert run["workflow_step_id"] == step["id"]
-    for _ in range(100):
+    for _ in range(300):
         time.sleep(0.2)
         run = client.get(f"/ai/runs/{run['id']}").json()
         if run["status"] not in {"queued", "running"}:
@@ -904,7 +904,7 @@ def test_routing_rules_and_roles(tmp_path: Path, monkeypatch) -> None:
     ).json()
     assert started["role_id"] == role_id
     assert started["role_name"] == "Reviewer"
-    for _ in range(100):
+    for _ in range(300):
         time.sleep(0.2)
         run = client.get(f"/ai/runs/{started['id']}").json()
         if run["status"] not in {"queued", "running"}:

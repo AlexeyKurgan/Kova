@@ -71,17 +71,33 @@ def _run_openai(
     should_stop: Callable[[], bool] | None,
     system: str = SYSTEM_PROMPT,
     azure: bool = False,
+    media: list[dict[str, Any]] | None = None,
 ) -> tuple[str, dict[str, Any] | None]:
     scheme, host, port, path, query = _split_url(
         str(provider.get("api_url") or ""), "/v1/chat/completions"
     )
     model = str(provider.get("api_model") or "").strip()
+    images = [
+        item for item in (media or []) if item.get("kind") == "image" and item.get("data")
+    ]
+    user_content: Any = prompt
+    if images:
+        user_content = [{"type": "text", "text": prompt}]
+        for image in images:
+            user_content.append(
+                {
+                    "type": "image_url",
+                    "image_url": {
+                        "url": f"data:{image.get('mime') or 'image/png'};base64,{image.get('data')}"
+                    },
+                }
+            )
     body = json.dumps(
         {
             "model": model,
             "messages": [
                 {"role": "system", "content": system},
-                {"role": "user", "content": prompt},
+                {"role": "user", "content": user_content},
             ],
             "stream": True,
         }
@@ -127,17 +143,35 @@ def _run_anthropic(
     on_text: Callable[[str], None] | None,
     should_stop: Callable[[], bool] | None,
     system: str = SYSTEM_PROMPT,
+    media: list[dict[str, Any]] | None = None,
 ) -> tuple[str, dict[str, Any] | None]:
     scheme, host, port, path, query = _split_url(
         str(provider.get("api_url") or ""), "/v1/messages"
     )
     model = str(provider.get("api_model") or "").strip()
+    images = [
+        item for item in (media or []) if item.get("kind") == "image" and item.get("data")
+    ]
+    user_content: Any = prompt
+    if images:
+        user_content = [{"type": "text", "text": prompt}]
+        for image in images:
+            user_content.append(
+                {
+                    "type": "image",
+                    "source": {
+                        "type": "base64",
+                        "media_type": image.get("mime") or "image/png",
+                        "data": image.get("data"),
+                    },
+                }
+            )
     body = json.dumps(
         {
             "model": model,
             "max_tokens": int(provider.get("api_max_tokens") or 4096),
             "system": system,
-            "messages": [{"role": "user", "content": prompt}],
+            "messages": [{"role": "user", "content": user_content}],
             "stream": True,
         }
     ).encode("utf-8")
@@ -213,12 +247,24 @@ def _run_google(
     on_text: Callable[[str], None] | None,
     should_stop: Callable[[], bool] | None,
     system: str = SYSTEM_PROMPT,
+    media: list[dict[str, Any]] | None = None,
 ) -> tuple[str, dict[str, Any] | None]:
     scheme, host, port, path = _google_endpoint(provider, api_key)
+    parts: list[dict[str, Any]] = [{"text": prompt}]
+    for item in media or []:
+        if item.get("kind") in {"image", "video"} and item.get("data"):
+            parts.append(
+                {
+                    "inline_data": {
+                        "mime_type": item.get("mime") or "application/octet-stream",
+                        "data": item.get("data"),
+                    }
+                }
+            )
     body = json.dumps(
         {
             "systemInstruction": {"parts": [{"text": system}]},
-            "contents": [{"role": "user", "parts": [{"text": prompt}]}],
+            "contents": [{"role": "user", "parts": parts}],
             "generationConfig": {
                 "maxOutputTokens": int(provider.get("api_max_tokens") or 4096)
             },
@@ -292,6 +338,7 @@ def _run_vertex(
     on_text,
     should_stop,
     system: str = SYSTEM_PROMPT,
+    media: list[dict] | None = None,
 ):
     project = str(provider.get("gcp_project") or "").strip()
     region = str(provider.get("gcp_region") or "us-central1").strip()
@@ -306,10 +353,21 @@ def _run_vertex(
         f"/v1/projects/{project}/locations/{region}/publishers/google/models/"
         f"{model}:streamGenerateContent?alt=sse"
     )
+    parts: list[dict] = [{"text": prompt}]
+    for item in media or []:
+        if item.get("kind") in {"image", "video"} and item.get("data"):
+            parts.append(
+                {
+                    "inline_data": {
+                        "mime_type": item.get("mime") or "application/octet-stream",
+                        "data": item.get("data"),
+                    }
+                }
+            )
     body = json.dumps(
         {
             "systemInstruction": {"parts": [{"text": system}]},
-            "contents": [{"role": "user", "parts": [{"text": prompt}]}],
+            "contents": [{"role": "user", "parts": parts}],
             "generationConfig": {
                 "maxOutputTokens": int(provider.get("api_max_tokens") or 4096)
             },
@@ -413,7 +471,15 @@ def _sigv4_headers(method: str, host: str, path: str, region: str, service: str,
     return headers
 
 
-def _run_bedrock(provider, prompt: str, api_key: str, on_text, should_stop, system: str = SYSTEM_PROMPT):
+def _run_bedrock(
+    provider,
+    prompt: str,
+    api_key: str,
+    on_text,
+    should_stop,
+    system: str = SYSTEM_PROMPT,
+    media=None,
+):
     import urllib.parse
 
     region = str(provider.get("aws_region") or "us-east-1").strip()
@@ -466,33 +532,34 @@ def run_chat(
     on_text: Callable[[str], None] | None = None,
     should_stop: Callable[[], bool] | None = None,
     system: str = SYSTEM_PROMPT,
+    media: list[dict[str, Any]] | None = None,
 ) -> tuple[str, dict[str, Any] | None]:
     if not str(provider.get("api_model") or "").strip():
         raise RuntimeError("не задана API-модель")
     style = str(provider.get("api_style") or "openai")
     if style == "vertex":
         output, usage = _run_vertex(
-            provider, prompt, api_key, on_text, should_stop, system
+            provider, prompt, api_key, on_text, should_stop, system, media
         )
     elif style == "bedrock":
         output, usage = _run_bedrock(
-            provider, prompt, api_key, on_text, should_stop, system
+            provider, prompt, api_key, on_text, should_stop, system, media
         )
     elif style == "azure":
         output, usage = _run_openai(
-            provider, prompt, api_key, on_text, should_stop, system, azure=True
+            provider, prompt, api_key, on_text, should_stop, system, azure=True, media=media
         )
     elif style == "anthropic":
         output, usage = _run_anthropic(
-            provider, prompt, api_key, on_text, should_stop, system
+            provider, prompt, api_key, on_text, should_stop, system, media
         )
     elif style == "google":
         output, usage = _run_google(
-            provider, prompt, api_key, on_text, should_stop, system
+            provider, prompt, api_key, on_text, should_stop, system, media
         )
     else:
         output, usage = _run_openai(
-            provider, prompt, api_key, on_text, should_stop, system
+            provider, prompt, api_key, on_text, should_stop, system, media=media
         )
     if not output:
         raise RuntimeError("API вернул пустой ответ")

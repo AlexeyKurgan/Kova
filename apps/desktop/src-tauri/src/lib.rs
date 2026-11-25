@@ -58,8 +58,6 @@ pub fn run() {
             editor::editor_uninstall_extensions,
             editor::editor_open,
             editor::editor_close,
-            editor::editor_open_external,
-            editor::vscode_status,
             editor::open_project_folder
         ])
         .build(tauri::generate_context!())

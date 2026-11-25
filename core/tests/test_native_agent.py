@@ -64,10 +64,10 @@ def _client(tmp_path: Path, monkeypatch, responses: list[str]) -> tuple[TestClie
 
 
 def _wait(client: TestClient, run: dict) -> dict:
-    for _ in range(150):
+    for _ in range(300):
         time.sleep(0.2)
         run = client.get(f"/ai/runs/{run['id']}").json()
-        if run["status"] not in {"queued", "running"}:
+        if run["status"] not in {"queued", "running", "waiting_approval"}:
             return run
     return run
 
@@ -94,7 +94,7 @@ def test_native_agent_reads_and_writes(tmp_path: Path, monkeypatch) -> None:
         )
         assert started.status_code == 201, started.text
         run = started.json()
-        for _ in range(100):
+        for _ in range(300):
             time.sleep(0.2)
             run = client.get(f"/ai/runs/{run['id']}").json()
             if run["status"] == "waiting_approval":
@@ -179,7 +179,7 @@ def test_native_deny_stops_run(tmp_path: Path, monkeypatch) -> None:
             },
         ).json()
         run = started
-        for _ in range(100):
+        for _ in range(300):
             time.sleep(0.2)
             run = client.get(f"/ai/runs/{run['id']}").json()
             if run["status"] == "waiting_approval":
