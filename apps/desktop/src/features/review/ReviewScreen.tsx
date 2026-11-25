@@ -7,6 +7,7 @@ import {
   listValidationResults,
   reviewResponse,
 } from "../../lib/coreClient";
+import { useConfirm } from "../../components/ConfirmProvider";
 import { formatDate, plural } from "../../lib/format";
 import { REVIEW_STATUS_LABELS } from "../../lib/labels";
 import type { AiRun, ReviewItem, Task, ValidationResult } from "../../lib/types";
@@ -19,6 +20,7 @@ type Props = {
 };
 
 export default function ReviewScreen({ items, tasks, onAccept, onRework }: Props) {
+  const confirm = useConfirm();
   const [expanded, setExpanded] = useState<string | null>(null);
   const [previews, setPreviews] = useState<Record<string, string>>({});
   const [validation, setValidation] = useState<Record<string, ValidationResult[]>>({});
@@ -36,13 +38,16 @@ export default function ReviewScreen({ items, tasks, onAccept, onRework }: Props
 
   const applyRun = async (run: AiRun) => {
     if (applyBusy) return;
-    if (
-      !window.confirm(
-        "Перенести изменения из worktree в проект? Перед переносом будет создан снапшот.",
-      )
-    ) {
-      return;
-    }
+    const ok = await confirm({
+      title: "Применить изменения?",
+      message: "Файлы из worktree будут перенесены в проект.",
+      details: [
+        "Перед переносом Kova создаст снапшот проекта.",
+        "Файлы, не относящиеся к запуску, не затрагиваются.",
+      ],
+      confirmLabel: "Применить",
+    });
+    if (!ok) return;
     setApplyBusy(run.id);
     try {
       const updated = await applyWorktreeRun(run.id);
@@ -168,20 +173,28 @@ export default function ReviewScreen({ items, tasks, onAccept, onRework }: Props
     };
   };
 
-  const acceptItem = (
+  const acceptItem = async (
     item: ReviewItem,
     summary: ReturnType<typeof validationSummary>,
   ) => {
     if (summary && summary.failed > 0) {
-      const lines = summary.failedLabels.slice(0, 6).join("\n");
-      const ok = window.confirm(
-        `Проверки не пройдены:\n${lines || "есть ошибки"}\n\nПринять результат всё равно?`,
-      );
+      const ok = await confirm({
+        title: "Принять с ошибками?",
+        message: "Проверки не пройдены. Результат всё равно будет принят.",
+        details: summary.failedLabels.slice(0, 6),
+        note: "Полный список смотри во вкладке проверок.",
+        confirmLabel: "Принять всё равно",
+        danger: true,
+      });
       if (!ok) return;
     } else if (summary && summary.total === 0) {
-      const ok = window.confirm(
-        "Проверки ещё не запускались. Принять результат без проверок?",
-      );
+      const ok = await confirm({
+        title: "Принять без проверок?",
+        message: "Проверки ещё не запускались.",
+        details: ["Kova не подтверждает, что изменения работают."],
+        confirmLabel: "Принять без проверок",
+        danger: true,
+      });
       if (!ok) return;
     }
     onAccept(item.id);
@@ -456,7 +469,7 @@ export default function ReviewScreen({ items, tasks, onAccept, onRework }: Props
                 <button
                   type="button"
                   className={`btn ${blocked ? "btn-danger" : "btn-primary"}`}
-                  onClick={() => acceptItem(item, summary)}
+                  onClick={() => void acceptItem(item, summary)}
                 >
                   {blocked ? <TriangleAlert size={15} /> : <Check size={15} />}
                   {stale

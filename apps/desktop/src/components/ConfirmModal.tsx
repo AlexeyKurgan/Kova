@@ -6,6 +6,8 @@ type Props = {
   message: string;
   confirmLabel: string;
   danger?: boolean;
+  details?: string[];
+  note?: string;
   onCancel: () => void;
   onConfirm: () => Promise<void>;
 };
@@ -15,6 +17,8 @@ export default function ConfirmModal({
   message,
   confirmLabel,
   danger = false,
+  details = [],
+  note = "",
   onCancel,
   onConfirm,
 }: Props) {
@@ -47,12 +51,15 @@ export default function ConfirmModal({
         if (event.target === event.currentTarget && !busy) onCancel();
       }}
     >
-      <div className="modal confirm-modal">
-        <div className="modal-header">
-          <span className="modal-title">
-            <AlertTriangle size={16} className={danger ? "confirm-icon is-danger" : "confirm-icon"} />
-            {title}
+      <div className={`modal confirm-modal${danger ? " is-danger" : ""}`}>
+        <div className="confirm-head">
+          <span className={`confirm-head-icon${danger ? " is-danger" : ""}`}>
+            <AlertTriangle size={20} />
           </span>
+          <div className="confirm-head-copy">
+            <span className="modal-title">{title}</span>
+            <p>{danger ? "Действие нельзя отменить." : "Подтверди действие."}</p>
+          </div>
           <button
             type="button"
             className="icon-btn"
@@ -65,6 +72,14 @@ export default function ConfirmModal({
         </div>
         <div className="modal-body">
           <p className="confirm-message">{message}</p>
+          {details.length > 0 ? (
+            <ul className="confirm-details">
+              {details.map((item) => (
+                <li key={item}>{item}</li>
+              ))}
+            </ul>
+          ) : null}
+          {note ? <p className="confirm-note">{note}</p> : null}
           {error ? <p className="modal-error">{error}</p> : null}
         </div>
         <div className="modal-footer">
@@ -78,7 +93,7 @@ export default function ConfirmModal({
             onClick={() => void confirm()}
             disabled={busy}
           >
-            {busy ? "…" : confirmLabel}
+            {busy ? "Выполняется…" : confirmLabel}
           </button>
         </div>
       </div>

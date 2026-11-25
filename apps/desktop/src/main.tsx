@@ -5,11 +5,14 @@ import "@fontsource/inter/500.css";
 import "@fontsource/inter/600.css";
 import "@fontsource/inter/700.css";
 import App from "./App";
+import { ConfirmProvider } from "./components/ConfirmProvider";
 import "./styles/tokens.css";
 import "./styles/global.css";
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
-    <App />
+    <ConfirmProvider>
+      <App />
+    </ConfirmProvider>
   </React.StrictMode>,
 );

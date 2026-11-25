@@ -19,6 +19,7 @@ import {
   X,
 } from "lucide-react";
 import BrandIcon from "../../components/BrandIcon";
+import { useConfirm } from "../../components/ConfirmProvider";
 import { providerBrand } from "../../lib/brands";
 import {
   cleanupAgentHistory,
@@ -175,6 +176,7 @@ export default function AgentsScreen({
   onDelete,
   onOpenTask,
 }: Props) {
+  const confirm = useConfirm();
   const [dialog, setDialog] = useState<Dialog>(null);
   const [name, setName] = useState("");
   const [command, setCommand] = useState("");
@@ -522,7 +524,17 @@ export default function AgentsScreen({
   };
 
   const remove = async (provider: ProviderInfo) => {
-    if (!window.confirm(`Удалить провайдера «${provider.name}»?`)) return;
+    const ok = await confirm({
+      title: "Удалить провайдера?",
+      message: `«${provider.name}» будет удалён из Kova.`,
+      details:
+        provider.kind === "api"
+          ? ["Сохранённый API-ключ будет удалён.", "История запусков останется."]
+          : ["CLI и его логин на компьютере не затрагиваются.", "История запусков останется."],
+      confirmLabel: "Удалить",
+      danger: true,
+    });
+    if (!ok) return;
     setError(null);
     try {
       await onDelete(provider.id);
@@ -533,7 +545,17 @@ export default function AgentsScreen({
 
   const cleanupHistory = async () => {
     if (cleanupBusy) return;
-    if (!window.confirm("Удалить старые запуски, логи и патчи? Снапшоты останутся.")) return;
+    const ok = await confirm({
+      title: "Очистить историю?",
+      message: "Старые запуски, сессии, логи, патчи и worktree будут удалены.",
+      details: [
+        "Останутся последние 50 запусков.",
+        "Снапшоты и файлы проекта не удаляются.",
+      ],
+      confirmLabel: "Очистить",
+      danger: true,
+    });
+    if (!ok) return;
     setCleanupBusy(true);
     setHistoryNote("");
     try {

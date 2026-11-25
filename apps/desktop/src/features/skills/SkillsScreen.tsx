@@ -29,6 +29,7 @@ import {
   X,
 } from "lucide-react";
 import BrandIcon from "../../components/BrandIcon";
+import { useConfirm } from "../../components/ConfirmProvider";
 import {
   createSkill,
   deleteSkill,
@@ -93,6 +94,7 @@ function short(text: string, limit = 150) {
 }
 
 export default function SkillsScreen({ skills, tasks, onChanged }: Props) {
+  const confirm = useConfirm();
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState<"all" | SkillCategory>("all");
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -224,7 +226,14 @@ export default function SkillsScreen({ skills, tasks, onChanged }: Props) {
 
   const remove = async () => {
     if (!detail) return;
-    if (!window.confirm(`Удалить скилл «${detail.name}»?`)) return;
+    const ok = await confirm({
+      title: "Удалить скилл?",
+      message: `Скилл «${detail.name}» будет удалён из библиотеки.`,
+      details: ["Если скилл встроенный, он будет скрыт как переопределение."],
+      confirmLabel: "Удалить",
+      danger: true,
+    });
+    if (!ok) return;
     setBusy(true);
     setError(null);
     try {
@@ -590,12 +599,24 @@ export default function SkillsScreen({ skills, tasks, onChanged }: Props) {
                             className="is-danger"
                             disabled={skill.locked}
                             onClick={() => {
-                              if (!window.confirm(`Удалить скилл «${skill.name}»?`)) return;
-                              void deleteSkill(skill.id, true).then(() => {
+                              void (async () => {
+                                const ok = await confirm({
+                                  title: "Удалить скилл?",
+                                  message: `Скилл «${skill.name}» будет удалён из библиотеки.`,
+                                  details: [
+                                    skill.source === "builtin"
+                                      ? "Встроенный скилл будет скрыт, оригинал не изменится."
+                                      : "Скилл будет удалён без возможности восстановления.",
+                                  ],
+                                  confirmLabel: "Удалить",
+                                  danger: true,
+                                });
+                                if (!ok) return;
+                                await deleteSkill(skill.id, true);
                                 if (selectedId === skill.id) setDetail(null);
                                 setMenuFor(null);
                                 onChanged();
-                              });
+                              })();
                             }}
                           >
                             <Trash2 size={13} />

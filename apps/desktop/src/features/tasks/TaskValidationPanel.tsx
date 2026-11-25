@@ -8,6 +8,7 @@ import {
   runTaskValidation,
   updateTask,
 } from "../../lib/coreClient";
+import { useConfirm } from "../../components/ConfirmProvider";
 import { formatDate } from "../../lib/format";
 import type {
   Task,
@@ -50,6 +51,7 @@ export default function TaskValidationPanel({
 }: Props) {
   const [results, setResults] = useState<ValidationResult[]>([]);
   const [suggestions, setSuggestions] = useState<ValidationSuggestion[]>([]);
+  const confirm = useConfirm();
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [runningAll, setRunningAll] = useState(false);
@@ -171,7 +173,14 @@ export default function TaskValidationPanel({
   };
 
   const remove = async (commandId: string, name: string) => {
-    if (!window.confirm(`Удалить проверку «${name}»?`)) return;
+    const ok = await confirm({
+      title: "Удалить проверку?",
+      message: `Команда «${name}» будет удалена из задачи.`,
+      details: ["История уже выполненных проверок останется в задаче."],
+      confirmLabel: "Удалить",
+      danger: true,
+    });
+    if (!ok) return;
     setError(null);
     try {
       await deleteValidationCommand(task.id, commandId);

@@ -3,7 +3,7 @@ import Inspector from "./components/Inspector";
 import Sidebar from "./components/Sidebar";
 import TitleBar from "./components/TitleBar";
 import TopBar from "./components/TopBar";
-import ConfirmModal from "./components/ConfirmModal";
+import { useConfirm } from "./components/ConfirmProvider";
 import ActivityModal from "./features/activity/ActivityModal";
 import AgentsScreen from "./features/agents/AgentsScreen";
 import AssetPassportScreen from "./features/assets/AssetPassportScreen";
@@ -101,6 +101,7 @@ import type {
 } from "./lib/types";
 
 export default function App() {
+  const confirm = useConfirm();
   const [active, setActive] = useState<Section>("Обзор");
   const [theme, setTheme] = useState<"dark" | "light">(() => {
     const saved = window.localStorage.getItem("kova-theme");
@@ -122,8 +123,6 @@ export default function App() {
   const [toast, setToast] = useState<{ text: string; tone: "error" | "warning" } | null>(null);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [trashTasks, setTrashTasks] = useState<Task[]>([]);
-  const [taskToDelete, setTaskToDelete] = useState<Task | null>(null);
-  const [taskToPurge, setTaskToPurge] = useState<Task | null>(null);
   const [assets, setAssets] = useState<AssetPassport[]>([]);
   const [stats, setStats] = useState<ProjectStats | null>(null);
   const [review, setReview] = useState<ReviewItem[]>([]);
@@ -488,17 +487,25 @@ export default function App() {
     [loadProjectData],
   );
 
-  const requestDeleteTask = useCallback((task: Task) => {
-    setTaskToDelete(task);
-  }, []);
-
-  const confirmDeleteTask = useCallback(async () => {
-    if (!taskToDelete) return;
-    await deleteTask(taskToDelete.id);
-    if (openTaskId === taskToDelete.id) setOpenTaskId(null);
-    setTaskToDelete(null);
-    await loadProjectData();
-  }, [loadProjectData, openTaskId, taskToDelete]);
+  const requestDeleteTask = useCallback(
+    async (task: Task) => {
+      const ok = await confirm({
+        title: "Удалить задачу?",
+        message: `Задача «${task.title}» переместится в корзину.`,
+        details: [
+          "Задачу можно восстановить из корзины.",
+          "Ассеты и файлы проекта не удаляются.",
+        ],
+        confirmLabel: "В корзину",
+        danger: true,
+      });
+      if (!ok) return;
+      await deleteTask(task.id);
+      if (openTaskId === task.id) setOpenTaskId(null);
+      await loadProjectData();
+    },
+    [confirm, loadProjectData, openTaskId],
+  );
 
   const handleRestoreTrash = useCallback(
     async (taskId: string) => {
@@ -508,16 +515,21 @@ export default function App() {
     [loadProjectData],
   );
 
-  const requestPurgeTask = useCallback((task: Task) => {
-    setTaskToPurge(task);
-  }, []);
-
-  const confirmPurgeTask = useCallback(async () => {
-    if (!taskToPurge) return;
-    await purgeTask(taskToPurge.id);
-    setTaskToPurge(null);
-    await loadProjectData();
-  }, [loadProjectData, taskToPurge]);
+  const requestPurgeTask = useCallback(
+    async (task: Task) => {
+      const ok = await confirm({
+        title: "Удалить задачу навсегда?",
+        message: `Задача «${task.title}» и её файлы будут удалены.`,
+        details: ["Это действие нельзя отменить.", "Корзина не сохранит копию."],
+        confirmLabel: "Удалить навсегда",
+        danger: true,
+      });
+      if (!ok) return;
+      await purgeTask(task.id);
+      await loadProjectData();
+    },
+    [confirm, loadProjectData],
+  );
 
   const handleCapsule = useCallback(
     async (taskId: string) => {
@@ -572,9 +584,17 @@ export default function App() {
 
   const handleRestoreSnapshot = useCallback(
     async (snapshotId: string) => {
-      if (!window.confirm("Откатить файлы проекта к этому снапшоту? Текущее состояние сохранится отдельным снапшотом.")) {
-        return;
-      }
+      const ok = await confirm({
+        title: "Откатить проект?",
+        message: "Файлы проекта вернутся к выбранному снапшоту.",
+        details: [
+          "Текущее состояние сначала сохранится отдельным снапшотом.",
+          "Незакоммиченные изменения вне проекта не затрагиваются.",
+        ],
+        confirmLabel: "Откатить",
+        danger: true,
+      });
+      if (!ok) return;
       try {
         await restoreSnapshot(snapshotId);
         await loadProjectData();
@@ -588,7 +608,18 @@ export default function App() {
   const handleDeleteAsset = useCallback(
     async (assetId: string) => {
       const asset = assets.find((item) => item.id === assetId);
-      if (!window.confirm(`Удалить ассет «${asset?.name ?? assetId}» и его файлы?`)) return;
+      const ok = await confirm({
+        title: "Удалить ассет?",
+        message: `Ассет «${asset?.name ?? assetId}» будет удалён из библиотеки.`,
+        details: [
+          "Будут удалены паспорт, превью и проверки.",
+          "Скопированные файлы удалятся, если их не использует другой ассет.",
+          "Связи с задачами будут сняты.",
+        ],
+        confirmLabel: "Удалить",
+        danger: true,
+      });
+      if (!ok) return;
       try {
         await deleteAsset(assetId);
         if (openAssetId === assetId) setOpenAssetId(null);
@@ -1160,25 +1191,6 @@ export default function App() {
       ) : null}
       {responseOpen && openTask ? (
         <ResponseModal onClose={closeResponse} onSubmit={handleResponse} />
-      ) : null}
-      {taskToDelete ? (
-        <ConfirmModal
-          title="Удалить задачу?"
-          message={`Задача «${taskToDelete.title}» переместится в корзину. Её можно восстановить.`}
-          confirmLabel="В корзину"
-          onCancel={() => setTaskToDelete(null)}
-          onConfirm={confirmDeleteTask}
-        />
-      ) : null}
-      {taskToPurge ? (
-        <ConfirmModal
-          title="Удалить навсегда?"
-          message={`Задача «${taskToPurge.title}» и её файлы будут удалены. Это действие нельзя отменить.`}
-          confirmLabel="Удалить навсегда"
-          danger
-          onCancel={() => setTaskToPurge(null)}
-          onConfirm={confirmPurgeTask}
-        />
       ) : null}
       {activityOpen ? (
         <ActivityModal
