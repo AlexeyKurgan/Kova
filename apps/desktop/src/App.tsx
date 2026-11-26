@@ -152,6 +152,7 @@ export default function App() {
   const [robloxOpen, setRobloxOpen] = useState(false);
   const [chatSeed, setChatSeed] = useState<{ text: string; key: number } | null>(null);
   const reviewCountRef = useRef<number | null>(null);
+  const reviewInitializedRef = useRef(false);
   const [project, setProject] = useState<Project | null>(null);
   const [projectPath, setProjectPath] = useState<string | null>(null);
   const [projects, setProjects] = useState<ProjectCard[]>([]);
@@ -308,11 +309,17 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    if (!project) return;
+    if (!reviewInitializedRef.current) {
+      reviewInitializedRef.current = true;
+      reviewCountRef.current = review.length;
+      return;
+    }
     if (reviewCountRef.current !== null && review.length > reviewCountRef.current) {
       void notifyReview(review.length - reviewCountRef.current);
     }
     reviewCountRef.current = review.length;
-  }, [review.length]);
+  }, [project, review.length]);
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
