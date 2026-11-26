@@ -605,9 +605,22 @@ export type RobloxStatus = {
   connected: boolean;
   last_seen_seconds: number | null;
   plugin_version: string;
+  protocol?: number;
   pending: number;
   last_error: string;
   token_configured: boolean;
+  capabilities?: string[];
+  studio_installed?: boolean;
+  studio_path?: string;
+  plugin_installed?: boolean;
+  plugin_path?: string;
+  recent_events?: Array<{
+    kind: string;
+    ok: boolean;
+    result: string;
+    plugin_version: string;
+    at: number;
+  }>;
 };
 
 export type BlenderStatus = {

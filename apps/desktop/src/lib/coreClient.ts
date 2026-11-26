@@ -113,6 +113,31 @@ export async function installRobloxPlugin(): Promise<{
   return request("/roblox/install-plugin", { method: "POST" });
 }
 
+export async function buildRobloxPlace(
+  projectPath: string,
+  launch = false,
+): Promise<{
+  ok: boolean;
+  path: string;
+  asset_id: string;
+  bytes: number;
+  launch?: { ok: boolean; pid: number; studio: string; place: string };
+}> {
+  return request("/roblox/build-place", {
+    method: "POST",
+    body: JSON.stringify({ project_path: projectPath, launch }),
+  });
+}
+
+export async function launchRobloxStudio(
+  placePath?: string,
+): Promise<{ ok: boolean; pid: number; studio: string; place: string }> {
+  return request("/roblox/launch", {
+    method: "POST",
+    body: JSON.stringify({ place_path: placePath ?? null }),
+  });
+}
+
 export async function executeRobloxCommand(
   command: Record<string, unknown>,
 ): Promise<{ ok: boolean; id: string; command: Record<string, unknown> }> {

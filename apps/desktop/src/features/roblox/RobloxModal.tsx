@@ -2,12 +2,14 @@ import { useEffect, useState } from "react";
 import {
   CheckCircle2,
   Download,
+  Hammer,
   Plug,
   RefreshCw,
   Wand2,
   X,
 } from "lucide-react";
 import {
+  buildRobloxPlace,
   executeRobloxCommand,
   getRobloxStatus,
   installRobloxPlugin,
@@ -16,6 +18,7 @@ import type { RobloxStatus } from "../../lib/types";
 
 type Props = {
   initialStatus: RobloxStatus | null;
+  projectPath: string | null;
   onClose: () => void;
 };
 
@@ -36,7 +39,7 @@ local function makeGui(player)
 	label.TextColor3 = Color3.fromRGB(226, 174, 78)
 	label.Font = Enum.Font.GothamBold
 	label.TextSize = 20
-	label.Text = "Kova works"
+	label.Text = "Кова работает"
 	label.Parent = gui
 end
 
@@ -61,14 +64,14 @@ if not Workspace:FindFirstChild("KovaWorksSign") then
 	text.TextColor3 = Color3.fromRGB(226, 174, 78)
 	text.Font = Enum.Font.GothamBold
 	text.TextScaled = true
-	text.Text = "Kova works"
+	text.Text = "Кова работает"
 	text.Parent = surface
 end
 
-print("[Kova] Kova works")
+print("[Kova] Кова работает")
 `;
 
-export default function RobloxModal({ initialStatus, onClose }: Props) {
+export default function RobloxModal({ initialStatus, projectPath, onClose }: Props) {
   const [status, setStatus] = useState<RobloxStatus | null>(initialStatus);
   const [busy, setBusy] = useState("");
   const [message, setMessage] = useState("");
@@ -96,6 +99,28 @@ export default function RobloxModal({ initialStatus, onClose }: Props) {
       setMessage(`${data.message} ${data.path}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Не удалось установить плагин");
+    } finally {
+      setBusy("");
+    }
+  };
+
+  const buildPlace = async () => {
+    if (!projectPath) {
+      setError("Сначала открой проект Uncharted 3D.");
+      return;
+    }
+    setBusy("build");
+    setError("");
+    setMessage("");
+    try {
+      const data = await buildRobloxPlace(projectPath, true);
+      setMessage(
+        `Место собрано: ${data.path} (${Math.round(data.bytes / 1024)} КБ)` +
+          (data.asset_id ? ` · mesh ${data.asset_id}` : ""),
+      );
+      window.setTimeout(() => void refresh(), 1200);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Не удалось собрать место");
     } finally {
       setBusy("");
     }
@@ -180,7 +205,9 @@ export default function RobloxModal({ initialStatus, onClose }: Props) {
               <small>
                 {connected
                   ? `Плагин ${status?.plugin_version || "Kova"} · очередь ${status?.pending ?? 0}`
-                  : "Установи плагин, перезапусти Studio и открой Kova Bridge."}
+                  : status?.studio_installed
+                    ? "Studio найден. Установи плагин и перезапусти Studio."
+                    : "Roblox Studio не найден на этом компьютере."}
               </small>
             </div>
             <button
@@ -211,6 +238,16 @@ export default function RobloxModal({ initialStatus, onClose }: Props) {
             >
               <Download size={14} />
               {busy === "install" ? "Установка…" : "Установить плагин"}
+            </button>
+            <button
+              type="button"
+              className="btn btn-secondary"
+              disabled={Boolean(busy) || !projectPath}
+              onClick={() => void buildPlace()}
+              title={projectPath ? "Собрать .rbxlx и открыть в Studio" : "Открой проект"}
+            >
+              <Hammer size={14} />
+              {busy === "build" ? "Сборка…" : "Собрать и открыть"}
             </button>
             <button
               type="button"

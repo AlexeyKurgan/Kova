@@ -1325,6 +1325,7 @@ export default function App() {
       {robloxOpen ? (
         <RobloxModal
           initialStatus={robloxStatus}
+          projectPath={projectPath}
           onClose={() => setRobloxOpen(false)}
         />
       ) : null}
