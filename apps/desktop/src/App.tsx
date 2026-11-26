@@ -53,7 +53,7 @@ import {
   checkProvider,
   connectBlender,
   coreHealth,
-  coreUrl,
+  mediaUrl,
   createProject,
   createProvider,
   createSnapshot,
@@ -1203,7 +1203,7 @@ export default function App() {
     projects.find((item) => item.active) ??
     projects.find((item) => item.path === projectPath);
   const projectCoverUrl = activeProjectCard?.cover_url
-    ? coreUrl(activeProjectCard.cover_url)
+    ? mediaUrl(activeProjectCard.cover_url)
     : null;
   const openTask = tasks.find((task) => task.id === openTaskId) ?? null;
   const skillPickerTask = tasks.find((task) => task.id === skillPickerTaskId) ?? null;

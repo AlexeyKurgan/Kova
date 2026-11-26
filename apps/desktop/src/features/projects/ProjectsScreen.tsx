@@ -21,7 +21,7 @@ import BrandIcon from "../../components/BrandIcon";
 import { engineBrand } from "../../lib/brands";
 import {
   cleanupProjectTrash,
-  coreUrl,
+  mediaUrl,
   listProjectTrash,
   purgeProjectTrash,
   restoreProjectTrash,
@@ -446,7 +446,7 @@ export default function ProjectsScreen({
                   title={project.path}
                 >
                   {project.cover_url ? (
-                    <img src={coreUrl(project.cover_url)} alt="" loading="lazy" />
+                    <img src={mediaUrl(project.cover_url)} alt="" loading="lazy" />
                   ) : brand ? (
                     <BrandIcon name={brand} size={50} />
                   ) : (

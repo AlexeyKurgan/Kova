@@ -94,6 +94,9 @@ def create_app() -> FastAPI:
             path.endswith("/preview")
             or path.endswith("/viewer")
             or path.endswith("/cover")
+            or path.endswith("/screenshot")
+            or path.endswith("/events")
+            or "/attachments/" in path
         )
         if (
             token

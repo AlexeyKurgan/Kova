@@ -50,6 +50,10 @@ export type HealthResponse = {
   version: string;
 };
 
+export async function ensureCoreToken(): Promise<void> {
+  return ensureToken();
+}
+
 async function ensureToken(): Promise<void> {
   if (TOKEN) return;
   if (!tokenPromise) {
@@ -498,8 +502,16 @@ export async function getModelCatalog(providerId: string): Promise<ModelCatalogG
   return data.groups ?? [];
 }
 
+function tokenizedUrl(url: string): string {
+  if (!TOKEN) return url;
+  const separator = url.includes("?") ? "&" : "?";
+  return `${url}${separator}token=${encodeURIComponent(TOKEN)}`;
+}
+
 export function chatAttachmentUrl(chatId: string, attachmentId: string): string {
-  return `${CORE_URL}/chats/${encodeURIComponent(chatId)}/attachments/${encodeURIComponent(attachmentId)}`;
+  return tokenizedUrl(
+    `${CORE_URL}/chats/${encodeURIComponent(chatId)}/attachments/${encodeURIComponent(attachmentId)}`,
+  );
 }
 
 export async function cancelChat(chatId: string): Promise<ChatSession> {
@@ -522,10 +534,12 @@ export async function decideChatAction(
   );
 }
 
-export function chatEventsUrl(chatId?: string): string {
-  return chatId
+export async function chatEventsUrl(chatId?: string): Promise<string> {
+  await ensureToken();
+  const base = chatId
     ? `${CORE_URL}/chats/${encodeURIComponent(chatId)}/events`
     : `${CORE_URL}/chats/events`;
+  return tokenizedUrl(base);
 }
 
 export async function listSkills(): Promise<Skill[]> {
@@ -583,7 +597,7 @@ export async function getBlenderSkill(name: string): Promise<SkillDetail> {
 
 export async function captureBlenderScreenshot(): Promise<string> {
   await request<{ path: string }>("/blender/screenshot", { method: "POST" });
-  return `${CORE_URL}/blender/screenshot?v=${Date.now()}`;
+  return tokenizedUrl(`${CORE_URL}/blender/screenshot?v=${Date.now()}`);
 }
 
 export async function inspectAssetWithBlender(

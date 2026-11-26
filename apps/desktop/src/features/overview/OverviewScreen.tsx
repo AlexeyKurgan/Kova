@@ -16,7 +16,7 @@ import type { LucideIcon } from "lucide-react";
 import BrandIcon from "../../components/BrandIcon";
 import type { BrandName } from "../../components/brandPaths";
 import { engineBrand } from "../../lib/brands";
-import { coreUrl } from "../../lib/coreClient";
+import { mediaUrl } from "../../lib/coreClient";
 import { formatDate, plural } from "../../lib/format";
 import {
   ENGINE_LABELS,
@@ -108,7 +108,7 @@ export default function OverviewScreen({
     active[0] ??
     null;
   const currentProject = projects.find((item) => item.active) ?? projects[0];
-  const cover = currentProject?.cover_url ? coreUrl(currentProject.cover_url) : "";
+  const cover = currentProject?.cover_url ? mediaUrl(currentProject.cover_url) : "";
   const heroBrand = project ? engineBrand(project.engine) : null;
   const done = currentTask
     ? currentTask.criteria.filter((criterion) => criterion.done).length
@@ -242,7 +242,7 @@ export default function OverviewScreen({
               >
                 <span className={`ov-project-thumb is-${item.engine}`}>
                   {item.cover_url ? (
-                    <img src={coreUrl(item.cover_url)} alt="" />
+                    <img src={mediaUrl(item.cover_url)} alt="" />
                   ) : brand ? (
                     <BrandIcon name={brand} size={17} />
                   ) : (

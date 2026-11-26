@@ -479,37 +479,54 @@ ${seed.text}` : seed.text));
   }, []);
 
   useEffect(() => {
-    const source = new EventSource(chatEventsUrl());
-    source.onmessage = (event) => {
-      try {
-        const payload = JSON.parse(event.data) as { type?: string; chats?: ChatSummary[] };
-        if (payload.type === "chats" && payload.chats) setChats(payload.chats);
-      } catch {
-        // ignore malformed events
-      }
+    let alive = true;
+    let source: EventSource | null = null;
+    void chatEventsUrl().then((url) => {
+      if (!alive) return;
+      source = new EventSource(url);
+      source.onmessage = (event) => {
+        try {
+          const payload = JSON.parse(event.data) as { type?: string; chats?: ChatSummary[] };
+          if (payload.type === "chats" && payload.chats) setChats(payload.chats);
+        } catch {
+          // ignore malformed events
+        }
+      };
+    });
+    return () => {
+      alive = false;
+      source?.close();
     };
-    return () => source.close();
   }, []);
 
   useEffect(() => {
-    if (!chat) return;
-    const source = new EventSource(chatEventsUrl(chat.id));
-    source.onmessage = (event) => {
-      try {
-        const payload = JSON.parse(event.data) as {
-          type?: string;
-          chat?: ChatSession;
-        };
-        if (payload.type === "deleted") {
-          setChat(null);
-          return;
+    const chatId = chat?.id;
+    if (!chatId) return;
+    let alive = true;
+    let source: EventSource | null = null;
+    void chatEventsUrl(chatId).then((url) => {
+      if (!alive) return;
+      source = new EventSource(url);
+      source.onmessage = (event) => {
+        try {
+          const payload = JSON.parse(event.data) as {
+            type?: string;
+            chat?: ChatSession;
+          };
+          if (payload.type === "deleted") {
+            setChat(null);
+            return;
+          }
+          if (payload.chat) setChat(payload.chat);
+        } catch {
+          // ignore malformed events
         }
-        if (payload.chat) setChat(payload.chat);
-      } catch {
-        // ignore malformed events
-      }
+      };
+    });
+    return () => {
+      alive = false;
+      source?.close();
     };
-    return () => source.close();
   }, [chat?.id]);
 
   useEffect(() => {
