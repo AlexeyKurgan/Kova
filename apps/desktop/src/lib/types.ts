@@ -611,9 +611,27 @@ export type MemoryResult = {
   updated_at: string;
 };
 
+export type MemoryTimelineBucket = {
+  label: string;
+  total: number;
+  task: number;
+  asset: number;
+  chat: number;
+  event: number;
+  decision: number;
+};
+
+export type MemoryTimeline = {
+  granularity: "hour" | "day" | "month" | "year";
+  buckets: MemoryTimelineBucket[];
+  total: number;
+  max: number;
+};
+
 export type MemoryResponse = {
   query: string;
   total: number;
+  timeline: MemoryTimeline;
   groups: {
     tasks: MemoryResult[];
     assets: MemoryResult[];

@@ -121,9 +121,12 @@ export async function purgeProjectTrash(trashId: string): Promise<void> {
   });
 }
 
-export async function searchMemory(query: string): Promise<MemoryResponse> {
+export async function searchMemory(
+  query: string,
+  granularity: "hour" | "day" | "month" | "year" = "day",
+): Promise<MemoryResponse> {
   return request<MemoryResponse>(
-    `/memory/search?q=${encodeURIComponent(query)}&limit=60`,
+    `/memory/search?q=${encodeURIComponent(query)}&limit=60&granularity=${granularity}`,
   );
 }
 

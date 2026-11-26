@@ -1,4 +1,5 @@
 $root = Split-Path -Parent $PSScriptRoot
+. (Join-Path $PSScriptRoot "msvc-env.ps1")
 $cargoBin = Join-Path $env:USERPROFILE ".cargo\bin"
 if ((Test-Path $cargoBin) -and ($env:PATH -notlike "*$cargoBin*")) {
   $env:PATH = "$cargoBin;$env:PATH"

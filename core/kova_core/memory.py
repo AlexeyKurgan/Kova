@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
@@ -167,7 +168,140 @@ def _decision_results(rows: list[dict[str, Any]], query: str, limit: int) -> lis
     return result[:limit]
 
 
-def search_memory(hub: Path, query: str = "", limit: int = 50) -> dict[str, Any]:
+MONTHS_SHORT = [
+    "янв", "фев", "мар", "апр", "май", "июн",
+    "июл", "авг", "сен", "окт", "ноя", "дек",
+]
+
+
+def _parse_dt(value: Any) -> datetime | None:
+    if isinstance(value, datetime):
+        current = value
+    else:
+        text = str(value or "").strip()
+        if not text:
+            return None
+        try:
+            current = datetime.fromisoformat(text.replace("Z", "+00:00"))
+        except ValueError:
+            return None
+    if current.tzinfo is None:
+        current = current.replace(tzinfo=timezone.utc)
+    return current.astimezone()
+
+
+def _month_start(value: datetime, months_back: int = 0) -> datetime:
+    month_index = value.year * 12 + (value.month - 1) - months_back
+    return value.replace(
+        year=month_index // 12,
+        month=month_index % 12 + 1,
+        day=1,
+        hour=0,
+        minute=0,
+        second=0,
+        microsecond=0,
+    )
+
+
+def memory_timeline(
+    hub: Path,
+    granularity: str = "day",
+    tasks: list[Any] | None = None,
+    assets: list[Any] | None = None,
+    chats: list[dict[str, Any]] | None = None,
+    events: list[dict[str, Any]] | None = None,
+    decisions: list[dict[str, Any]] | None = None,
+) -> dict[str, Any]:
+    granularity = granularity if granularity in {"hour", "day", "month", "year"} else "day"
+    tasks = tasks if tasks is not None else list_tasks(hub)
+    assets = assets if assets is not None else list_assets(hub)
+    chats = chats if chats is not None else list_chats(hub)
+    events = events if events is not None else _read_jsonl(hub / "ledger" / "events.jsonl")
+    decisions = decisions if decisions is not None else _read_jsonl(hub / "decisions" / "decisions.jsonl")
+
+    items: list[tuple[datetime, str]] = []
+    for task in tasks:
+        parsed = _parse_dt(task.updated_at)
+        if parsed:
+            items.append((parsed, "task"))
+    for asset in assets:
+        parsed = _parse_dt(asset.updated_at)
+        if parsed:
+            items.append((parsed, "asset"))
+    for chat in chats:
+        parsed = _parse_dt(chat.get("updated_at"))
+        if parsed:
+            items.append((parsed, "chat"))
+    for event in events:
+        parsed = _parse_dt(event.get("at"))
+        if parsed:
+            items.append((parsed, "event"))
+    for decision in decisions:
+        parsed = _parse_dt(decision.get("at") or decision.get("created_at"))
+        if parsed:
+            items.append((parsed, "decision"))
+
+    now = datetime.now().astimezone()
+    starts: list[datetime] = []
+    labels: list[str] = []
+    if granularity == "hour":
+        base = now.replace(minute=0, second=0, microsecond=0)
+        starts = [base - timedelta(hours=23 - index) for index in range(24)]
+        labels = [value.strftime("%H:00") for value in starts]
+    elif granularity == "month":
+        starts = [_month_start(now, 11 - index) for index in range(12)]
+        labels = [f"{MONTHS_SHORT[value.month - 1]} {str(value.year)[2:]}" for value in starts]
+    elif granularity == "year":
+        base = now.replace(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
+        starts = [base.replace(year=base.year - (4 - index)) for index in range(5)]
+        labels = [str(value.year) for value in starts]
+    else:
+        base = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        starts = [base - timedelta(days=13 - index) for index in range(14)]
+        labels = [f"{value.day} {MONTHS_SHORT[value.month - 1]}" for value in starts]
+
+    buckets = [
+        {
+            "label": label,
+            "total": 0,
+            "task": 0,
+            "asset": 0,
+            "chat": 0,
+            "event": 0,
+            "decision": 0,
+        }
+        for label in labels
+    ]
+    start = starts[0]
+    for stamp, kind in items:
+        if stamp < start:
+            continue
+        if granularity == "hour":
+            index = int((stamp - start).total_seconds() // 3600)
+        elif granularity == "month":
+            index = (stamp.year - start.year) * 12 + stamp.month - start.month
+        elif granularity == "year":
+            index = stamp.year - start.year
+        else:
+            index = (stamp.date() - start.date()).days
+        if 0 <= index < len(buckets):
+            buckets[index]["total"] += 1
+            buckets[index][kind] += 1
+
+    return {
+        "granularity": granularity,
+        "buckets": buckets,
+        "total": sum(bucket["total"] for bucket in buckets),
+        "max": max((bucket["total"] for bucket in buckets), default=0),
+    }
+
+
+def search_memory(
+    hub: Path,
+    query: str = "",
+    limit: int = 50,
+    granularity: str = "day",
+) -> dict[str, Any]:
     normalized = query.strip().lower()
     per_group = max(3, min(20, limit // 4 or 8))
     tasks = list_tasks(hub)
@@ -188,6 +322,9 @@ def search_memory(hub: Path, query: str = "", limit: int = 50) -> dict[str, Any]
         "query": query,
         "total": total,
         "groups": groups,
+        "timeline": memory_timeline(
+            hub, granularity, tasks=tasks, assets=assets, chats=chats, events=events, decisions=decisions
+        ),
         "counts": {
             "tasks": len(tasks),
             "assets": len(assets),

@@ -42,6 +42,8 @@ def test_memory_search_finds_tasks_and_assets(client: TestClient, tmp_path: Path
     assert found.status_code == 200, found.text
     payload = found.json()
     assert payload["total"] >= 1
+    assert payload["timeline"]["granularity"] == "day"
+    assert len(payload["timeline"]["buckets"]) == 14
     assert any(row["id"] == task_id for row in payload["groups"]["tasks"])
 
     found_asset = client.get("/memory/search", params={"q": "quasar"})
@@ -50,6 +52,12 @@ def test_memory_search_finds_tasks_and_assets(client: TestClient, tmp_path: Path
     empty = client.get("/memory/search", params={"q": "no-such-token-xyz"})
     assert empty.status_code == 200
     assert empty.json()["total"] == 0
+
+    monthly = client.get("/memory/search", params={"granularity": "month"}).json()
+    assert monthly["timeline"]["granularity"] == "month"
+    assert len(monthly["timeline"]["buckets"]) == 12
+    yearly = client.get("/memory/search", params={"granularity": "year"}).json()
+    assert len(yearly["timeline"]["buckets"]) == 5
 
 
 def test_memory_empty_query_returns_recent(client: TestClient) -> None:

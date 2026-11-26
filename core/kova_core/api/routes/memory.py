@@ -13,6 +13,7 @@ router = APIRouter(prefix="/memory", tags=["memory"])
 def search(
     q: str = Query(default="", max_length=200),
     limit: int = Query(default=50, ge=1, le=200),
+    granularity: str = Query(default="day", pattern="^(hour|day|month|year)$"),
     hub: Path = Depends(require_hub),
 ) -> dict[str, Any]:
-    return search_memory(hub, q, limit)
+    return search_memory(hub, q, limit, granularity)
