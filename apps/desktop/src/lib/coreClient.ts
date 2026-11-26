@@ -27,11 +27,13 @@ import type {
   TrashProjectsResponse,
   ProviderInfo,
   ProvidersResponse,
+  ReviewComment,
   ReviewItem,
   RobloxStatus,
   Skill,
   SkillDetail,
   Snapshot,
+  SnapshotDiff,
   Task,
   UpdateTaskInput,
   ValidationResult,
@@ -372,12 +374,33 @@ export async function listAssets(): Promise<AssetPassport[]> {
   return request<AssetPassport[]>("/assets");
 }
 
+export async function repairDoctor(): Promise<{
+  actions: string[];
+  checks: CheckResult[];
+}> {
+  return request<{ actions: string[]; checks: CheckResult[] }>("/doctor/repair", {
+    method: "POST",
+  });
+}
+
 export async function getStats(): Promise<ProjectStats> {
   return request<ProjectStats>("/stats");
 }
 
 export function coreUrl(path: string): string {
   return `${CORE_URL}${path}`;
+}
+
+export function mediaUrl(
+  path: string,
+  params: Record<string, string | number | undefined> = {},
+): string {
+  const search = new URLSearchParams();
+  if (TOKEN) search.set("token", TOKEN);
+  for (const [key, value] of Object.entries(params)) {
+    if (value !== undefined && value !== "") search.set(key, String(value));
+  }
+  return `${CORE_URL}${path}?${search.toString()}`;
 }
 
 export async function getBlenderStatus(): Promise<BlenderStatus> {
@@ -576,7 +599,17 @@ export async function importAsset(input: ImportAssetInput): Promise<AssetPasspor
 
 export async function updateAsset(
   assetId: string,
-  input: { task_ids?: string[]; task_id?: string | null; description?: string },
+  input: {
+    task_ids?: string[];
+    task_id?: string | null;
+    description?: string;
+    license?: string;
+    export_profiles?: Array<{
+      engine: Engine;
+      format: string;
+      options?: Record<string, string>;
+    }>;
+  },
 ): Promise<AssetPassport> {
   return request<AssetPassport>(`/assets/${encodeURIComponent(assetId)}`, {
     method: "PATCH",
@@ -683,6 +716,47 @@ export async function reviewResponse(reviewId: string): Promise<string> {
   return result.text;
 }
 
+export async function listReviewComments(reviewId: string): Promise<ReviewComment[]> {
+  return request<ReviewComment[]>(`/review/${encodeURIComponent(reviewId)}/comments`);
+}
+
+export async function addReviewComment(
+  reviewId: string,
+  input: {
+    body: string;
+    asset_id?: string;
+    version_id?: string;
+    x?: number;
+    y?: number;
+  },
+): Promise<ReviewComment> {
+  return request<ReviewComment>(`/review/${encodeURIComponent(reviewId)}/comments`, {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export async function updateReviewComment(
+  reviewId: string,
+  commentId: string,
+  input: { body?: string; resolved?: boolean },
+): Promise<ReviewComment> {
+  return request<ReviewComment>(
+    `/review/${encodeURIComponent(reviewId)}/comments/${encodeURIComponent(commentId)}`,
+    { method: "PATCH", body: JSON.stringify(input) },
+  );
+}
+
+export async function deleteReviewComment(
+  reviewId: string,
+  commentId: string,
+): Promise<void> {
+  await request<void>(
+    `/review/${encodeURIComponent(reviewId)}/comments/${encodeURIComponent(commentId)}`,
+    { method: "DELETE" },
+  );
+}
+
 export async function acceptReview(reviewId: string): Promise<ReviewItem> {
   return request<ReviewItem>(`/review/${encodeURIComponent(reviewId)}/accept`, {
     method: "POST",
@@ -701,6 +775,12 @@ export async function listLedger(limit = 30): Promise<LedgerEvent[]> {
 
 export async function listSnapshots(): Promise<Snapshot[]> {
   return request<Snapshot[]>("/snapshots");
+}
+
+export async function snapshotDiff(snapshotId: string): Promise<SnapshotDiff> {
+  return request<SnapshotDiff>(
+    `/snapshots/${encodeURIComponent(snapshotId)}/diff`,
+  );
 }
 
 export async function createSnapshot(reason: string): Promise<Snapshot> {

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
-import { Inbox, X } from "lucide-react";
+import { ClipboardPaste, Inbox, X } from "lucide-react";
+import { readText } from "../../lib/clipboard";
 
 type Props = {
   onClose: () => void;
@@ -11,6 +12,7 @@ export default function ResponseModal({ onClose, onSubmit }: Props) {
   const [text, setText] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [pasteNote, setPasteNote] = useState("");
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -33,6 +35,21 @@ export default function ResponseModal({ onClose, onSubmit }: Props) {
     }
   };
 
+  const pasteFromClipboard = async () => {
+    const value = await readText();
+    if (value === null) {
+      setError("Не удалось прочитать буфер обмена. Вставь ответ вручную.");
+      return;
+    }
+    if (!value.trim()) {
+      setError("Буфер обмена пуст.");
+      return;
+    }
+    setText(value);
+    setError(null);
+    setPasteNote("Вставлено из буфера");
+  };
+
   return (
     <div
       className="modal-backdrop"
@@ -49,7 +66,18 @@ export default function ResponseModal({ onClose, onSubmit }: Props) {
         </div>
         <div className="modal-body">
           <div className="field">
-            <label htmlFor="response-text">Вставь ответ агента целиком</label>
+            <div className="field-label-row">
+              <label htmlFor="response-text">Вставь ответ агента целиком</label>
+              <button
+                type="button"
+                className="btn btn-secondary btn-small"
+                onClick={() => void pasteFromClipboard()}
+              >
+                <ClipboardPaste size={13} />
+                Из буфера
+              </button>
+            </div>
+            {pasteNote ? <small className="detail-muted">{pasteNote}</small> : null}
             <textarea
               id="response-text"
               value={text}

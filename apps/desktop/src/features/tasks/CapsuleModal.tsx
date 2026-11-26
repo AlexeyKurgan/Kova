@@ -18,6 +18,16 @@ export default function CapsuleModal({ text, onClose }: Props) {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [onClose]);
 
+  useEffect(() => {
+    let alive = true;
+    void copyText(text).then((ok) => {
+      if (alive) setCopied(ok);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [text]);
+
   const handleCopy = async () => {
     setCopied(await copyText(text));
   };
@@ -39,7 +49,7 @@ export default function CapsuleModal({ text, onClose }: Props) {
         <div className="modal-body">
           <pre className="capsule-pre">{text}</pre>
           {copied === true ? (
-            <p className="modal-ok">Скопировано в буфер — вставь в чат AI.</p>
+            <p className="modal-ok">Капсула уже в буфере — вставь её в чат AI.</p>
           ) : null}
           {copied === false ? (
             <p className="modal-error">

@@ -12,7 +12,7 @@ type Props = {
   toolIssues: number | null;
   onToggleTheme: () => void;
   onShowInspector: () => void;
-  onOpenReview: () => void;
+  onOpenNotifications: () => void;
   onOpenSettings: () => void;
   onSearch: (query: string) => void;
 };
@@ -33,7 +33,7 @@ export default function TopBar({
   toolIssues,
   onToggleTheme,
   onShowInspector,
-  onOpenReview,
+  onOpenNotifications,
   onOpenSettings,
   onSearch,
 }: Props) {
@@ -99,9 +99,9 @@ export default function TopBar({
         <button
           type="button"
           className="icon-btn topbar-icon"
-          onClick={onOpenReview}
-          aria-label={`Review: ${reviewCount}`}
-          title={reviewCount > 0 ? `Review: ${reviewCount}` : "Review"}
+          onClick={onOpenNotifications}
+          aria-label={reviewCount > 0 ? `Уведомления: ${reviewCount}` : "Уведомления"}
+          title={reviewCount > 0 ? `Уведомления: ${reviewCount}` : "Уведомления"}
         >
           <Bell size={15} />
           {reviewCount > 0 ? <span className="topbar-badge">{reviewCount}</span> : null}

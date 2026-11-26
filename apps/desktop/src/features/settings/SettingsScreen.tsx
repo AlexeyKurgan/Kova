@@ -1,16 +1,33 @@
-import { GraduationCap, Languages, MessageSquareText, RotateCcw, SlidersHorizontal } from "lucide-react";
+import {
+  DatabaseBackup,
+  GraduationCap,
+  Languages,
+  MessageSquareText,
+  RotateCcw,
+  ShieldCheck,
+  SlidersHorizontal,
+  UserRound,
+} from "lucide-react";
 import {
   CHAT_CODE_OPTIONS,
   CHAT_FONT_OPTIONS,
   CHAT_LINE_OPTIONS,
   type ChatPreferences,
 } from "../../lib/chatPreferences";
+import type { AppPreferences } from "../../lib/appPreferences";
+import { formatDate } from "../../lib/format";
+import type { Snapshot } from "../../lib/types";
 
 type Props = {
   preferences: ChatPreferences;
   onPreferences: (value: ChatPreferences) => void;
+  appPreferences: AppPreferences;
+  onAppPreferences: (value: AppPreferences) => void;
   onReset: () => void;
   onOnboarding: () => void;
+  snapshots: Snapshot[];
+  onCreateSnapshot: () => void;
+  onOpenSnapshots: () => void;
 };
 
 function update(
@@ -23,9 +40,17 @@ function update(
 export default function SettingsScreen({
   preferences,
   onPreferences,
+  appPreferences,
+  onAppPreferences,
   onReset,
   onOnboarding,
+  snapshots,
+  onCreateSnapshot,
+  onOpenSnapshots,
 }: Props) {
+  const latestSnapshot = [...snapshots].sort((left, right) =>
+    (right.created_at || "").localeCompare(left.created_at || ""),
+  )[0];
   return (
     <section className="settings-screen">
       <div className="assets-heading">
@@ -176,6 +201,100 @@ export default function SettingsScreen({
           >
             <b>Важно:</b> так будет выглядеть текст ответа.
             <span> Таблицы, списки и предупреждения используют те же настройки.</span>
+          </div>
+        </article>
+
+        <article className="settings-card is-wide">
+          <div className="settings-card-head">
+            <span className="settings-icon">
+              <UserRound size={16} />
+            </span>
+            <div>
+              <b>Режим работы</b>
+              <small>Сколько подсказок и технических деталей показывать</small>
+            </div>
+          </div>
+          <div className="settings-modes">
+            {(
+              [
+                ["beginner", "Beginner", "Спокойный интерфейс: главное на виду, технические детали скрыты."],
+                ["pro", "Pro", "Плотнее, больше метрик, путей и диагностики на экране."],
+              ] as const
+            ).map(([mode, title, text]) => (
+              <button
+                type="button"
+                key={mode}
+                className={`settings-mode${appPreferences.mode === mode ? " is-active" : ""}`}
+                onClick={() => onAppPreferences({ ...appPreferences, mode })}
+              >
+                <b>{title}</b>
+                <span>{text}</span>
+                {appPreferences.mode === mode ? <i>Включён</i> : null}
+              </button>
+            ))}
+          </div>
+          <div className="settings-rows">
+            <label className="settings-row">
+              <span>
+                <b>Плотность</b>
+                <small>Comfortable или компактный Pro-режим</small>
+              </span>
+              <select
+                value={appPreferences.density}
+                onChange={(event) =>
+                  onAppPreferences({
+                    ...appPreferences,
+                    density: event.target.value as AppPreferences["density"],
+                  })
+                }
+              >
+                <option value="comfortable">Comfortable</option>
+                <option value="compact">Compact</option>
+              </select>
+            </label>
+          </div>
+        </article>
+
+        <article className="settings-card is-wide">
+          <div className="settings-card-head">
+            <span className="settings-icon">
+              <DatabaseBackup size={16} />
+            </span>
+            <div>
+              <b>Резервные копии</b>
+              <small>Снапшоты проекта и быстрый откат</small>
+            </div>
+          </div>
+          <div className="settings-backup">
+            <div className="settings-backup-stat">
+              <b>{snapshots.length}</b>
+              <span>снапшотов</span>
+              <small>
+                {latestSnapshot
+                  ? `Последний · ${latestSnapshot.reason || "без описания"} · ${formatDate(
+                      latestSnapshot.created_at,
+                    )}`
+                  : "Резервных копий ещё нет"}
+              </small>
+            </div>
+            <div className="settings-backup-actions">
+              <button type="button" className="btn btn-secondary" onClick={onCreateSnapshot}>
+                <DatabaseBackup size={14} />
+                Создать снапшот
+              </button>
+              <button type="button" className="btn btn-secondary" onClick={onOpenSnapshots}>
+                Открыть снапшоты
+              </button>
+            </div>
+          </div>
+          <div className="settings-checks">
+            <label className="agent-check">
+              <input type="checkbox" checked readOnly />
+              Снапшот создаётся перед применением изменений worktree
+            </label>
+            <span className="settings-note">
+              <ShieldCheck size={12} /> Все копии хранятся локально в папке проекта.
+            </span>
           </div>
         </article>
 

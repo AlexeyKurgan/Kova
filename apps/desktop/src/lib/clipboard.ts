@@ -26,3 +26,15 @@ function fallbackCopy(text: string): boolean {
   area.remove();
   return ok;
 }
+
+export async function readText(): Promise<string | null> {
+  try {
+    if (navigator.clipboard?.readText) {
+      const value = await navigator.clipboard.readText();
+      return value ?? "";
+    }
+  } catch {
+    return null;
+  }
+  return null;
+}

@@ -19,11 +19,18 @@ import {
   loadChatPreferences,
   saveChatPreferences,
 } from "./lib/chatPreferences";
+import {
+  DEFAULT_APP_PREFERENCES,
+  applyAppPreferences,
+  loadAppPreferences,
+  saveAppPreferences,
+} from "./lib/appPreferences";
 import OverviewScreen from "./features/overview/OverviewScreen";
 import ProjectsScreen from "./features/projects/ProjectsScreen";
 import PackagesScreen from "./features/packages/PackagesScreen";
 import MemoryScreen from "./features/memory/MemoryScreen";
 import OnboardingModal from "./features/onboarding/OnboardingModal";
+import NotificationsModal from "./features/notifications/NotificationsModal";
 import SkillsScreen from "./features/skills/SkillsScreen";
 import EditorScreen from "./features/editor/EditorScreen";
 import ReviewScreen from "./features/review/ReviewScreen";
@@ -82,6 +89,8 @@ import {
   purgeTask,
   restoreTask,
   restoreSnapshot,
+  repairDoctor,
+  snapshotDiff,
   reworkReview,
   runAssetChecks,
   setProjectCover,
@@ -124,6 +133,7 @@ import type {
   CreateTaskInput,
   DuplicateProjectInput,
   Engine,
+  ExportProfile,
   LedgerEvent,
   Project,
   ProjectCard,
@@ -146,6 +156,7 @@ export default function App() {
     return window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
   });
   const [chatPreferences, setChatPreferences] = useState(loadChatPreferences);
+  const [appPreferences, setAppPreferences] = useState(loadAppPreferences);
   const [inspectorOpen, setInspectorOpen] = useState(true);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(
     () => window.localStorage.getItem("kova-sidebar-collapsed") === "1",
@@ -156,6 +167,7 @@ export default function App() {
   const [chatSeed, setChatSeed] = useState<{ text: string; key: number } | null>(null);
   const [onboardingOpen, setOnboardingOpen] = useState(false);
   const [memorySeed, setMemorySeed] = useState<{ text: string; key: number } | null>(null);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
   const reviewCountRef = useRef<number | null>(null);
   const reviewInitializedRef = useRef(false);
   const [project, setProject] = useState<Project | null>(null);
@@ -383,6 +395,11 @@ export default function App() {
     applyChatPreferences(chatPreferences);
     saveChatPreferences(chatPreferences);
   }, [chatPreferences]);
+
+  useEffect(() => {
+    applyAppPreferences(appPreferences);
+    saveAppPreferences(appPreferences);
+  }, [appPreferences]);
 
   const toggleTheme = useCallback(
     () => setTheme((current) => (current === "dark" ? "light" : "dark")),
@@ -723,6 +740,12 @@ export default function App() {
     [loadProjectData],
   );
 
+  const handleRepairDoctor = useCallback(async () => {
+    const result = await repairDoctor();
+    await reload();
+    return result.actions;
+  }, [reload]);
+
   const handleCreateSnapshot = useCallback(
     async (reason: string) => {
       await createSnapshot(reason);
@@ -936,6 +959,19 @@ export default function App() {
         await loadProjectData();
       } catch (err) {
         setAssetError(err instanceof Error ? err.message : "Не удалось сохранить описание");
+      }
+    },
+    [openAssetId, loadProjectData],
+  );
+
+  const handleAssetExportProfiles = useCallback(
+    async (profiles: ExportProfile[]) => {
+      if (!openAssetId) return;
+      try {
+        await updateAsset(openAssetId, { export_profiles: profiles });
+        await loadProjectData();
+      } catch (err) {
+        setAssetError(err instanceof Error ? err.message : "Не удалось сохранить профили экспорта");
       }
     },
     [openAssetId, loadProjectData],
@@ -1194,7 +1230,7 @@ export default function App() {
             toolIssues={doctor.length === 0 ? null : doctorIssues}
             onToggleTheme={toggleTheme}
             onShowInspector={() => setInspectorOpen(true)}
-            onOpenReview={() => setActive("Review")}
+            onOpenNotifications={() => setNotificationsOpen(true)}
             onOpenSettings={() => setActive("Настройки")}
             onSearch={(query) => {
               if (query.trim()) setMemorySeed({ text: query, key: Date.now() });
@@ -1284,6 +1320,7 @@ export default function App() {
                   setOpenTaskId(taskId);
                 }}
                 onUpdateDescription={(text) => void handleAssetDescription(text)}
+                onUpdateExportProfiles={(profiles) => void handleAssetExportProfiles(profiles)}
                 onAddVersion={() => void handleAddAssetVersion()}
                 onActivateVersion={(versionId) => void handleActivateAssetVersion(versionId)}
                 onDelete={() => void handleDeleteAsset(selectedAsset.id)}
@@ -1380,6 +1417,7 @@ export default function App() {
           ) : active === "Снапшоты" ? (
             <SnapshotsScreen
               snapshots={snapshots}
+              onDiff={snapshotDiff}
               onCreate={handleCreateSnapshot}
               onRestore={(id) => void handleRestoreSnapshot(id)}
               onDelete={handleDeleteSnapshot}
@@ -1389,8 +1427,16 @@ export default function App() {
             <SettingsScreen
               preferences={chatPreferences}
               onPreferences={setChatPreferences}
-              onReset={() => setChatPreferences(DEFAULT_CHAT_PREFERENCES)}
+              appPreferences={appPreferences}
+              onAppPreferences={setAppPreferences}
+              onReset={() => {
+                setChatPreferences(DEFAULT_CHAT_PREFERENCES);
+                setAppPreferences(DEFAULT_APP_PREFERENCES);
+              }}
               onOnboarding={() => setOnboardingOpen(true)}
+              snapshots={snapshots}
+              onCreateSnapshot={() => void handleCreateSnapshot("Резервная копия из настроек")}
+              onOpenSnapshots={() => setActive("Снапшоты")}
             />
           ) : active === "Doctor" ? (
             <DoctorScreen
@@ -1413,6 +1459,7 @@ export default function App() {
                 link.click();
                 URL.revokeObjectURL(url);
               }}
+              onRepair={handleRepairDoctor}
             />
           ) : active === "Пакеты" ? (
             <PackagesScreen />
@@ -1518,6 +1565,23 @@ export default function App() {
           initialStatus={robloxStatus}
           projectPath={projectPath}
           onClose={() => setRobloxOpen(false)}
+        />
+      ) : null}
+      {notificationsOpen ? (
+        <NotificationsModal
+          events={ledger}
+          review={review}
+          tasks={tasks}
+          onClose={() => setNotificationsOpen(false)}
+          onOpenReview={() => {
+            setNotificationsOpen(false);
+            setActive("Review");
+          }}
+          onOpenTask={(taskId) => {
+            setNotificationsOpen(false);
+            setActive("Задачи");
+            setOpenTaskId(taskId);
+          }}
         />
       ) : null}
       <OnboardingModal

@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   AlertTriangle,
   Box,
@@ -14,6 +15,7 @@ import {
   Stethoscope,
   Trash2,
   Wifi,
+  Wrench,
   XCircle,
 } from "lucide-react";
 import type { CheckResult, CheckStatus } from "../../lib/types";
@@ -22,6 +24,7 @@ type Props = {
   checks: CheckResult[];
   onRefresh: () => void;
   onExport: () => void;
+  onRepair: () => Promise<string[]>;
 };
 
 const STATUS_LABELS: Record<CheckStatus, string> = {
@@ -89,7 +92,9 @@ const HINTS: Record<string, string> = {
   "Корзина проектов": "Проекты можно восстановить или очистить в разделе «Проекты».",
 };
 
-export default function DoctorScreen({ checks, onRefresh, onExport }: Props) {
+export default function DoctorScreen({ checks, onRefresh, onExport, onRepair }: Props) {
+  const [repairing, setRepairing] = useState(false);
+  const [repairNote, setRepairNote] = useState<string[]>([]);
   const passed = checks.filter((check) => check.status === "passed").length;
   const warnings = checks.filter((check) => check.status === "warning").length;
   const errors = checks.filter(
@@ -115,6 +120,25 @@ export default function DoctorScreen({ checks, onRefresh, onExport }: Props) {
           </p>
         </div>
         <div className="header-actions">
+          <button
+            type="button"
+            className="btn btn-secondary"
+            disabled={repairing}
+            onClick={() => {
+              setRepairing(true);
+              void onRepair()
+                .then((actions) => setRepairNote(actions))
+                .catch((err) =>
+                  setRepairNote([
+                    err instanceof Error ? err.message : "Не удалось выполнить починку",
+                  ]),
+                )
+                .finally(() => setRepairing(false));
+            }}
+          >
+            <Wrench size={15} />
+            {repairing ? "Починка…" : "Починить"}
+          </button>
           <button type="button" className="btn btn-secondary" onClick={onExport}>
             <Download size={15} />
             Экспорт диагностики
@@ -125,6 +149,25 @@ export default function DoctorScreen({ checks, onRefresh, onExport }: Props) {
           </button>
         </div>
       </div>
+
+      {repairNote.length > 0 ? (
+        <div className="doctor-repair-note">
+          <b>Что сделал Doctor</b>
+          <ul>
+            {repairNote.map((line, index) => (
+              <li key={`${index}-${line}`}>{line}</li>
+            ))}
+          </ul>
+          <button
+            type="button"
+            className="icon-btn"
+            aria-label="Скрыть"
+            onClick={() => setRepairNote([])}
+          >
+            <XCircle size={14} />
+          </button>
+        </div>
+      ) : null}
 
       <div className="doctor-summary">
         <div className="doctor-summary-card">

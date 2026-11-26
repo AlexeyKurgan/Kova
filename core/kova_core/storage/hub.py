@@ -25,6 +25,7 @@ HUB_STRUCTURE = (
     "snapshots",
     "review/inbox",
     "review/archive",
+    "review/comments",
     "agents",
     ".local/secrets",
     ".local/cache",

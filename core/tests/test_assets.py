@@ -158,6 +158,40 @@ def test_asset_task_link(tmp_path: Path, monkeypatch) -> None:
     assert missing.status_code == 404
 
 
+def test_asset_export_profiles(tmp_path: Path, monkeypatch) -> None:
+    client = make_client(tmp_path, monkeypatch)
+    game = tmp_path / "game"
+    game.mkdir()
+    client.post("/project/open", json={"path": str(game)})
+    source = tmp_path / "sword.glb"
+    source.write_bytes(b"glb")
+    asset = client.post(
+        "/assets/import",
+        json={"path": str(source), "engine": "roblox"},
+    ).json()
+    assert asset["export_profiles"] == []
+
+    updated = client.patch(
+        f"/assets/{asset['id']}",
+        json={
+            "license": "CC-BY",
+            "export_profiles": [
+                {"engine": "roblox", "format": "FBX", "options": {"scale": "1"}},
+                {"engine": "godot", "format": "GLB"},
+            ],
+        },
+    )
+    assert updated.status_code == 200, updated.text
+    payload = updated.json()
+    assert payload["license"] == "CC-BY"
+    assert [row["format"] for row in payload["export_profiles"]] == ["FBX", "GLB"]
+    assert payload["export_profiles"][0]["options"] == {"scale": "1"}
+
+    cleared = client.patch(f"/assets/{asset['id']}", json={"export_profiles": []})
+    assert cleared.status_code == 200
+    assert cleared.json()["export_profiles"] == []
+
+
 def test_blender_status(tmp_path: Path, monkeypatch) -> None:
     import pytest
 

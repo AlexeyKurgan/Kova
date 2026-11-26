@@ -6,7 +6,7 @@ from pydantic import BaseModel
 
 from ...checks.assets import get_asset_checks, run_asset_checks, save_asset_checks
 from ...checks.blender import blender_checks
-from ...domain.asset import AssetPassport
+from ...domain.asset import AssetPassport, ExportProfile
 from ...domain.check import CheckResult
 from ...domain.enums import AssetType, Engine
 from ...domain.ledger import LedgerEvent
@@ -41,10 +41,18 @@ class ImportAssetRequest(BaseModel):
     task_id: str | None = None
 
 
+class ExportProfileInput(BaseModel):
+    engine: Engine
+    format: str
+    options: dict[str, str] = {}
+
+
 class UpdateAssetRequest(BaseModel):
     task_id: str | None = None
     task_ids: list[str] | None = None
     description: str | None = None
+    license: str | None = None
+    export_profiles: list[ExportProfileInput] | None = None
 
 
 class AddVersionRequest(BaseModel):
@@ -128,6 +136,17 @@ def update_asset_route(
 
     if "description" in updates:
         asset.description = str(updates["description"] or "")
+    if "license" in updates:
+        asset.license = str(updates["license"] or "")
+    if "export_profiles" in updates:
+        asset.export_profiles = [
+            ExportProfile(
+                engine=item["engine"],
+                format=str(item["format"]),
+                options={str(key): str(value) for key, value in (item.get("options") or {}).items()},
+            )
+            for item in (updates["export_profiles"] or [])
+        ]
 
     saved = save_asset(hub, asset)
     append_event(

@@ -116,3 +116,51 @@ def test_snapshot_delete_and_cleanup(tmp_path: Path, monkeypatch) -> None:
     deleted = client.delete(f"/snapshots/{second['id']}")
     assert deleted.status_code == 204
     assert client.get("/snapshots").json() == []
+
+
+def test_snapshot_diff_api(tmp_path: Path, monkeypatch) -> None:
+    client = make_client(tmp_path, monkeypatch)
+    game = tmp_path / "game"
+    game.mkdir()
+    client.post("/project/open", json={"path": str(game)})
+    hub = game / ".hub"
+    (game / "keep.txt").write_text("same", encoding="utf-8")
+    (game / "change.txt").write_text("before", encoding="utf-8")
+    (game / "remove.txt").write_text("old", encoding="utf-8")
+    created = client.post("/snapshots", json={"reason": "diff api"})
+    assert created.status_code == 201, created.text
+    snapshot = created.json()
+    (game / "change.txt").write_text("after", encoding="utf-8")
+    (game / "remove.txt").unlink()
+    (game / "new.txt").write_text("new", encoding="utf-8")
+
+    response = client.get(f"/snapshots/{snapshot['id']}/diff")
+    assert response.status_code == 200, response.text
+    payload = response.json()
+    statuses = {row["path"]: row["status"] for row in payload["changes"]}
+    assert statuses["new.txt"] == "added"
+    assert statuses["change.txt"] == "modified"
+    assert statuses["remove.txt"] == "deleted"
+    assert "keep.txt" not in statuses
+    assert payload["total"] == 3
+    assert client.get("/snapshots/snap_missing/diff").status_code == 404
+
+
+def test_doctor_repair_restores_structure(tmp_path: Path, monkeypatch) -> None:
+    client = make_client(tmp_path, monkeypatch)
+    game = tmp_path / "game"
+    game.mkdir()
+    client.post("/project/open", json={"path": str(game)})
+    hub = game / ".hub"
+    import shutil
+
+    shutil.rmtree(hub / "review")
+    (hub / "ledger" / "events.jsonl").unlink(missing_ok=True)
+
+    repaired = client.post("/doctor/repair")
+    assert repaired.status_code == 200, repaired.text
+    payload = repaired.json()
+    assert (hub / "review" / "comments").is_dir()
+    assert (hub / "ledger" / "events.jsonl").is_file()
+    assert any("review" in action for action in payload["actions"])
+    assert isinstance(payload["checks"], list)

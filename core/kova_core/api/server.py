@@ -89,13 +89,22 @@ def create_app() -> FastAPI:
     @app.middleware("http")
     async def require_token(request: Request, call_next):
         token = os.environ.get("KOVA_CORE_TOKEN", "")
+        path = request.url.path
+        media = request.method == "GET" and (
+            path.endswith("/preview")
+            or path.endswith("/viewer")
+            or path.endswith("/cover")
+        )
         if (
             token
             and request.method != "OPTIONS"
-            and request.url.path != "/health"
-            and request.url.path not in bridge_paths
+            and path != "/health"
+            and path not in bridge_paths
         ):
-            if request.headers.get("x-kova-token") != token:
+            provided = request.headers.get("x-kova-token", "")
+            if not provided and media:
+                provided = request.query_params.get("token", "")
+            if provided != token:
                 return JSONResponse({"detail": "invalid token"}, status_code=401)
         return await call_next(request)
 

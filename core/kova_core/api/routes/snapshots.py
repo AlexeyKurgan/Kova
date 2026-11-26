@@ -11,6 +11,7 @@ from ...storage.snapshots import (
     cleanup_snapshots,
     create_snapshot,
     delete_snapshot,
+    diff_snapshot,
     list_snapshots,
     restore_snapshot,
 )
@@ -55,6 +56,18 @@ def post_cleanup(keep: int = 10, days: int = 30, hub: Path = Depends(require_hub
 def delete_snapshot_route(snapshot_id: str, hub: Path = Depends(require_hub)) -> None:
     if not delete_snapshot(hub, snapshot_id):
         raise HTTPException(status_code=404, detail="snapshot not found")
+
+
+@router.get("/{snapshot_id}/diff")
+def get_snapshot_diff(
+    snapshot_id: str,
+    hub: Path = Depends(require_hub),
+) -> dict[str, object]:
+    from ...storage.snapshots import get_snapshot
+
+    if get_snapshot(hub, snapshot_id) is None:
+        raise HTTPException(status_code=404, detail="snapshot not found")
+    return diff_snapshot(hub, snapshot_id)
 
 
 @router.post("/{snapshot_id}/restore", response_model=Snapshot)

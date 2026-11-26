@@ -182,6 +182,7 @@ def inspect_asset(hub: Path, asset: AssetPassport) -> dict[str, object]:
 
     metrics = payload.get("metrics") or {}
     asset.metrics = AssetMetrics(
+        objects=int(metrics.get("objects") or 0),
         triangles=int(metrics.get("triangles") or 0),
         vertices=int(metrics.get("vertices") or 0),
         materials=int(metrics.get("materials") or 0),

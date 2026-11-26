@@ -19,7 +19,7 @@ import {
 import BrandIcon from "../../components/BrandIcon";
 import { engineBrand } from "../../lib/brands";
 import { formatDate } from "../../lib/format";
-import { coreUrl } from "../../lib/coreClient";
+import { mediaUrl } from "../../lib/coreClient";
 import {
   ENGINE_LABELS,
   TASK_STATUS_LABELS,
@@ -143,9 +143,9 @@ export default function TasksScreen({
       .map((assetId) => assets.find((asset) => asset.id === assetId))
       .find((asset): asset is AssetPassport => Boolean(asset?.preview));
     if (linkedPreview) {
-      return `${coreUrl(`/assets/${linkedPreview.id}/preview`)}?v=${encodeURIComponent(
-        linkedPreview.updated_at,
-      )}`;
+      return mediaUrl(`/assets/${linkedPreview.id}/preview`, {
+        v: linkedPreview.updated_at,
+      });
     }
     return projectCover || undefined;
   };

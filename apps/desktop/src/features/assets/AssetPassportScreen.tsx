@@ -8,6 +8,8 @@ import {
   ClipboardList,
   ExternalLink,
   FolderOpen,
+  GitCompareArrows,
+  History,
   ImageIcon,
   Info,
   Link2,
@@ -17,7 +19,7 @@ import {
   TriangleAlert,
 } from "lucide-react";
 import BrandIcon from "../../components/BrandIcon";
-import { coreUrl } from "../../lib/coreClient";
+import { mediaUrl } from "../../lib/coreClient";
 import { formatBytes, formatDate } from "../../lib/format";
 import {
   ASSET_TYPE_LABELS,
@@ -25,7 +27,16 @@ import {
   ENGINE_LABELS,
   TASK_STATUS_LABELS,
 } from "../../lib/labels";
-import type { AssetPassport, CheckResult, CheckStatus, Task } from "../../lib/types";
+import type {
+  AssetMetrics,
+  AssetPassport,
+  AssetVersion,
+  CheckResult,
+  CheckStatus,
+  Engine,
+  ExportProfile,
+  Task,
+} from "../../lib/types";
 
 const AssetViewer3D = lazy(() => import("./AssetViewer3D"));
 
@@ -48,6 +59,7 @@ type Props = {
   onCreateTask: () => void;
   onOpenTask: (taskId: string) => void;
   onUpdateDescription: (text: string) => void;
+  onUpdateExportProfiles: (profiles: ExportProfile[]) => void;
   onAddVersion: () => void;
   onActivateVersion: (versionId: string) => void;
   onSelectVersion: (versionId: string) => void;
@@ -64,6 +76,18 @@ const CHECK_TONES: Record<CheckStatus, string> = {
   pending: "is-draft",
   skipped: "is-draft",
 };
+
+const METRIC_ROWS: Array<[keyof AssetMetrics, string]> = [
+  ["objects", "Объекты"],
+  ["triangles", "Треугольники"],
+  ["vertices", "Вершины"],
+  ["materials", "Материалы"],
+  ["textures", "Текстуры"],
+  ["bones", "Кости"],
+  ["animations", "Анимации"],
+];
+
+const EXPORT_FORMATS = ["FBX", "GLB", "glTF", "OBJ", "USD", "USDZ", "RBXM", "RBXMX", "PNG"];
 
 const CHECK_LABELS: Record<CheckStatus, string> = {
   passed: "Пройдено",
@@ -88,6 +112,7 @@ export default function AssetPassportScreen({
   onLinkTasks,
   onOpenTask,
   onUpdateDescription,
+  onUpdateExportProfiles,
   onAddVersion,
   onActivateVersion,
   onSelectVersion,
@@ -102,6 +127,13 @@ export default function AssetPassportScreen({
   const [previewMode, setPreviewMode] = useState<"3d" | "render">("render");
   const [tab, setTab] = useState<"overview" | "files" | "usage" | "related">("overview");
   const [editingDescription, setEditingDescription] = useState(false);
+  const [compareOpen, setCompareOpen] = useState(false);
+  const [compareA, setCompareA] = useState("");
+  const [compareB, setCompareB] = useState("");
+  const [exportEngine, setExportEngine] = useState<Engine>(
+    asset.engine === "generic" ? "roblox" : asset.engine,
+  );
+  const [exportFormat, setExportFormat] = useState("FBX");
   const stripRef = useRef<HTMLDivElement | null>(null);
   const currentVersion =
     asset.versions.find((item) => item.id === asset.current_version_id) ??
@@ -117,9 +149,10 @@ export default function AssetPassportScreen({
   const can3d = asset.type === "model" && supports3d(versionPath);
   const direct3d = /\.(glb|gltf)$/i.test(versionPath);
   const previewUrl = selectedVersion?.preview
-    ? `${coreUrl(`/assets/${asset.id}/preview`)}?version_id=${encodeURIComponent(
-        selectedVersion.id,
-      )}&v=${encodeURIComponent(selectedVersion.preview)}`
+    ? mediaUrl(`/assets/${asset.id}/preview`, {
+        version_id: selectedVersion.id,
+        v: selectedVersion.preview,
+      })
     : null;
 
   useEffect(() => {
@@ -129,6 +162,18 @@ export default function AssetPassportScreen({
   useEffect(() => {
     setDescription(asset.description);
   }, [asset.description, asset.id]);
+
+  useEffect(() => {
+    const latest = asset.versions[asset.versions.length - 1]?.id ?? "";
+    const previous = asset.versions[Math.max(0, asset.versions.length - 2)]?.id ?? latest;
+    setCompareA(previous);
+    setCompareB(latest);
+    setCompareOpen(false);
+  }, [asset.id, asset.versions.length]);
+
+  useEffect(() => {
+    setExportEngine(asset.engine === "generic" ? "roblox" : asset.engine);
+  }, [asset.engine, asset.id]);
 
   useEffect(() => {
     if (!can3d) {
@@ -179,6 +224,36 @@ export default function AssetPassportScreen({
   const fileFormat = versionPath.includes(".")
     ? `.${versionPath.split(".").pop()?.toUpperCase()}`
     : "—";
+
+  const findVersion = (id: string): AssetVersion | null =>
+    asset.versions.find((item) => item.id === id) ?? null;
+  const versionA = findVersion(compareA);
+  const versionB = findVersion(compareB);
+  const versionPreview = (version: AssetVersion | null) => {
+    const preview = version?.preview || (version?.id === asset.current_version_id ? asset.preview : "");
+    if (!preview || !version) return "";
+    return mediaUrl(`/assets/${asset.id}/preview`, {
+      version_id: version.id,
+      v: preview,
+    });
+  };
+  const metricValue = (version: AssetVersion | null, key: keyof AssetMetrics) =>
+    version?.metrics?.[key] ?? null;
+  const addExportProfile = () => {
+    const format = exportFormat.trim();
+    if (!format) return;
+    if (
+      asset.export_profiles.some(
+        (profile) => profile.engine === exportEngine && profile.format.toLowerCase() === format.toLowerCase(),
+      )
+    ) {
+      return;
+    }
+    onUpdateExportProfiles([
+      ...asset.export_profiles,
+      { engine: exportEngine, format, options: {} },
+    ]);
+  };
 
   const scrollStrip = (direction: number) => {
     stripRef.current?.scrollBy({ left: direction * 220, behavior: "smooth" });
@@ -318,9 +393,10 @@ export default function AssetPassportScreen({
                   }
                 >
                   <AssetViewer3D
-                    url={`${coreUrl(`/assets/${asset.id}/viewer`)}?version_id=${encodeURIComponent(
-                      selectedVersion?.id ?? "",
-                    )}&v=${encodeURIComponent(versionHash || asset.updated_at)}`}
+                    url={mediaUrl(`/assets/${asset.id}/viewer`, {
+                      version_id: selectedVersion?.id ?? "",
+                      v: versionHash || asset.updated_at,
+                    })}
                   />
                 </Suspense>
               ) : previewUrl ? (
@@ -344,9 +420,10 @@ export default function AssetPassportScreen({
                 <div className="ad3-strip" ref={stripRef}>
                   {asset.versions.map((item) => {
                     const preview = item.preview
-                      ? `${coreUrl(`/assets/${asset.id}/preview`)}?version_id=${encodeURIComponent(
-                          item.id,
-                        )}&v=${encodeURIComponent(item.preview)}`
+                      ? mediaUrl(`/assets/${asset.id}/preview`, {
+                          version_id: item.id,
+                          v: item.preview,
+                        })
                       : "";
                     return (
                       <button
@@ -490,6 +567,33 @@ export default function AssetPassportScreen({
                 <p className="ad3-empty">Связанных ресурсов нет.</p>
               )}
             </article>
+
+            <article className="ad3-card ad3-provenance">
+              <div className="ad3-card-head">
+                <h2><History size={14} /> Происхождение</h2>
+              </div>
+              <div className="ad3-info-rows">
+                <div>
+                  <span>Источник</span>
+                  <b title={asset.origin || "не указан"}>
+                    {asset.origin ? asset.origin.split(/[\\/]/).pop() : "—"}
+                  </b>
+                </div>
+                <div>
+                  <span>Автор</span>
+                  <b>{asset.agent || asset.human_author || "Не указан"}</b>
+                </div>
+                <div><span>Лицензия</span><b>{asset.license || "Не указана"}</b></div>
+                <div className="advanced-only">
+                  <span>Хеш</span>
+                  <b className="mono-inline" title={asset.file_hash}>
+                    {asset.file_hash ? `${asset.file_hash.slice(0, 12)}…` : "—"}
+                  </b>
+                </div>
+                <div><span>Создан</span><b>{formatDate(asset.created_at)}</b></div>
+                <div><span>Обновлён</span><b>{formatDate(asset.updated_at)}</b></div>
+              </div>
+            </article>
           </div>
         </div>
       ) : null}
@@ -547,6 +651,123 @@ export default function AssetPassportScreen({
                 </div>
               ))}
             </div>
+          </article>
+
+          <article className="ad3-card ad3-diff advanced-only">
+            <div className="ad3-card-head">
+              <h2><GitCompareArrows size={14} /> Diff версий</h2>
+              {asset.versions.length > 1 ? (
+                <button
+                  type="button"
+                  className="agent-link"
+                  onClick={() => setCompareOpen((value) => !value)}
+                >
+                  {compareOpen ? "Скрыть" : "Сравнить"}
+                </button>
+              ) : null}
+            </div>
+            {asset.versions.length < 2 ? (
+              <p className="ad3-empty">Для сравнения нужно минимум две версии.</p>
+            ) : !compareOpen ? (
+              <p className="ad3-empty">
+                Сравни объекты, полигоны, материалы и размер между версиями.
+              </p>
+            ) : (
+              <>
+                <div className="ad3-diff-pickers">
+                  <label>
+                    Было
+                    <select value={compareA} onChange={(event) => setCompareA(event.target.value)}>
+                      {asset.versions.map((item) => (
+                        <option key={item.id} value={item.id}>{item.label}</option>
+                      ))}
+                    </select>
+                  </label>
+                  <label>
+                    Стало
+                    <select value={compareB} onChange={(event) => setCompareB(event.target.value)}>
+                      {asset.versions.map((item) => (
+                        <option key={item.id} value={item.id}>{item.label}</option>
+                      ))}
+                    </select>
+                  </label>
+                </div>
+                <div className="ad3-diff-grid">
+                  <div className="ad3-diff-previews">
+                    {[versionA, versionB].map((version, index) => {
+                      const preview = versionPreview(version);
+                      return (
+                        <figure key={index}>
+                          {preview ? (
+                            <img src={preview} alt={version?.label ?? ""} />
+                          ) : (
+                            <span className="ad3-diff-nopreview">
+                              <ImageIcon size={18} />
+                              нет превью
+                            </span>
+                          )}
+                          <figcaption>
+                            {index === 0 ? "Было" : "Стало"} · {version?.label ?? "—"}
+                          </figcaption>
+                        </figure>
+                      );
+                    })}
+                  </div>
+                  <div className="ad3-diff-metrics">
+                    <div className="ad3-diff-row is-head">
+                      <span>Метрика</span>
+                      <span>{versionA?.label ?? "A"}</span>
+                      <span>{versionB?.label ?? "B"}</span>
+                      <span>Δ</span>
+                    </div>
+                    {METRIC_ROWS.map(([key, label]) => {
+                      const left = metricValue(versionA, key);
+                      const right = metricValue(versionB, key);
+                      const delta =
+                        left === null || right === null ? null : right - left;
+                      return (
+                        <div className="ad3-diff-row" key={key}>
+                          <span>{label}</span>
+                          <span>{left ?? "—"}</span>
+                          <span>{right ?? "—"}</span>
+                          <span
+                            className={
+                              delta === null || delta === 0
+                                ? "is-flat"
+                                : delta > 0
+                                  ? "is-up"
+                                  : "is-down"
+                            }
+                          >
+                            {delta === null ? "—" : delta > 0 ? `+${delta}` : String(delta)}
+                          </span>
+                        </div>
+                      );
+                    })}
+                    <div className="ad3-diff-row">
+                      <span>Размер файла</span>
+                      <span>{formatBytes(versionA?.file_size ?? 0)}</span>
+                      <span>{formatBytes(versionB?.file_size ?? 0)}</span>
+                      <span
+                        className={
+                          versionA && versionB && versionB.file_size === versionA.file_size
+                            ? "is-flat"
+                            : versionA && versionB && versionB.file_size > versionA.file_size
+                              ? "is-up"
+                              : "is-down"
+                        }
+                      >
+                        {versionA && versionB
+                          ? `${versionB.file_size - versionA.file_size > 0 ? "+" : ""}${formatBytes(
+                              versionB.file_size - versionA.file_size,
+                            )}`
+                          : "—"}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </>
+            )}
           </article>
 
           <article className="ad3-card">
@@ -678,6 +899,78 @@ export default function AssetPassportScreen({
                 ))}
               </ul>
             )}
+          </article>
+
+          <article className="ad3-card advanced-only">
+            <div className="ad3-card-head">
+              <h2><Box size={14} /> Профили экспорта</h2>
+              <span>{asset.export_profiles.length}</span>
+            </div>
+            {asset.export_profiles.length === 0 ? (
+              <p className="ad3-empty">
+                Профили не заданы. Добавь формат, в котором ассет должен уходить в движок.
+              </p>
+            ) : (
+              <div className="ad3-export-list">
+                {asset.export_profiles.map((profile, index) => (
+                  <div className="ad3-export-row" key={`${profile.engine}:${profile.format}:${index}`}>
+                    <span className="task-status is-done">{ENGINE_LABELS[profile.engine]}</span>
+                    <b className="mono-inline">{profile.format}</b>
+                    <span className="detail-muted">
+                      {Object.entries(profile.options).length > 0
+                        ? Object.entries(profile.options)
+                            .map(([key, value]) => `${key}=${value}`)
+                            .join(" · ")
+                        : "по умолчанию"}
+                    </span>
+                    <button
+                      type="button"
+                      className="icon-btn is-danger"
+                      title="Удалить профиль"
+                      aria-label="Удалить профиль"
+                      onClick={() =>
+                        onUpdateExportProfiles(
+                          asset.export_profiles.filter((_, itemIndex) => itemIndex !== index),
+                        )
+                      }
+                    >
+                      <Trash2 size={13} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+            <div className="ad3-export-form">
+              <select
+                value={exportEngine}
+                onChange={(event) => setExportEngine(event.target.value as Engine)}
+                aria-label="Движок профиля"
+              >
+                {(Object.keys(ENGINE_LABELS) as Engine[]).map((engine) => (
+                  <option key={engine} value={engine}>{ENGINE_LABELS[engine]}</option>
+                ))}
+              </select>
+              <input
+                value={exportFormat}
+                list="kova-export-formats"
+                onChange={(event) => setExportFormat(event.target.value)}
+                placeholder="Формат"
+                aria-label="Формат экспорта"
+              />
+              <datalist id="kova-export-formats">
+                {EXPORT_FORMATS.map((format) => (
+                  <option key={format} value={format} />
+                ))}
+              </datalist>
+              <button
+                type="button"
+                className="btn btn-secondary btn-small"
+                onClick={addExportProfile}
+              >
+                <Plus size={13} />
+                Добавить
+              </button>
+            </div>
           </article>
         </div>
       ) : null}

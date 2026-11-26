@@ -16,7 +16,7 @@ import {
   Trash2,
   TriangleAlert,
 } from "lucide-react";
-import { coreUrl } from "../../lib/coreClient";
+import { mediaUrl } from "../../lib/coreClient";
 import { formatBytes, formatDate, plural } from "../../lib/format";
 import {
   ASSET_TYPE_LABELS,
@@ -269,9 +269,9 @@ export default function AssetsScreen({
                   <span className="asset-table-thumb">
                     {asset.preview ? (
                       <img
-                        src={`${coreUrl(`/assets/${asset.id}/preview`)}?v=${encodeURIComponent(
-                          asset.updated_at,
-                        )}`}
+                        src={mediaUrl(`/assets/${asset.id}/preview`, {
+                          v: asset.updated_at,
+                        })}
                         alt=""
                         loading="lazy"
                       />
@@ -351,9 +351,9 @@ export default function AssetsScreen({
                 <span className="asset-thumb2">
                   {asset.preview ? (
                     <img
-                      src={`${coreUrl(`/assets/${asset.id}/preview`)}?v=${encodeURIComponent(
-                        asset.updated_at,
-                      )}`}
+                      src={mediaUrl(`/assets/${asset.id}/preview`, {
+                        v: asset.updated_at,
+                      })}
                       alt=""
                       loading="lazy"
                     />

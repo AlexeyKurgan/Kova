@@ -6,6 +6,7 @@ $work = Join-Path $root "build\pyinstaller"
 New-Item -ItemType Directory -Force -Path $bin, $work | Out-Null
 
 $skills = Join-Path $core "kova_core/integrations/blender/skills"
+$blender = Join-Path $core "kova_core/integrations/blender"
 Push-Location $core
 try {
   python -m PyInstaller `
@@ -17,6 +18,8 @@ try {
     --workpath $work `
     --specpath $work `
     --add-data "$skills;kova_core/integrations/blender/skills" `
+    --add-data "$blender/inspect_asset.py;kova_core/integrations/blender" `
+    --add-data "$blender/addon;kova_core/integrations/blender/addon" `
     sidecar.py
 } finally {
   Pop-Location

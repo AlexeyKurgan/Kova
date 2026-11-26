@@ -1,17 +1,29 @@
 import { useEffect, useMemo, useState } from "react";
 import { Box as BoxIcon, Check, ChevronDown, ChevronRight, RotateCcw, Sparkles, Star, TriangleAlert } from "lucide-react";
-import { coreUrl } from "../../lib/coreClient";
+import { mediaUrl } from "../../lib/coreClient";
 import {
+  addReviewComment,
   applyWorktreeRun,
+  deleteReviewComment,
   getRunChangePatch,
   listAiRuns,
+  listReviewComments,
   listValidationResults,
   reviewResponse,
+  updateReviewComment,
 } from "../../lib/coreClient";
+import ReviewAssetStage from "./ReviewAssetStage";
 import { useConfirm } from "../../components/ConfirmProvider";
 import { formatDate, plural } from "../../lib/format";
 import { REVIEW_STATUS_LABELS } from "../../lib/labels";
-import type { AiRun, AssetPassport, ReviewItem, Task, ValidationResult } from "../../lib/types";
+import type {
+  AiRun,
+  AssetPassport,
+  ReviewComment,
+  ReviewItem,
+  Task,
+  ValidationResult,
+} from "../../lib/types";
 
 type Props = {
   items: ReviewItem[];
@@ -45,6 +57,8 @@ export default function ReviewScreen({
   const [changeQuery, setChangeQuery] = useState<Record<string, string>>({});
   const [applyBusy, setApplyBusy] = useState<string | null>(null);
   const [applyNote, setApplyNote] = useState<Record<string, string>>({});
+  const [comments, setComments] = useState<Record<string, ReviewComment[]>>({});
+  const [stageAsset, setStageAsset] = useState<Record<string, string>>({});
 
   const applyRun = async (run: AiRun) => {
     if (applyBusy) return;
@@ -127,6 +141,66 @@ export default function ReviewScreen({
     };
   }, [taskIds]);
 
+  const reviewKey = items.map((item) => item.id).join(",");
+  useEffect(() => {
+    let alive = true;
+    const loadComments = () =>
+      Promise.all(
+        items.map(async (item) => {
+          const list = await listReviewComments(item.id).catch(() => []);
+          return [item.id, list] as const;
+        }),
+      );
+    void loadComments().then((values) => {
+      if (alive) setComments(Object.fromEntries(values));
+    });
+    const timer = window.setInterval(() => {
+      void loadComments().then((values) => {
+        if (alive) setComments(Object.fromEntries(values));
+      });
+    }, 10000);
+    return () => {
+      alive = false;
+      window.clearInterval(timer);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [reviewKey]);
+
+  const addComment = async (
+    reviewId: string,
+    input: { body: string; assetId: string; versionId: string; x: number; y: number },
+  ) => {
+    const created = await addReviewComment(reviewId, {
+      body: input.body,
+      asset_id: input.assetId,
+      version_id: input.versionId,
+      x: input.x,
+      y: input.y,
+    });
+    setComments((current) => ({
+      ...current,
+      [reviewId]: [...(current[reviewId] ?? []), created],
+    }));
+  };
+
+  const resolveComment = async (reviewId: string, commentId: string, resolved: boolean) => {
+    const updated = await updateReviewComment(reviewId, commentId, { resolved });
+    setComments((current) => ({
+      ...current,
+      [reviewId]: (current[reviewId] ?? []).map((item) =>
+        item.id === updated.id ? updated : item,
+      ),
+    }));
+  };
+
+  const removeComment = async (reviewId: string, commentId: string) => {
+    await deleteReviewComment(reviewId, commentId);
+    setComments((current) => ({
+      ...current,
+      [reviewId]: (current[reviewId] ?? []).filter((item) => item.id !== commentId),
+    }));
+  };
+
   const togglePatch = async (run: AiRun, index: number) => {
     const key = `${run.id}:${index}`;
     if (patchOpen === key) {
@@ -165,9 +239,10 @@ export default function ReviewScreen({
       asset.versions[asset.versions.length - 1];
     const preview = version?.preview || asset.preview;
     if (!preview) return "";
-    return `${coreUrl(`/assets/${asset.id}/preview`)}?${
-      version ? `version_id=${encodeURIComponent(version.id)}&` : ""
-    }v=${encodeURIComponent(preview)}`;
+    return mediaUrl(`/assets/${asset.id}/preview`, {
+      version_id: version?.id,
+      v: preview,
+    });
   };
 
   const validationSummary = (taskId: string) => {
@@ -276,6 +351,12 @@ export default function ReviewScreen({
             const changesShown = showAllChanges[item.id]
               ? filteredChanges
               : filteredChanges.slice(0, 6);
+            const reviewAssets = linkedAssets(item.task_id);
+            const stageCandidates = reviewAssets.filter((asset) => assetPreview(asset));
+            const stageCandidateId = stageAsset[item.id] ?? stageCandidates[0]?.id ?? "";
+            const activeStage =
+              stageCandidates.find((asset) => asset.id === stageCandidateId) ??
+              stageCandidates[0];
             return (
             <article className="task-card review-card" key={item.id}>
               <div className="task-card-main">
@@ -311,6 +392,39 @@ export default function ReviewScreen({
                         </button>
                       );
                     })}
+                  </div>
+                ) : null}
+                {activeStage ? (
+                  <div className="review-stage-block">
+                    {stageCandidates.length > 1 ? (
+                      <div className="review-stage-assets">
+                        {stageCandidates.map((asset) => (
+                          <button
+                            type="button"
+                            key={asset.id}
+                            className={asset.id === activeStage.id ? "is-active" : ""}
+                            onClick={() =>
+                              setStageAsset((current) => ({
+                                ...current,
+                                [item.id]: asset.id,
+                              }))
+                            }
+                          >
+                            {asset.name}
+                            <small>{asset.versions.length} версий</small>
+                          </button>
+                        ))}
+                      </div>
+                    ) : null}
+                    <ReviewAssetStage
+                      asset={activeStage}
+                      comments={comments[item.id] ?? []}
+                      onAddComment={(input) => addComment(item.id, input)}
+                      onResolve={(commentId, resolved) =>
+                        resolveComment(item.id, commentId, resolved)
+                      }
+                      onDelete={(commentId) => removeComment(item.id, commentId)}
+                    />
                   </div>
                 ) : null}
                 {summary ? (

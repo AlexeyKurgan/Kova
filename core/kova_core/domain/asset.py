@@ -8,6 +8,7 @@ from .ids import new_id
 
 
 class AssetMetrics(DomainModel):
+    objects: int | None = None
     triangles: int | None = None
     vertices: int | None = None
     materials: int | None = None

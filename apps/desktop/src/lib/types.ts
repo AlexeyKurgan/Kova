@@ -276,6 +276,7 @@ export type AssetVersion = {
 };
 
 export type AssetMetrics = {
+  objects?: number | null;
   triangles: number | null;
   vertices: number | null;
   materials: number | null;
@@ -405,6 +406,12 @@ export type AssetDependency = {
   label: string;
 };
 
+export type ExportProfile = {
+  engine: Engine;
+  format: string;
+  options: Record<string, string>;
+};
+
 export type AssetPassport = {
   id: string;
   name: string;
@@ -420,10 +427,12 @@ export type AssetPassport = {
   task_ids: string[];
   description: string;
   agent: string | null;
+  human_author: string | null;
   license: string;
   metrics: AssetMetrics;
   versions: AssetVersion[];
   dependencies: AssetDependency[];
+  export_profiles: ExportProfile[];
   checks: string[];
   created_at: string;
   updated_at: string;
@@ -808,6 +817,20 @@ export type ReviewItem = {
   updated_at: string;
 };
 
+export type ReviewComment = {
+  id: string;
+  review_id: string;
+  asset_id: string | null;
+  version_id: string | null;
+  x: number;
+  y: number;
+  body: string;
+  author: string;
+  resolved: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
 export type ImportResponseResult = {
   task: Task;
   review: ReviewItem;
@@ -827,6 +850,20 @@ export type SnapshotFile = {
   path: string;
   hash: string;
   size: number;
+};
+
+export type SnapshotChange = {
+  path: string;
+  status: "added" | "modified" | "deleted";
+  size: number;
+  previous_size: number;
+};
+
+export type SnapshotDiff = {
+  snapshot_id: string;
+  changes: SnapshotChange[];
+  total: number;
+  truncated: boolean;
 };
 
 export type Snapshot = {
