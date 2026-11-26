@@ -79,3 +79,9 @@ def test_review_comment_thread(tmp_path: Path, monkeypatch) -> None:
     assert removed.status_code == 204
     assert client.get(f"/review/{review.id}/comments").json() == []
     assert client.delete(f"/review/{review.id}/comments/{comment['id']}").status_code == 404
+
+    accepted = client.post(f"/review/{review.id}/accept")
+    assert accepted.status_code == 200, accepted.text
+    assert client.get("/review").json() == []
+    archive = client.get("/review/archive").json()
+    assert [row["id"] for row in archive] == [review.id]

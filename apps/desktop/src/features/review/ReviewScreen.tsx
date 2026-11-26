@@ -7,6 +7,7 @@ import {
   deleteReviewComment,
   getRunChangePatch,
   listAiRuns,
+  listReviewArchive,
   listReviewComments,
   listValidationResults,
   reviewResponse,
@@ -58,6 +59,10 @@ export default function ReviewScreen({
   const [applyBusy, setApplyBusy] = useState<string | null>(null);
   const [applyNote, setApplyNote] = useState<Record<string, string>>({});
   const [comments, setComments] = useState<Record<string, ReviewComment[]>>({});
+  const [archive, setArchive] = useState<ReviewItem[]>([]);
+  const [showArchive, setShowArchive] = useState(false);
+  const [archiveLoading, setArchiveLoading] = useState(false);
+  const [archiveKey, setArchiveKey] = useState(0);
   const [stageAsset, setStageAsset] = useState<Record<string, string>>({});
 
   const applyRun = async (run: AiRun) => {
@@ -111,9 +116,11 @@ export default function ReviewScreen({
     }
   };
 
+  const visibleItems = showArchive ? archive : items;
+
   const taskIds = useMemo(
-    () => [...new Set(items.map((item) => item.task_id))],
-    [items],
+    () => [...new Set(visibleItems.map((item) => item.task_id))],
+    [visibleItems],
   );
 
   useEffect(() => {
@@ -141,12 +148,31 @@ export default function ReviewScreen({
     };
   }, [taskIds]);
 
-  const reviewKey = items.map((item) => item.id).join(",");
+  useEffect(() => {
+    if (!showArchive) return;
+    let alive = true;
+    setArchiveLoading(true);
+    listReviewArchive()
+      .then((rows) => {
+        if (alive) setArchive(rows);
+      })
+      .catch(() => {
+        if (alive) setArchive([]);
+      })
+      .finally(() => {
+        if (alive) setArchiveLoading(false);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [showArchive, archiveKey]);
+
+  const reviewKey = visibleItems.map((item) => item.id).join(",");
   useEffect(() => {
     let alive = true;
     const loadComments = () =>
       Promise.all(
-        items.map(async (item) => {
+        visibleItems.map(async (item) => {
           const list = await listReviewComments(item.id).catch(() => []);
           return [item.id, list] as const;
         }),
@@ -309,22 +335,53 @@ export default function ReviewScreen({
             Очередь приёмки: AI не пишет в проект без твоего подтверждения.
           </p>
         </div>
+        <div className="header-actions">
+          <div className="review-archive-switch">
+            <button
+              type="button"
+              className={!showArchive ? "is-active" : ""}
+              onClick={() => setShowArchive(false)}
+            >
+              Inbox
+              <b>{items.length}</b>
+            </button>
+            <button
+              type="button"
+              className={showArchive ? "is-active" : ""}
+              onClick={() => {
+                setShowArchive(true);
+                setArchiveKey((value) => value + 1);
+              }}
+            >
+              Архив
+            </button>
+          </div>
+        </div>
       </div>
 
-      {items.length === 0 ? (
+      {showArchive && archiveLoading ? (
+        <div className="empty-panel">
+          <div className="empty-art">
+            <Star size={52} strokeWidth={1.05} />
+          </div>
+          <h2 className="empty-title">Загружаю архив…</h2>
+        </div>
+      ) : visibleItems.length === 0 ? (
         <div className="empty-panel">
           <div className="empty-art">
             <Star size={72} strokeWidth={1.05} />
             <Sparkles size={22} className="empty-sparkle" />
           </div>
-          <h2 className="empty-title">Очередь пуста</h2>
+          <h2 className="empty-title">{showArchive ? "Архив пуст" : "Очередь пуста"}</h2>
           <p className="empty-text">
-            Когда импортируешь ответ AI в задаче, он появится здесь для приёмки.
+            {showArchive
+              ? "Принятые и заархивированные результаты появятся здесь."
+              : "Когда импортируешь ответ AI в задаче, он появится здесь для приёмки."}
           </p>
         </div>
       ) : (
         <div className="task-list">
-          {items.map((item) => {
+          {visibleItems.map((item) => {
             const summary = validationSummary(item.task_id);
             const hasFailures = Boolean(summary && summary.failed > 0);
             const notRun = Boolean(summary && summary.total === 0);
@@ -394,7 +451,7 @@ export default function ReviewScreen({
                     })}
                   </div>
                 ) : null}
-                {activeStage ? (
+                {!showArchive && activeStage ? (
                   <div className="review-stage-block">
                     {stageCandidates.length > 1 ? (
                       <div className="review-stage-assets">
@@ -624,28 +681,36 @@ export default function ReviewScreen({
                 >
                   {expanded === item.id ? "Скрыть" : "Ответ"}
                 </button>
-                <button
-                  type="button"
-                  className="btn btn-secondary"
-                  onClick={() => onRework(item.id)}
-                >
-                  <RotateCcw size={15} />
-                  Доработать
-                </button>
-                <button
-                  type="button"
-                  className={`btn ${blocked ? "btn-danger" : "btn-primary"}`}
-                  onClick={() => void acceptItem(item, summary)}
-                >
-                  {blocked ? <TriangleAlert size={15} /> : <Check size={15} />}
-                  {stale
-                    ? "Принять без проверок"
-                    : hasFailures
-                      ? "Принять всё равно"
-                      : notRun
+                {showArchive ? (
+                  <span className={`task-status is-${item.status}`}>
+                    {REVIEW_STATUS_LABELS[item.status]}
+                  </span>
+                ) : (
+                  <>
+                    <button
+                      type="button"
+                      className="btn btn-secondary"
+                      onClick={() => onRework(item.id)}
+                    >
+                      <RotateCcw size={15} />
+                      Доработать
+                    </button>
+                    <button
+                      type="button"
+                      className={`btn ${blocked ? "btn-danger" : "btn-primary"}`}
+                      onClick={() => void acceptItem(item, summary)}
+                    >
+                      {blocked ? <TriangleAlert size={15} /> : <Check size={15} />}
+                      {stale
                         ? "Принять без проверок"
-                        : "Принять"}
-                </button>
+                        : hasFailures
+                          ? "Принять всё равно"
+                          : notRun
+                            ? "Принять без проверок"
+                            : "Принять"}
+                    </button>
+                  </>
+                )}
               </div>
             </article>
             );

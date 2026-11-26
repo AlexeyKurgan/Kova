@@ -728,6 +728,10 @@ export async function listReview(): Promise<ReviewItem[]> {
   return request<ReviewItem[]>("/review");
 }
 
+export async function listReviewArchive(): Promise<ReviewItem[]> {
+  return request<ReviewItem[]>("/review/archive");
+}
+
 export async function reviewResponse(reviewId: string): Promise<string> {
   const result = await request<{ text: string }>(
     `/review/${encodeURIComponent(reviewId)}/response`,

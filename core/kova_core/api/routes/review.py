@@ -50,6 +50,15 @@ def get_review_items(hub: Path = Depends(require_hub)) -> list[ReviewItem]:
     ]
 
 
+@router.get("/archive", response_model=list[ReviewItem])
+def get_review_archive(hub: Path = Depends(require_hub)) -> list[ReviewItem]:
+    return [
+        item
+        for item in list_review(hub)
+        if item.status in (ReviewStatus.accepted, ReviewStatus.archived)
+    ]
+
+
 @router.get("/{review_id}/comments", response_model=list[ReviewComment])
 def get_comments(review_id: str, hub: Path = Depends(require_hub)) -> list[ReviewComment]:
     if get_review(hub, review_id) is None:
