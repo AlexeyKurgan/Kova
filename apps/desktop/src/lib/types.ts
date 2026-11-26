@@ -601,6 +601,58 @@ export type BlenderScene = {
   file: string;
 };
 
+export type MemoryResult = {
+  kind: "task" | "asset" | "chat" | "event" | "decision";
+  id: string;
+  title: string;
+  snippet: string;
+  meta: string;
+  link: string;
+  updated_at: string;
+};
+
+export type MemoryResponse = {
+  query: string;
+  total: number;
+  groups: {
+    tasks: MemoryResult[];
+    assets: MemoryResult[];
+    chats: MemoryResult[];
+    events: MemoryResult[];
+    decisions: MemoryResult[];
+  };
+  counts: {
+    tasks: number;
+    assets: number;
+    chats: number;
+    events: number;
+    decisions: number;
+  };
+};
+
+export type KovaPackage = {
+  id: string;
+  name: string;
+  version: string;
+  type: string;
+  author: string;
+  engines: Engine[];
+  permissions: string[];
+  tools: string[];
+  checks: string[];
+  templates: string[];
+  ui: string[];
+  trust: "official" | "verified" | "community" | "local";
+  description: string;
+  installed_by_default: boolean;
+  available: boolean;
+  installed: boolean;
+  enabled: boolean;
+  status: "installed" | "available" | "disabled" | "coming_soon";
+  installed_version: string;
+  update_available: boolean;
+};
+
 export type RobloxStatus = {
   connected: boolean;
   last_seen_seconds: number | null;

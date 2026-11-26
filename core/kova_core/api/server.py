@@ -13,8 +13,10 @@ from .routes import (
     doctor,
     health,
     ledger,
+    memory,
     project,
     projects,
+    packages,
     providers,
     review,
     roblox,
@@ -61,6 +63,7 @@ def create_app() -> FastAPI:
     app.include_router(health.router)
     app.include_router(project.router)
     app.include_router(projects.router)
+    app.include_router(packages.router)
     app.include_router(tasks.router)
     app.include_router(assets.router)
     app.include_router(blender.router)
@@ -69,6 +72,7 @@ def create_app() -> FastAPI:
     app.include_router(snapshots.router)
     app.include_router(doctor.router)
     app.include_router(ledger.router)
+    app.include_router(memory.router)
     app.include_router(summary.router)
     app.include_router(providers.router)
     app.include_router(skills.router)

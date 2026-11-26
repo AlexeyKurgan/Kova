@@ -16,7 +16,9 @@ import type {
   Engine,
   ImportAssetInput,
   ImportResponseResult,
+  KovaPackage,
   LedgerEvent,
+  MemoryResponse,
   ProjectCard,
   ProjectResponse,
   ProjectsResponse,
@@ -116,6 +118,38 @@ export async function restoreProjectTrash(trashId: string): Promise<TrashProject
 export async function purgeProjectTrash(trashId: string): Promise<void> {
   await request<void>(`/projects/trash/${encodeURIComponent(trashId)}`, {
     method: "DELETE",
+  });
+}
+
+export async function searchMemory(query: string): Promise<MemoryResponse> {
+  return request<MemoryResponse>(
+    `/memory/search?q=${encodeURIComponent(query)}&limit=60`,
+  );
+}
+
+export async function listPackages(): Promise<KovaPackage[]> {
+  return request<KovaPackage[]>("/packages");
+}
+
+export async function installPackage(packageId: string): Promise<KovaPackage> {
+  return request<KovaPackage>(`/packages/${encodeURIComponent(packageId)}/install`, {
+    method: "POST",
+  });
+}
+
+export async function uninstallPackage(packageId: string): Promise<{ ok: boolean }> {
+  return request(`/packages/${encodeURIComponent(packageId)}/uninstall`, {
+    method: "POST",
+  });
+}
+
+export async function setPackageEnabled(
+  packageId: string,
+  enabled: boolean,
+): Promise<KovaPackage> {
+  return request<KovaPackage>(`/packages/${encodeURIComponent(packageId)}`, {
+    method: "PATCH",
+    body: JSON.stringify({ enabled }),
   });
 }
 

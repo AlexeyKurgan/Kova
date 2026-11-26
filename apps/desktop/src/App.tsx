@@ -21,6 +21,9 @@ import {
 } from "./lib/chatPreferences";
 import OverviewScreen from "./features/overview/OverviewScreen";
 import ProjectsScreen from "./features/projects/ProjectsScreen";
+import PackagesScreen from "./features/packages/PackagesScreen";
+import MemoryScreen from "./features/memory/MemoryScreen";
+import OnboardingModal from "./features/onboarding/OnboardingModal";
 import SkillsScreen from "./features/skills/SkillsScreen";
 import EditorScreen from "./features/editor/EditorScreen";
 import ReviewScreen from "./features/review/ReviewScreen";
@@ -151,6 +154,7 @@ export default function App() {
   const [robloxStatus, setRobloxStatus] = useState<RobloxStatus | null>(null);
   const [robloxOpen, setRobloxOpen] = useState(false);
   const [chatSeed, setChatSeed] = useState<{ text: string; key: number } | null>(null);
+  const [onboardingOpen, setOnboardingOpen] = useState(false);
   const reviewCountRef = useRef<number | null>(null);
   const reviewInitializedRef = useRef(false);
   const [project, setProject] = useState<Project | null>(null);
@@ -329,6 +333,13 @@ export default function App() {
       unlisten?.();
     };
   }, []);
+
+  useEffect(() => {
+    if (!project) return;
+    if (!window.localStorage.getItem("kova-onboarding-v1-done")) {
+      setOnboardingOpen(true);
+    }
+  }, [project]);
 
   useEffect(() => {
     if (!project) return;
@@ -1369,9 +1380,23 @@ export default function App() {
               preferences={chatPreferences}
               onPreferences={setChatPreferences}
               onReset={() => setChatPreferences(DEFAULT_CHAT_PREFERENCES)}
+              onOnboarding={() => setOnboardingOpen(true)}
             />
           ) : active === "Doctor" ? (
             <DoctorScreen checks={doctor} onRefresh={() => void reload()} />
+          ) : active === "Пакеты" ? (
+            <PackagesScreen />
+          ) : active === "Память" ? (
+            <MemoryScreen
+              onOpenTask={(taskId) => {
+                setActive("Задачи");
+                setOpenTaskId(taskId);
+              }}
+              onOpenAsset={(assetId) => {
+                setActive("Ассеты");
+                void openAsset(assetId);
+              }}
+            />
           ) : (
             <SectionPlaceholder title={active} />
           )}
@@ -1464,6 +1489,38 @@ export default function App() {
           onClose={() => setRobloxOpen(false)}
         />
       ) : null}
+      <OnboardingModal
+        open={onboardingOpen}
+        projects={projects}
+        providers={providers}
+        doctor={doctor}
+        blender={blenderStatus}
+        roblox={robloxStatus}
+        onClose={() => {
+          window.localStorage.setItem("kova-onboarding-v1-done", "1");
+          setOnboardingOpen(false);
+        }}
+        onOpenProjects={() => {
+          window.localStorage.setItem("kova-onboarding-v1-done", "1");
+          setOnboardingOpen(false);
+          setActive("Проекты");
+        }}
+        onOpenAgents={() => {
+          window.localStorage.setItem("kova-onboarding-v1-done", "1");
+          setOnboardingOpen(false);
+          setActive("Агенты");
+        }}
+        onOpenDoctor={() => {
+          window.localStorage.setItem("kova-onboarding-v1-done", "1");
+          setOnboardingOpen(false);
+          setActive("Doctor");
+        }}
+        onOpenRoblox={() => {
+          window.localStorage.setItem("kova-onboarding-v1-done", "1");
+          setOnboardingOpen(false);
+          setRobloxOpen(true);
+        }}
+      />
     </div>
   );
 }

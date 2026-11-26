@@ -1,4 +1,4 @@
-import { Languages, MessageSquareText, RotateCcw, SlidersHorizontal } from "lucide-react";
+import { GraduationCap, Languages, MessageSquareText, RotateCcw, SlidersHorizontal } from "lucide-react";
 import {
   CHAT_CODE_OPTIONS,
   CHAT_FONT_OPTIONS,
@@ -10,6 +10,7 @@ type Props = {
   preferences: ChatPreferences;
   onPreferences: (value: ChatPreferences) => void;
   onReset: () => void;
+  onOnboarding: () => void;
 };
 
 function update(
@@ -19,7 +20,12 @@ function update(
   return { ...preferences, ...patch };
 }
 
-export default function SettingsScreen({ preferences, onPreferences, onReset }: Props) {
+export default function SettingsScreen({
+  preferences,
+  onPreferences,
+  onReset,
+  onOnboarding,
+}: Props) {
   return (
     <section className="settings-screen">
       <div className="assets-heading">
@@ -29,6 +35,12 @@ export default function SettingsScreen({ preferences, onPreferences, onReset }: 
           <p className="subtitle">
             Внешний вид, язык и поведение. Настройки проекта — в «Агентах».
           </p>
+        </div>
+        <div className="header-actions">
+          <button type="button" className="btn btn-secondary" onClick={onOnboarding}>
+            <GraduationCap size={15} />
+            Обучение
+          </button>
         </div>
       </div>
 
