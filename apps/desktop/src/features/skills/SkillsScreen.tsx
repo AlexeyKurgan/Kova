@@ -45,6 +45,9 @@ import type { Skill, SkillCategory, SkillDetail, Task } from "../../lib/types";
 type Props = {
   skills: Skill[];
   tasks: Task[];
+  loading: boolean;
+  loadError: string | null;
+  onRetry: () => void;
   onChanged: () => void;
 };
 
@@ -95,7 +98,14 @@ function short(text: string, limit = 150) {
   return first.length > limit ? `${first.slice(0, limit - 1)}…` : first;
 }
 
-export default function SkillsScreen({ skills, tasks, onChanged }: Props) {
+export default function SkillsScreen({
+  skills,
+  tasks,
+  loading,
+  loadError,
+  onRetry,
+  onChanged,
+}: Props) {
   const confirm = useConfirm();
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState<"all" | SkillCategory>("all");
@@ -613,6 +623,18 @@ export default function SkillsScreen({ skills, tasks, onChanged }: Props) {
 
       {error ? <p className="modal-error">{error}</p> : null}
 
+      {loadError ? (
+        <div className="sk-load-error">
+          <span>Не удалось загрузить скиллы: {loadError}</span>
+          <button type="button" className="btn btn-secondary btn-compact" onClick={onRetry} disabled={loading}>
+            Повторить
+          </button>
+        </div>
+      ) : null}
+      {loading && skills.length === 0 ? (
+        <p className="sk-loading">Загружаю скиллы…</p>
+      ) : null}
+
       <div
         className="sk-workspace"
         ref={workspaceRef}
@@ -622,8 +644,20 @@ export default function SkillsScreen({ skills, tasks, onChanged }: Props) {
           {pageRows.length === 0 ? (
             <div className="sk-empty">
               <Search size={20} />
-              <b>Ничего не найдено</b>
-              <span>Попробуй другой запрос или создай новый скилл.</span>
+              <b>
+                {loading
+                  ? "Загружаю скиллы…"
+                  : loadError
+                    ? "Скиллы не загрузились"
+                    : "Ничего не найдено"}
+              </b>
+              <span>
+                {loading
+                  ? "Подожди пару секунд."
+                  : loadError
+                    ? "Нажми «Повторить» выше."
+                    : "Попробуй другой запрос или создай новый скилл."}
+              </span>
             </div>
           ) : view === "grid" ? (
             <div className="sk-card-grid">

@@ -185,6 +185,8 @@ export default function App() {
   const [blenderError, setBlenderError] = useState<string | null>(null);
   const [blenderWorkspace, setBlenderWorkspace] = useState<BlenderWorkspace | null>(null);
   const [blenderSkills, setBlenderSkills] = useState<BlenderSkill[]>([]);
+  const [skillsLoading, setSkillsLoading] = useState(false);
+  const [skillsError, setSkillsError] = useState<string | null>(null);
   const [blenderScreenshot, setBlenderScreenshot] = useState<string | null>(null);
   const [importingAsset, setImportingAsset] = useState(false);
   const [assetError, setAssetError] = useState<string | null>(null);
@@ -246,6 +248,18 @@ export default function App() {
     }
   }, []);
 
+  const refreshSkills = useCallback(async () => {
+    setSkillsLoading(true);
+    try {
+      setBlenderSkills(await listBlenderSkills());
+      setSkillsError(null);
+    } catch (err) {
+      setSkillsError(err instanceof Error ? err.message : "Не удалось загрузить скиллы");
+    } finally {
+      setSkillsLoading(false);
+    }
+  }, []);
+
   const refresh = useCallback(async () => {
     try {
       await coreHealth();
@@ -274,10 +288,18 @@ export default function App() {
   }, [refresh]);
 
   useEffect(() => {
-    listBlenderSkills()
-      .then(setBlenderSkills)
-      .catch(() => setBlenderSkills([]));
-  }, []);
+    void refreshSkills();
+  }, [refreshSkills]);
+
+  useEffect(() => {
+    if (active === "Скиллы") void refreshSkills();
+  }, [active, refreshSkills]);
+
+  useEffect(() => {
+    if (core === "ok") void refreshSkills();
+  }, [core, refreshSkills]);
+
+
 
   useEffect(() => {
     if (!("__TAURI_INTERNALS__" in window)) return;
@@ -985,10 +1007,8 @@ export default function App() {
     setBlenderOpen(true);
     setBlenderError(null);
     void refreshBlenderPanel();
-    listBlenderSkills()
-      .then(setBlenderSkills)
-      .catch(() => setBlenderSkills([]));
-  }, [refreshBlenderPanel]);
+    void refreshSkills();
+  }, [refreshBlenderPanel, refreshSkills]);
 
   const handleBlenderConnect = useCallback(async () => {
     setBlenderBusy("connect");
@@ -1208,11 +1228,10 @@ export default function App() {
             <SkillsScreen
               skills={blenderSkills}
               tasks={tasks}
-              onChanged={() => {
-                listBlenderSkills()
-                  .then(setBlenderSkills)
-                  .catch(() => undefined);
-              }}
+              loading={skillsLoading}
+              loadError={skillsError}
+              onRetry={() => void refreshSkills()}
+              onChanged={() => void refreshSkills()}
             />
           ) : active === "Агенты" ? (
             <AgentsScreen
