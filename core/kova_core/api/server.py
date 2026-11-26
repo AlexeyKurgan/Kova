@@ -75,10 +75,22 @@ def create_app() -> FastAPI:
     app.include_router(agents.router)
     app.include_router(chats.router)
 
+    bridge_paths = {
+        "/roblox/commands",
+        "/roblox/results",
+        "/roblox/event",
+        "/roblox/status",
+    }
+
     @app.middleware("http")
     async def require_token(request: Request, call_next):
         token = os.environ.get("KOVA_CORE_TOKEN", "")
-        if token and request.method != "OPTIONS" and request.url.path != "/health":
+        if (
+            token
+            and request.method != "OPTIONS"
+            and request.url.path != "/health"
+            and request.url.path not in bridge_paths
+        ):
             if request.headers.get("x-kova-token") != token:
                 return JSONResponse({"detail": "invalid token"}, status_code=401)
         return await call_next(request)

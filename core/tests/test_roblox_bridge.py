@@ -233,3 +233,26 @@ def test_roblox_build_place_rejects_missing_project(tmp_path: Path, monkeypatch)
         json={"project_path": str(tmp_path / "missing"), "launch": False},
     )
     assert response.status_code == 400
+
+
+def test_core_owner_token(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.setenv("KOVA_DATA_DIR", str(tmp_path / "data"))
+    monkeypatch.setenv("LOCALAPPDATA", str(tmp_path / "local"))
+    monkeypatch.setenv("KOVA_CORE_TOKEN", "test-owner-token")
+    BRIDGE.reset()
+    client = TestClient(create_app())
+    assert client.get("/health").status_code == 200
+    assert client.get("/projects").status_code == 401
+    response = client.get(
+        "/projects",
+        headers={"X-Kova-Token": "test-owner-token"},
+    )
+    assert response.status_code == 200
+    assert client.get("/roblox/status").status_code == 200
+    assert client.post("/roblox/execute", json={"command": {"type": "ping"}}).status_code == 401
+    allowed = client.post(
+        "/roblox/execute",
+        headers={"X-Kova-Token": "test-owner-token"},
+        json={"command": {"type": "ping"}},
+    )
+    assert allowed.status_code == 200

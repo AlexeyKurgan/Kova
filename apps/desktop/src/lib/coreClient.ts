@@ -37,12 +37,29 @@ import type {
 } from "./types";
 
 export const CORE_URL = import.meta.env.VITE_CORE_URL ?? "http://127.0.0.1:8765";
-const TOKEN = import.meta.env.VITE_CORE_TOKEN ?? "";
+let TOKEN = import.meta.env.VITE_CORE_TOKEN ?? "";
+let tokenPromise: Promise<void> | null = null;
 
 export type HealthResponse = {
   status: string;
   version: string;
 };
+
+async function ensureToken(): Promise<void> {
+  if (TOKEN) return;
+  if (!tokenPromise) {
+    tokenPromise = (async () => {
+      try {
+        const { invoke } = await import("@tauri-apps/api/core");
+        const value = await invoke<string>("core_token");
+        if (value) TOKEN = value;
+      } catch {
+        // Browser/dev mode: the core may run without an owner token.
+      }
+    })();
+  }
+  await tokenPromise;
+}
 
 function withAuth(headers?: HeadersInit): Headers {
   const result = new Headers(headers);
@@ -51,6 +68,7 @@ function withAuth(headers?: HeadersInit): Headers {
 }
 
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
+  await ensureToken();
   const headers = withAuth(init.headers);
   if (init.body && !headers.has("Content-Type")) {
     headers.set("Content-Type", "application/json");
@@ -71,6 +89,7 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
 }
 
 export async function coreHealth(): Promise<HealthResponse> {
+  await ensureToken();
   const response = await fetch(`${CORE_URL}/health`, { headers: withAuth() });
   if (!response.ok) {
     throw new Error(`Core health check failed: ${response.status}`);
@@ -148,6 +167,7 @@ export async function executeRobloxCommand(
 }
 
 export async function getProject(): Promise<ProjectResponse | null> {
+  await ensureToken();
   const response = await fetch(`${CORE_URL}/project`, { headers: withAuth() });
   if (response.status === 404) return null;
   if (!response.ok) {
@@ -821,6 +841,7 @@ export async function cleanupAgentHistory(
 }
 
 export async function getRunChangePatch(runId: string, index: number): Promise<string> {
+  await ensureToken();
   const response = await fetch(
     `${CORE_URL}/ai/runs/${encodeURIComponent(runId)}/changes/${index}`,
     { headers: withAuth() },

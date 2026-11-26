@@ -766,6 +766,56 @@ export default function App() {
     }
   }, [loadProjectData, openAsset, project?.engine]);
 
+  const handleDroppedPaths = useCallback(
+    async (paths: string[]) => {
+      if (paths.length === 0) return;
+      if (!("__TAURI_INTERNALS__" in window)) return;
+      setImportingAsset(true);
+      setAssetError(null);
+      try {
+        let firstId: string | null = null;
+        for (const path of paths) {
+          const imported = await importAsset({
+            path,
+            engine: project?.engine ?? "roblox",
+          });
+          if (!firstId) firstId = imported.id;
+        }
+        await loadProjectData();
+        if (firstId) await openAsset(firstId);
+      } catch (err) {
+        setAssetError(err instanceof Error ? err.message : "Не удалось импортировать ассет");
+      } finally {
+        setImportingAsset(false);
+      }
+    },
+    [loadProjectData, openAsset, project?.engine],
+  );
+
+  useEffect(() => {
+    if (!("__TAURI_INTERNALS__" in window)) return;
+    let cancelled = false;
+    let unlisten: (() => void) | undefined;
+    void import("@tauri-apps/api/webview")
+      .then(({ getCurrentWebview }) =>
+        getCurrentWebview().onDragDropEvent((event) => {
+          const payload = event.payload as { type?: string; paths?: string[] };
+          if (payload.type === "drop" && payload.paths && payload.paths.length > 0) {
+            void handleDroppedPaths(payload.paths);
+          }
+        }),
+      )
+      .then((stop) => {
+        if (cancelled) stop();
+        else unlisten = stop;
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+      unlisten?.();
+    };
+  }, [handleDroppedPaths]);
+
   const handleLinkAssetTasks = useCallback(
     async (taskIds: string[]) => {
       if (!openAssetId) return;

@@ -16361,3 +16361,24 @@ button.blender-chip {
   color: var(--danger-text);
   font-size: 9.5px;
 }
+
+.asset-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 4px 2px;
+  color: var(--text-muted);
+  font-size: 10px;
+}
+
+.asset-pagination-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.btn.btn-compact {
+  min-height: 28px;
+  padding: 4px 10px;
+  font-size: 10px;
+}

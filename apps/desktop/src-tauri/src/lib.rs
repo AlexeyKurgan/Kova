@@ -1,6 +1,7 @@
 mod editor;
 
 use std::net::{SocketAddr, TcpStream};
+use std::path::PathBuf;
 use std::sync::Mutex;
 use std::time::Duration;
 
@@ -16,13 +17,60 @@ fn core_is_listening() -> bool {
     TcpStream::connect_timeout(&addr, Duration::from_millis(250)).is_ok()
 }
 
+fn kova_data_dir() -> PathBuf {
+    std::env::var_os("APPDATA")
+        .map(PathBuf::from)
+        .unwrap_or_else(|| PathBuf::from("."))
+        .join("KovaHub")
+}
+
+fn load_or_create_token() -> String {
+    let path = kova_data_dir().join("core-token.json");
+    if let Ok(text) = std::fs::read_to_string(&path) {
+        if let Ok(value) = serde_json::from_str::<serde_json::Value>(&text) {
+            if let Some(token) = value.get("token").and_then(|item| item.as_str()) {
+                if !token.trim().is_empty() {
+                    return token.to_string();
+                }
+            }
+        }
+    }
+    let token = format!(
+        "{}{}",
+        uuid::Uuid::new_v4().simple(),
+        uuid::Uuid::new_v4().simple()
+    );
+    if let Some(parent) = path.parent() {
+        let _ = std::fs::create_dir_all(parent);
+    }
+    let body = serde_json::json!({ "token": token });
+    let _ = std::fs::write(
+        &path,
+        serde_json::to_string_pretty(&body).unwrap_or_else(|_| "{}".to_string()),
+    );
+    token
+}
+
+#[tauri::command]
+fn core_token() -> Result<String, String> {
+    Ok(load_or_create_token())
+}
+
 fn start_core(app: &tauri::AppHandle) {
     if core_is_listening() {
         return;
     }
+    let token = load_or_create_token();
     let shell = app.shell();
     let command = match shell.sidecar("kova-core") {
-        Ok(command) => command.args(["--host", "127.0.0.1", "--port", "8765"]),
+        Ok(command) => command.args([
+            "--host",
+            "127.0.0.1",
+            "--port",
+            "8765",
+            "--token",
+            token.as_str(),
+        ]),
         Err(error) => {
             eprintln!("kova-core sidecar unavailable: {error}");
             return;
@@ -58,7 +106,8 @@ pub fn run() {
             editor::editor_uninstall_extensions,
             editor::editor_open,
             editor::editor_close,
-            editor::open_project_folder
+            editor::open_project_folder,
+            core_token
         ])
         .build(tauri::generate_context!())
         .expect("error while building Kova Hub")

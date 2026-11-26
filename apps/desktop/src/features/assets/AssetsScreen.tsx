@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Box,
   ChevronRight,
@@ -65,6 +65,8 @@ export default function AssetsScreen({
   const [statusFilter, setStatusFilter] = useState("all");
   const [sort, setSort] = useState("recent");
   const [view, setView] = useState<"grid" | "list">("list");
+  const [page, setPage] = useState(1);
+  const pageSize = 25;
 
   const engines = useMemo(
     () => [...new Set(assets.map((asset) => asset.engine))].sort(),
@@ -93,6 +95,17 @@ export default function AssetsScreen({
       return (right.updated_at || "").localeCompare(left.updated_at || "");
     });
   }, [assets, engineFilter, query, sort, statusFilter, typeFilter]);
+
+  const pageCount = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const visible = filtered.slice((page - 1) * pageSize, page * pageSize);
+
+  useEffect(() => {
+    setPage(1);
+  }, [query, typeFilter, engineFilter, statusFilter, sort]);
+
+  useEffect(() => {
+    if (page > pageCount) setPage(pageCount);
+  }, [page, pageCount]);
 
   return (
     <section className="assets-screen assets-library">
@@ -245,7 +258,7 @@ export default function AssetsScreen({
             <span>Задачи</span>
             <span />
           </div>
-          {filtered.map((asset) => {
+          {visible.map((asset) => {
             const current =
               asset.versions.find((item) => item.id === asset.current_version_id) ??
               asset.versions[asset.versions.length - 1];
@@ -323,7 +336,7 @@ export default function AssetsScreen({
         </div>
       ) : (
         <div className="asset-grid2">
-          {filtered.map((asset) => {
+          {visible.map((asset) => {
             const current =
               asset.versions.find((item) => item.id === asset.current_version_id) ??
               asset.versions[asset.versions.length - 1];
@@ -374,6 +387,31 @@ export default function AssetsScreen({
           })}
         </div>
       )}
+      {filtered.length > pageSize ? (
+        <div className="asset-pagination">
+          <span>
+            Страница {page} из {pageCount} · {filtered.length} ассетов
+          </span>
+          <div className="asset-pagination-actions">
+            <button
+              type="button"
+              className="btn btn-secondary btn-compact"
+              disabled={page <= 1}
+              onClick={() => setPage((value) => Math.max(1, value - 1))}
+            >
+              Назад
+            </button>
+            <button
+              type="button"
+              className="btn btn-secondary btn-compact"
+              disabled={page >= pageCount}
+              onClick={() => setPage((value) => Math.min(pageCount, value + 1))}
+            >
+              Вперёд
+            </button>
+          </div>
+        </div>
+      ) : null}
     </section>
   );
 }
