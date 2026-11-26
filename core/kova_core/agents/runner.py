@@ -542,7 +542,21 @@ def decide_approval(hub: Path, run_id: str, decision: str) -> dict[str, Any] | N
     if status is None:
         raise RuntimeError("неизвестное решение")
     approval["status"] = status
-    return _update(hub, run_id, approval=approval)
+    updated = _update(hub, run_id, approval=approval)
+    append_event(
+        hub,
+        LedgerEvent(
+            type="agent.approval.decided",
+            subject=str(record.get("task_id") or ""),
+            actor="human",
+            data={
+                "run_id": run_id,
+                "tool": str((approval.get("args") or {}).get("tool") or approval.get("tool") or ""),
+                "decision": status,
+            },
+        ),
+    )
+    return updated
 
 
 def _execute_api(

@@ -1,5 +1,6 @@
 import http.client
 import json
+import time
 import ssl
 from typing import Any, Callable
 from urllib.parse import parse_qs, urlencode, urlparse
@@ -60,7 +61,18 @@ def _sse_lines(
 
 def _error(response: http.client.HTTPResponse, style: str) -> str:
     body = response.read(2000).decode("utf-8", errors="replace").strip()
-    return f"{style} API вернул {response.status}: {body[:500]}"
+    status = response.status
+    if status == 401:
+        prefix = "Неверный API-ключ (401). Проверь ключ провайдера"
+    elif status == 403:
+        prefix = "Доступ запрещён (403). Проверь права ключа и выбранную модель"
+    elif status == 429:
+        prefix = "Лимит запросов провайдера (429). Подожди и попробуй снова"
+    elif status >= 500:
+        prefix = f"Провайдер временно недоступен ({status}). Попробуй позже"
+    else:
+        prefix = f"{style} API вернул {status}"
+    return f"{prefix}: {body[:500]}"
 
 
 def _run_openai(
@@ -537,30 +549,66 @@ def run_chat(
     if not str(provider.get("api_model") or "").strip():
         raise RuntimeError("не задана API-модель")
     style = str(provider.get("api_style") or "openai")
-    if style == "vertex":
-        output, usage = _run_vertex(
-            provider, prompt, api_key, on_text, should_stop, system, media
-        )
-    elif style == "bedrock":
-        output, usage = _run_bedrock(
-            provider, prompt, api_key, on_text, should_stop, system, media
-        )
-    elif style == "azure":
-        output, usage = _run_openai(
-            provider, prompt, api_key, on_text, should_stop, system, azure=True, media=media
-        )
-    elif style == "anthropic":
-        output, usage = _run_anthropic(
-            provider, prompt, api_key, on_text, should_stop, system, media
-        )
-    elif style == "google":
-        output, usage = _run_google(
-            provider, prompt, api_key, on_text, should_stop, system, media
-        )
-    else:
-        output, usage = _run_openai(
-            provider, prompt, api_key, on_text, should_stop, system, media=media
-        )
-    if not output:
-        raise RuntimeError("API вернул пустой ответ")
-    return output, usage
+
+    def call(emit: Callable[[str], None] | None):
+        if style == "vertex":
+            return _run_vertex(provider, prompt, api_key, emit, should_stop, system, media)
+        if style == "bedrock":
+            return _run_bedrock(provider, prompt, api_key, emit, should_stop, system, media)
+        if style == "azure":
+            return _run_openai(
+                provider,
+                prompt,
+                api_key,
+                emit,
+                should_stop,
+                system,
+                azure=True,
+                media=media,
+            )
+        if style == "anthropic":
+            return _run_anthropic(provider, prompt, api_key, emit, should_stop, system, media)
+        if style == "google":
+            return _run_google(provider, prompt, api_key, emit, should_stop, system, media)
+        return _run_openai(provider, prompt, api_key, emit, should_stop, system, media=media)
+
+    last_error: RuntimeError | None = None
+    for attempt in range(3):
+        emitted = False
+
+        def emit(text: str) -> None:
+            nonlocal emitted
+            emitted = True
+            if on_text is not None:
+                on_text(text)
+
+        try:
+            output, usage = call(emit)
+            if not output:
+                raise RuntimeError("API вернул пустой ответ")
+            return output, usage
+        except RunCancelled:
+            raise
+        except RuntimeError as exc:
+            last_error = exc
+            message = str(exc).lower()
+            retryable = any(
+                token in message
+                for token in (
+                    "429",
+                    "500",
+                    "502",
+                    "503",
+                    "504",
+                    "timed out",
+                    "timeout",
+                    "connection reset",
+                    "econnreset",
+                    "temporarily",
+                    "временно недоступен",
+                )
+            )
+            if emitted or not retryable or attempt >= 2:
+                raise
+            time.sleep(1.2 * (attempt + 1))
+    raise last_error or RuntimeError("API-запрос не выполнен")

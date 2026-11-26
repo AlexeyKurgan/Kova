@@ -778,6 +778,14 @@ def _finish(
                 activity=activity or [],
                 egress=egress,
             )
+        else:
+            _append(
+                chat,
+                "assistant",
+                "CLI завершился без текстового ответа.",
+                activity=activity or [],
+                egress=egress,
+            )
         chat["status"] = "failed" if error else "idle"
         chat["error"] = error
         chat["streaming_output"] = ""

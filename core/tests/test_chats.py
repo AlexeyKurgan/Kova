@@ -418,3 +418,33 @@ def test_chat_can_propose_project_settings(tmp_path: Path, monkeypatch) -> None:
     assert project["max_parallel_runs"] == 2
     assert project["local_only"] is True
     assert project["egress_guard"] is True
+
+
+def test_empty_cli_output_still_adds_assistant_message(tmp_path: Path, monkeypatch) -> None:
+    client = make_client(tmp_path, monkeypatch)
+    game = tmp_path / "game"
+    game.mkdir()
+    client.post("/project/open", json={"path": str(game), "name": "Silent Game"})
+    script = tmp_path / "silent.py"
+    script.write_text("from pathlib import Path; Path('silent.txt').write_text('x')", encoding="utf-8")
+    provider = client.post(
+        "/providers",
+        json={
+            "name": "Silent CLI",
+            "command": sys.executable,
+            "args": [str(script)],
+            "read_only_args": [str(script)],
+        },
+    ).json()
+    grant_consent(client, provider["id"])
+    chat = client.post("/chats", json={"provider_id": provider["id"]}).json()
+    client.post(f"/chats/{chat['id']}/messages", json={"text": "молчи"})
+    final = None
+    for _ in range(100):
+        time.sleep(0.1)
+        final = client.get(f"/chats/{chat['id']}").json()
+        if final["status"] != "running":
+            break
+    assert final is not None
+    assert [message["role"] for message in final["messages"]] == ["user", "assistant"]
+    assert "без текстового ответа" in final["messages"][-1]["content"]
