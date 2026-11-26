@@ -14,17 +14,19 @@ import {
   Plus,
   RefreshCw,
   Search,
+  Sparkles,
   Star,
   Trash2,
   X,
 } from "lucide-react";
-import BrandIcon from "../../components/BrandIcon";
+import ProviderIcon from "../../components/ProviderIcon";
 import { useConfirm } from "../../components/ConfirmProvider";
 import { providerBrand } from "../../lib/brands";
 import {
   cleanupAgentHistory,
   discoverProviderModels,
   getProviderCatalog,
+  getModelCatalog,
   getAgentRouting,
   getAgentUsage,
   getProject,
@@ -42,6 +44,7 @@ import type {
   IsolationMode,
   ProjectResponse,
   ProviderInfo,
+  ModelCatalogGroup,
 } from "../../lib/types";
 
 type Props = {
@@ -58,6 +61,7 @@ type Props = {
       timeout?: number;
       models?: string[];
       default_model?: string;
+      default_effort?: string;
       read_only_args?: string[];
       resume_args?: string[];
       session_regex?: string;
@@ -78,6 +82,7 @@ type Props = {
     timeout?: number;
     models?: string[];
     default_model?: string;
+    default_effort?: string;
     read_only_args?: string[];
     resume_args?: string[];
     session_regex?: string;
@@ -206,6 +211,7 @@ export default function AgentsScreen({
   const [project, setProject] = useState<ProjectResponse | null>(null);
   const [slotsBusy, setSlotsBusy] = useState(false);
   const [slotsNote, setSlotsNote] = useState("");
+  const [quickNote, setQuickNote] = useState("");
   const [usage, setUsage] = useState<AgentUsage | null>(null);
   const [budgetDraft, setBudgetDraft] = useState(0);
   const [routing, setRouting] = useState<AgentRouting>({ rules: [], roles: [] });
@@ -217,9 +223,10 @@ export default function AgentsScreen({
   const [rolePrompt, setRolePrompt] = useState("");
   const [roleProvider, setRoleProvider] = useState("");
   const [selectedId, setSelectedId] = useState("");
-  const [tab, setTab] = useState<"info" | "models" | "queue" | "routing">("info");
+  const [tab, setTab] = useState<"info" | "models" | "advanced">("info");
   const [addOpen, setAddOpen] = useState(false);
   const [modelQuery, setModelQuery] = useState("");
+  const [modelCatalog, setModelCatalog] = useState<ModelCatalogGroup[]>([]);
   const [modelDraft, setModelDraft] = useState("");
   const [modelsBusy, setModelsBusy] = useState(false);
   const [modelNote, setModelNote] = useState("");
@@ -288,6 +295,68 @@ export default function AgentsScreen({
       const data = await updateProject({ isolation: value });
       setProject(data);
       setSlotsNote("Сохранено. Действует для новых запусков.");
+    } catch (err) {
+      setSlotsNote(err instanceof Error ? err.message : "Не удалось сохранить");
+    } finally {
+      setSlotsBusy(false);
+    }
+  };
+
+  const applySafeDefaults = async () => {
+    if (!project) return;
+    setSlotsBusy(true);
+    setQuickNote("");
+    try {
+      const data = await updateProject({
+        isolation: project.git_repo ? "worktree" : "sandbox",
+        max_parallel_runs: 1,
+        token_budget: 0,
+        local_only: false,
+        egress_guard: true,
+      });
+      setProject(data);
+      const installed = providers.filter((item) => item.installed && item.enabled);
+      const hasDefault = installed.some((item) => item.default);
+      if (!hasDefault && installed[0]) await onSetDefault(installed[0].id);
+      setQuickNote(
+        "Готово. Выбрана безопасная изоляция, 1 запуск, сетевой щит включён, лимит токенов без ограничения.",
+      );
+    } catch (err) {
+      setQuickNote(err instanceof Error ? err.message : "Не удалось применить настройки");
+    } finally {
+      setSlotsBusy(false);
+    }
+  };
+
+  const saveEgressGuard = async (value: boolean) => {
+    setSlotsBusy(true);
+    setSlotsNote("");
+    try {
+      const data = await updateProject({ egress_guard: value });
+      setProject(data);
+      setSlotsNote(
+        value
+          ? "Сетевой щит включён: CLI-агенты ходят только к доменам провайдера."
+          : "Сетевой щит выключен: CLI-агенты могут обращаться в сеть напрямую.",
+      );
+    } catch (err) {
+      setSlotsNote(err instanceof Error ? err.message : "Не удалось сохранить");
+    } finally {
+      setSlotsBusy(false);
+    }
+  };
+
+  const saveLocalOnly = async (value: boolean) => {
+    setSlotsBusy(true);
+    setSlotsNote("");
+    try {
+      const data = await updateProject({ local_only: value });
+      setProject(data);
+      setSlotsNote(
+        value
+          ? "Локальный режим включён. Чаты и запуски через внешние провайдеры заблокированы."
+          : "Локальный режим выключен. Внешние провайдеры снова доступны.",
+      );
     } catch (err) {
       setSlotsNote(err instanceof Error ? err.message : "Не удалось сохранить");
     } finally {
@@ -603,6 +672,10 @@ export default function AgentsScreen({
     })
     .sort((a, b) => Number(b.installed && b.enabled) - Number(a.installed && a.enabled));
 
+  const setDefaultEffort = async (provider: ProviderInfo, value: string) => {
+    await onSave(provider.id, { default_effort: value });
+  };
+
   const setDefaultModel = async (provider: ProviderInfo, value: string) => {
     setError(null);
     try {
@@ -649,8 +722,7 @@ export default function AgentsScreen({
   const tabLabel: Record<typeof tab, string> = {
     info: "Информация",
     models: "Модели",
-    queue: "Очередь",
-    routing: "Роли",
+    advanced: "Дополнительно",
   };
 
   const openFolder = async (path: string) => {
@@ -701,6 +773,28 @@ export default function AgentsScreen({
     setModelDraft("");
   };
 
+  useEffect(() => {
+    let alive = true;
+    if (!selected) {
+      setModelCatalog([]);
+      return;
+    }
+    getModelCatalog(selected.id)
+      .then((groups) => {
+        if (alive) setModelCatalog(groups);
+      })
+      .catch(() => {
+        if (alive) setModelCatalog([]);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [selected?.id, selected?.models.length]);
+
+  const catalogModelMap = new Map(
+    modelCatalog.flatMap((group) => group.models).map((model) => [model.id, model]),
+  );
+
   const modelGroups = (() => {
     if (!selected) return [] as Array<{ key: string; models: string[] }>;
     const query = modelQuery.trim().toLowerCase();
@@ -719,6 +813,9 @@ export default function AgentsScreen({
     return groups;
   })();
 
+  const builtInEdit =
+    dialog?.kind === "edit" && dialog.provider.builtin && kind === "cli";
+
   return (
     <section className="agents-page">
       <header className="ag-head">
@@ -730,6 +827,16 @@ export default function AgentsScreen({
           <p>Управление CLI, моделями и возможностями</p>
         </div>
         <div className="ag-head-actions">
+          <button
+            type="button"
+            className="btn btn-secondary"
+            disabled={!project || slotsBusy}
+            onClick={() => void applySafeDefaults()}
+            title="Поставить безопасные настройки для этого проекта"
+          >
+            <Sparkles size={15} />
+            Настроить за меня
+          </button>
           <div className="ag-add">
             <button type="button" className="btn btn-primary" onClick={() => openCreate("cli")}>
               <Plus size={15} />
@@ -803,6 +910,8 @@ export default function AgentsScreen({
         </div>
       </header>
 
+      {quickNote ? <div className="ag-quick-note">{quickNote}</div> : null}
+
       <div className="ag-statusline">
         <span
           className={`ag-dot ${
@@ -827,7 +936,7 @@ export default function AgentsScreen({
       <div className="ag-grid">
         <section className="ag-panel ag-providers">
           <div className="ag-panel-head">
-            <h2>Провайдеры и коннекторы</h2>
+            <h2>Провайдеры и CLI</h2>
             <span>{filteredProviders.length}</span>
           </div>
           <div className="ag-search">
@@ -868,7 +977,7 @@ export default function AgentsScreen({
                     onClick={() => setSelectedId(provider.id)}
                   >
                     <span className="ag-provider-icon">
-                      {brand ? <BrandIcon name={brand} size={26} /> : <Bot size={23} />}
+                      <ProviderIcon id={provider.id} brand={brand ?? undefined} size={24} />
                     </span>
                     <span className="ag-provider-main">
                       <span className="ag-provider-name">
@@ -909,11 +1018,7 @@ export default function AgentsScreen({
             <>
               <div className="ag-detail-head">
                 <span className="ag-detail-icon">
-                  {providerBrand(selected.id) ? (
-                    <BrandIcon name={providerBrand(selected.id)!} size={34} />
-                  ) : (
-                    <Bot size={30} />
-                  )}
+                  <ProviderIcon id={selected.id} brand={providerBrand(selected.id) ?? undefined} size={34} />
                 </span>
                 <div className="ag-detail-title">
                   <h2>{selected.name}</h2>
@@ -1065,6 +1170,23 @@ export default function AgentsScreen({
                             : "Список моделей пуст. Укажи модели в настройках провайдера."}
                         </small>
                       </div>
+
+                      <div className="ag-model-block">
+                        <span>Effort по умолчанию</span>
+                        <select
+                          value={selected.default_effort || "auto"}
+                          onChange={(event) => void setDefaultEffort(selected, event.target.value)}
+                        >
+                          {["auto", "none", "minimal", "low", "medium", "high", "xhigh", "max"].map(
+                            (value) => (
+                              <option value={value} key={value}>
+                                {value === "auto" ? "Auto" : value}
+                              </option>
+                            ),
+                          )}
+                        </select>
+                        <small>Применяется к новым чатам. Старые чаты не меняются.</small>
+                      </div>
                     </div>
 
                     <div className="ag-cap-card">
@@ -1138,8 +1260,8 @@ export default function AgentsScreen({
                                   title={model}
                                   onClick={() => void setDefaultModel(selected, model)}
                                 >
-                                  <span>{modelLabel(model)}</span>
-                                  {isFreeModel(model) ? <em className="is-free">Free</em> : null}
+                                  <span>{catalogModelMap.get(model)?.name ?? modelLabel(model)}</span>
+                                  {(catalogModelMap.get(model)?.free ?? isFreeModel(model)) ? <em className="is-free">Free</em> : null}
                                   {selected.default_model === model ? (
                                     <em>по умолчанию</em>
                                   ) : null}
@@ -1179,8 +1301,10 @@ export default function AgentsScreen({
                   </div>
                 ) : null}
 
-                {tab === "queue" ? (
-                  <div className="ag-tab-section">
+                {tab === "advanced" ? (
+                  <details className="ag-advanced-block">
+                    <summary>Запуски и безопасность</summary>
+                    <div className="ag-tab-section">
                     <h3>Запуски проекта</h3>
                     {project ? (
                       <div className="ag-settings-list">
@@ -1211,8 +1335,35 @@ export default function AgentsScreen({
                             <option value="worktree" disabled={!project.git_repo}>
                               Git worktree
                             </option>
+                            <option value="sandbox">Песочница (копия проекта)</option>
                           </select>
                         </label>
+                        <label className="agent-check">
+                          <input
+                            type="checkbox"
+                            checked={project.project.local_only}
+                            disabled={slotsBusy}
+                            onChange={(event) => void saveLocalOnly(event.target.checked)}
+                          />
+                          Только локальные модели
+                        </label>
+                        <small className="ag-muted">
+                          Запрещает чат и запуски через провайдеров, которые ходят в интернет.
+                          Локальные API на localhost остаются доступны.
+                        </small>
+                        <label className="agent-check">
+                          <input
+                            type="checkbox"
+                            checked={project.project.egress_guard}
+                            disabled={slotsBusy}
+                            onChange={(event) => void saveEgressGuard(event.target.checked)}
+                          />
+                          Сетевой щит (allowlist доменов)
+                        </label>
+                        <small className="ag-muted">
+                          Для CLI-чата и запусков задач: разрешены только домены выбранного провайдера,
+                          остальные соединения блокируются и видны в активности.
+                        </small>
                         <label>
                           <span>Лимит токенов</span>
                           <input
@@ -1230,7 +1381,9 @@ export default function AgentsScreen({
                         <small className="ag-muted">
                           {project.project.isolation === "worktree"
                             ? "Агент работает в копии HEAD, изменения применяются вручную из Review."
-                            : "Агент пишет напрямую в проект."}
+                            : project.project.isolation === "sandbox"
+                              ? "Агент работает в отдельной копии проекта; изменения применяются вручную из Review."
+                              : "Агент пишет напрямую в проект."}
                           {" "}0 токенов — без лимита.
                         </small>
                         {usage ? (
@@ -1248,11 +1401,14 @@ export default function AgentsScreen({
                     ) : (
                       <div className="ag-empty">Открой проект, чтобы настроить очередь.</div>
                     )}
-                  </div>
+                    </div>
+                  </details>
                 ) : null}
 
-                {tab === "routing" ? (
-                  <div className="ag-tab-section">
+                {tab === "advanced" ? (
+                  <details className="ag-advanced-block">
+                    <summary>Маршрутизация и роли</summary>
+                    <div className="ag-tab-section">
                     <div className="ag-section-head">
                       <h3>Правила маршрутизации</h3>
                       <span>{routing.rules.length}</span>
@@ -1389,7 +1545,8 @@ export default function AgentsScreen({
                       </button>
                     </div>
                     {routingNote ? <small className="ag-muted">{routingNote}</small> : null}
-                  </div>
+                    </div>
+                  </details>
                 ) : null}
 
               </div>
@@ -1521,7 +1678,6 @@ export default function AgentsScreen({
                       .includes(catalogSearch.trim().toLowerCase()),
                   )
                   .map((item) => {
-                    const brand = providerBrand(item.id) ?? providerBrand(item.brand);
                     return (
                       <article
                         className={`catalog-card${item.available ? "" : " is-disabled"}`}
@@ -1529,11 +1685,7 @@ export default function AgentsScreen({
                       >
                         <div className="catalog-card-head">
                           <span className="catalog-icon">
-                            {brand ? (
-                              <BrandIcon name={brand} size={22} />
-                            ) : (
-                              <Bot size={20} />
-                            )}
+                            <ProviderIcon id={item.id} brand={item.brand} size={24} />
                           </span>
                           <span className="catalog-name">{item.name}</span>
                           <button
@@ -1609,7 +1761,13 @@ export default function AgentsScreen({
             </div>
 
             <div className="modal-body">
-              <div className="agent-form-title">Подключение</div>
+              {builtInEdit ? (
+                <div className="agent-form-note">
+                  Обычно здесь ничего менять не нужно: Kova уже знает, как безопасно
+                  запускать этот CLI. Модель выбирается в «Агентах → Модели».
+                </div>
+              ) : null}
+              <div className="agent-form-title">Основное</div>
               <div className="field">
                 <label htmlFor="agent-name">Название</label>
                 <input
@@ -1786,8 +1944,10 @@ export default function AgentsScreen({
                 </>
               ) : (
                 <>
+              <details className="agent-form-advanced" open={!builtInEdit}>
+                <summary>Дополнительные настройки</summary>
               <div className="field">
-                <label htmlFor="agent-command">Команда</label>
+                <label htmlFor="agent-command">Команда запуска CLI</label>
                 <input
                   id="agent-command"
                   value={command}
@@ -1796,7 +1956,7 @@ export default function AgentsScreen({
                 />
               </div>
               <div className="field">
-                <label htmlFor="agent-args">Аргументы</label>
+                <label htmlFor="agent-args">Аргументы запуска</label>
                 <input
                   id="agent-args"
                   value={args}
@@ -1810,7 +1970,7 @@ export default function AgentsScreen({
               </div>
               <div className="agent-form-title">Модели и продолжение</div>
               <div className="field">
-                <label htmlFor="agent-models">Модели</label>
+                <label htmlFor="agent-models">Модели (через запятую)</label>
                 <input
                   id="agent-models"
                   value={models}
@@ -1823,7 +1983,7 @@ export default function AgentsScreen({
               </div>
               <div className="agent-form-title">Ограничения и режимы</div>
               <div className="field">
-                <label htmlFor="agent-readonly">Аргументы «только чтение»</label>
+                <label htmlFor="agent-readonly">Безопасный режим (только чтение)</label>
                 <input
                   id="agent-readonly"
                   value={readOnlyArgs}
@@ -1831,12 +1991,12 @@ export default function AgentsScreen({
                   placeholder={'--sandbox read-only "{prompt}"'}
                 />
                 <span className="field-hint">
-                  Необязательно. Если пусто, режим «только чтение» недоступен для этого CLI.
-                  Флаги задаёшь ты — Kova не угадывает их.
+                  Необязательно, но для чата обязательно: без этих аргументов безопасный
+                  режим чата для CLI недоступен. Флаги задаёшь ты — Kova не угадывает их.
                 </span>
               </div>
               <div className="field">
-                <label htmlFor="agent-resume">Аргументы resume</label>
+                <label htmlFor="agent-resume">Продолжение сессии</label>
                 <input
                   id="agent-resume"
                   value={resumeArgs}
@@ -1850,7 +2010,7 @@ export default function AgentsScreen({
               </div>
               <div className="field-row">
                 <div className="field">
-                  <label htmlFor="agent-session-regex">Regex id сессии</label>
+                  <label htmlFor="agent-session-regex">ID сессии (regex)</label>
                   <input
                     id="agent-session-regex"
                     value={sessionRegex}
@@ -1859,7 +2019,7 @@ export default function AgentsScreen({
                   />
                 </div>
                 <div className="field">
-                  <label htmlFor="agent-output-mode">Разбор вывода</label>
+                  <label htmlFor="agent-output-mode">Формат вывода</label>
                   <select
                     id="agent-output-mode"
                     value={outputMode}
@@ -1872,6 +2032,7 @@ export default function AgentsScreen({
                   </select>
                 </div>
               </div>
+              </details>
                 </>
               )}
               <div className="field-row">

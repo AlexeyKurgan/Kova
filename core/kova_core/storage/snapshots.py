@@ -2,6 +2,7 @@ import difflib
 import hashlib
 import json
 import shutil
+from datetime import datetime, timezone
 from pathlib import Path
 
 from ..domain.enums import SnapshotScope
@@ -230,3 +231,41 @@ def diff_snapshot(
         "total": total,
         "truncated": total > limit,
     }
+
+
+def delete_snapshot(hub: Path, snapshot_id: str) -> bool:
+    if not snapshot_id.startswith("snap_"):
+        return False
+    path = hub / "snapshots" / f"{snapshot_id}.json"
+    if not path.is_file():
+        return False
+    path.unlink(missing_ok=True)
+    shutil.rmtree(hub / "snapshots" / snapshot_id, ignore_errors=True)
+    index_path = hub / "snapshots" / "index.json"
+    if index_path.is_file():
+        try:
+            index = json.loads(index_path.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            index = {}
+        if isinstance(index, dict):
+            index.pop(snapshot_id, None)
+            index_path.write_text(json.dumps(index, indent=2) + "\n", encoding="utf-8")
+    return True
+
+
+def cleanup_snapshots(hub: Path, keep: int = 10, days: int = 30) -> dict[str, int]:
+    keep = max(1, min(200, int(keep)))
+    days = max(1, min(3650, int(days)))
+    now = datetime.now(timezone.utc).timestamp()
+    cutoff = now - days * 86400
+    removed = 0
+    for index, snapshot in enumerate(list_snapshots(hub)):
+        if index < keep:
+            continue
+        try:
+            stamp = snapshot.created_at.timestamp()
+        except (AttributeError, ValueError):
+            continue
+        if stamp < cutoff and delete_snapshot(hub, snapshot.id):
+            removed += 1
+    return {"removed": removed}

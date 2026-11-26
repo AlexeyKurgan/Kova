@@ -5,6 +5,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
 from ...agents.capabilities import clear_capabilities, get_capabilities, probe_provider
+from ...agents.model_catalog import catalog_for_provider
 from ...agents.providers import (
     PRESETS,
     catalog as provider_catalog,
@@ -48,6 +49,7 @@ class ProviderInfo(BaseModel):
     timeout: int = 1800
     models: list[str] = Field(default_factory=list)
     default_model: str = ""
+    default_effort: str = "auto"
     models_args: list[str] = Field(default_factory=list)
     read_only_args: list[str] = Field(default_factory=list)
     resume_args: list[str] = Field(default_factory=list)
@@ -81,6 +83,7 @@ class UpdateProviderRequest(BaseModel):
     timeout: int | None = None
     models: list[str] | None = None
     default_model: str | None = None
+    default_effort: str | None = None
     models_args: list[str] | None = None
     read_only_args: list[str] | None = None
     resume_args: list[str] | None = None
@@ -108,6 +111,7 @@ class CreateProviderRequest(BaseModel):
     timeout: int = 1800
     models: list[str] = Field(default_factory=list)
     default_model: str = ""
+    default_effort: str = "auto"
     models_args: list[str] = Field(default_factory=list)
     read_only_args: list[str] = Field(default_factory=list)
     resume_args: list[str] = Field(default_factory=list)
@@ -221,6 +225,14 @@ def create_provider_route(payload: CreateProviderRequest) -> ProviderInfo:
 @router.get("/catalog")
 def provider_catalog_route() -> dict:
     return {"providers": provider_catalog()}
+
+
+@router.get("/{provider_id}/catalog")
+def provider_model_catalog(provider_id: str) -> dict:
+    provider = get_provider(provider_id)
+    if provider is None:
+        raise HTTPException(status_code=404, detail="provider not found")
+    return {"groups": catalog_for_provider(provider)}
 
 
 @router.post("/{provider_id}/models")

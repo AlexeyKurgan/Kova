@@ -54,9 +54,9 @@ button:disabled { opacity: 0.45; cursor: default; }
   color: var(--gold);
 }
 .brand-copy { display: flex; min-width: 0; flex-direction: column; }
-.brand-copy b { color: var(--strong); font-size: 13px; font-weight: 650; }
+.brand-copy b { color: var(--strong); font-size: 12.5px; font-weight: 650; white-space: nowrap; }
 .brand-copy small { overflow: hidden; color: var(--muted); font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
-.top-actions { display: flex; gap: 3px; }
+.top-actions { display: flex; align-items: center; flex: none; gap: 3px; }
 .icon-btn {
   display: grid;
   width: 30px;
@@ -295,7 +295,7 @@ button:disabled { opacity: 0.45; cursor: default; }
 .composer { padding: 8px 12px 11px; border-top: 1px solid var(--border); background: var(--bg); }
 .composer-box { display: flex; align-items: flex-end; gap: 7px; padding: 7px 7px 7px 10px; border: 1px solid var(--border); border-radius: 11px; background: var(--inset); }
 .composer-box:focus-within { border-color: var(--gold-line); box-shadow: 0 0 0 2px rgba(217, 164, 65, 0.1); }
-.composer textarea { min-height: 38px; max-height: 150px; flex: 1; resize: none; padding: 3px 0; border: 0; background: none; color: var(--fg); font-size: 12px; line-height: 1.5; outline: none; }
+.composer textarea { min-height: 38px; max-height: min(300px, 42vh); flex: 1; resize: none; padding: 3px 0; border: 0; background: none; color: var(--fg); font-size: 12px; line-height: 1.5; outline: none; }
 .composer-tools { display: flex; gap: 4px; }
 .tool-btn { display: grid; width: 32px; height: 32px; place-items: center; border: 1px solid transparent; border-radius: 7px; background: none; color: var(--muted); }
 .tool-btn:hover { border-color: var(--border); background: var(--card); color: var(--gold); }
@@ -304,8 +304,10 @@ button:disabled { opacity: 0.45; cursor: default; }
 .tool-btn svg, .send-btn svg { width: 15px; height: 15px; }
 .composer-hint { margin: 5px 2px 0; color: var(--muted); font-size: 8.5px; text-align: right; }
 
-.error { display: none; margin: 0 12px 7px; padding: 7px 9px; border: 1px solid rgba(226, 109, 109, 0.35); border-radius: 6px; background: rgba(226, 109, 109, 0.08); color: var(--danger); font-size: 10px; }
-.error.show { display: block; }
+.error { display: none; align-items: center; gap: 7px; margin: 0 12px 7px; padding: 7px 9px; border: 1px solid rgba(226, 109, 109, 0.35); border-radius: 6px; background: rgba(226, 109, 109, 0.08); color: var(--danger); font-size: 10px; }
+.error.show { display: flex; }
+.error span { flex: 1; }
+.error button { border: 0; background: none; color: var(--danger); font-size: 14px; line-height: 1; }
 
 .empty-tip { margin: auto; padding: 20px; color: var(--muted); font-size: 11px; text-align: center; }
 @media (prefers-reduced-motion: reduce) { .cat, .cat .tail, .cat .eyes, .thinking i { animation: none; } }
@@ -321,7 +323,7 @@ button:disabled { opacity: 0.45; cursor: default; }
 .suggestion { padding: 11px; font-size: 11.5px; }
 .msg-body { font-size: 13px; }
 .msg.user .msg-body { padding: 10px 13px; }
-.composer textarea { min-height: 42px; font-size: 12.5px; }
+.composer textarea { min-height: 42px; font-size: 12.5px; max-height: min(300px, 42vh); overflow-y: auto; }
 .tool-btn { width: 34px; height: 34px; }
 .send-btn { width: 36px; height: 36px; }
 
@@ -333,13 +335,394 @@ button:disabled { opacity: 0.45; cursor: default; }
 .msg-body .li { padding-left: 2px; }
 .msg-body .inline { padding: 1px 4px; border: 1px solid var(--border); border-radius: 4px; background: var(--inset); color: var(--strong); font-family: var(--vscode-editor-font-family, Consolas, monospace); font-size: 0.92em; }
 .msg-body .code { margin: 7px 0; padding: 9px 10px; overflow-x: auto; border: 1px solid var(--border); border-radius: 7px; background: #0c1117; color: #c9d5e2; font: 10.5px/1.55 var(--vscode-editor-font-family, Consolas, monospace); white-space: pre-wrap; word-break: break-word; }
+
+.editor-model-groups {
+  display: flex;
+  max-height: 230px;
+  flex-direction: column;
+  gap: 1px;
+  overflow-y: auto;
+  padding: 3px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--inset);
+}
+.editor-model-group { display: flex; flex-direction: column; gap: 1px; padding-bottom: 3px; }
+.editor-model-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 7px 2px;
+  color: var(--muted);
+  font-size: 8px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.editor-model-head b { font-size: 8px; font-weight: 500; opacity: 0.8; }
+.editor-model-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 7px;
+  border: 0;
+  border-radius: 5px;
+  background: none;
+  color: var(--fg);
+  text-align: left;
+  font-size: 9.5px;
+}
+.editor-model-row:hover { background: var(--card); }
+.editor-model-row.is-active { background: var(--gold-soft); color: var(--gold); }
+.editor-model-row span { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.editor-model-row em { padding: 1px 4px; border-radius: 3px; background: rgba(92, 200, 161, 0.12); color: var(--success); font-size: 7.5px; font-style: normal; }
+.editor-model-empty { padding: 8px; color: var(--muted); font-size: 9px; }
+.history-delete {
+  display: grid;
+  width: 24px;
+  height: 24px;
+  flex: none;
+  place-items: center;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  background: none;
+  color: var(--muted);
+  font-size: 13px;
+}
+.history-delete:hover { border-color: var(--border); color: var(--danger); }
+.history-confirm { display: flex; align-items: center; gap: 3px; }
+.history-confirm button {
+  height: 24px;
+  padding: 0 6px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--inset);
+  color: var(--muted);
+  font-size: 8px;
+}
+.history-confirm button.is-danger { border-color: rgba(226, 109, 109, 0.4); color: var(--danger); }
+
+.context-bar { position: relative; }
+.context-trigger {
+  display: flex;
+  height: 32px;
+  min-width: 0;
+  flex: 1;
+  align-items: center;
+  gap: 7px;
+  padding: 0 9px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--inset);
+  color: var(--fg);
+  text-align: left;
+  font-size: 11px;
+}
+.context-trigger:hover, .context-trigger:focus { border-color: var(--gold-line); outline: none; }
+.context-trigger > span:nth-child(2) { overflow: hidden; flex: 1; text-overflow: ellipsis; white-space: nowrap; }
+.context-trigger svg { flex: none; color: var(--muted); }
+.context-icon {
+  display: grid;
+  width: 20px;
+  height: 20px;
+  flex: none;
+  place-items: center;
+  border-radius: 5px;
+  background: var(--gold-soft);
+  color: var(--gold);
+  font-size: 10px;
+}
+.context-menu {
+  position: absolute;
+  z-index: 35;
+  top: calc(100% + 4px);
+  right: 12px;
+  left: 12px;
+  display: none;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--card);
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.45);
+}
+.context-menu.is-open { display: flex; }
+.context-menu > input {
+  height: 32px;
+  margin: 8px;
+  padding: 0 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--inset);
+  color: var(--fg);
+  font-size: 10.5px;
+  outline: none;
+}
+.context-menu > input:focus { border-color: var(--gold-line); }
+.context-menu-list { display: flex; max-height: 320px; flex-direction: column; overflow-y: auto; padding: 0 5px 6px; }
+.context-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: var(--fg);
+  text-align: left;
+}
+.context-option:hover { background: var(--inset); }
+.context-option.is-active { background: var(--gold-soft); }
+.context-check {
+  display: grid;
+  width: 17px;
+  height: 17px;
+  flex: none;
+  place-items: center;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--gold);
+  font-size: 10px;
+}
+.context-option.is-active .context-check { border-color: var(--gold-line); background: var(--gold-soft); }
+.context-option-copy { display: flex; min-width: 0; flex: 1; flex-direction: column; gap: 2px; }
+.context-option-copy b { overflow: hidden; font-size: 10.5px; font-weight: 550; text-overflow: ellipsis; white-space: nowrap; }
+.context-option-copy small { display: flex; align-items: center; flex-wrap: wrap; gap: 4px; color: var(--muted); font-size: 8px; }
+.type-badge, .engine-badge { padding: 1px 4px; border: 1px solid transparent; border-radius: 3px; font-size: 7.5px; }
+.type-badge { background: var(--inset); color: var(--muted); }
+.engine-badge { border: 1px solid; font-weight: 650; }
+
+.task-kind, .task-engine { display: inline-flex; align-items: center; gap: 3px; color: var(--muted); font-size: 8px; }
+.task-kind svg { width: 12px; height: 12px; }
+.task-engine img { display: block; width: 15px; height: 15px; object-fit: contain; }
+.type-badge, .engine-badge { border: 0 !important; background: none !important; padding: 0 !important; }
+.kova-avatar {
+  --kova-fur: #323b4b;
+  --kova-fur-shadow: #262d3a;
+  --kova-cream: #efe8dc;
+  --kova-ear-inner: #e5c394;
+  --kova-outline: #1e2430;
+  --kova-gold: #d6992e;
+  --kova-success: #229965;
+  --kova-error: #d14949;
+  --kova-white: #ffffff;
+  display: inline-block;
+  flex-shrink: 0;
+  user-select: none;
+  overflow: visible;
+}
+
+.kova-avatar .kova-whole { transform-origin: 72px 136px; }
+.kova-avatar .kova-head { transform-origin: 72px 78px; }
+.kova-avatar .kova-ear-l { transform-origin: 48px 50px; }
+.kova-avatar .kova-ear-r { transform-origin: 96px 50px; }
+.kova-avatar .kova-tail { transform-origin: 94px 128px; }
+.kova-avatar .kova-paw-l { transform-origin: 59px 134px; }
+.kova-avatar .kova-paw-r { transform-origin: 85px 134px; }
+.kova-avatar .kova-eyes-open { transform-origin: 72px 69px; }
+.kova-avatar .kova-pupils { transform-origin: 72px 69px; }
+.kova-avatar .kova-pendant { transform-origin: 72px 104px; }
+
+.kova-avatar .kova-eyes-happy,
+.kova-avatar .kova-eyes-sleep,
+.kova-avatar .kova-eyes-error,
+.kova-avatar .kova-prop { display: none; }
+
+.kova-avatar[data-state="idle"] .kova-whole { animation: kova-breathe 3.4s ease-in-out infinite; }
+.kova-avatar[data-state="idle"] .kova-tail { animation: kova-tail-sway 3.2s ease-in-out infinite; }
+.kova-avatar[data-state="idle"] .kova-eyes-open { animation: kova-blink 4.6s ease-in-out infinite; }
+.kova-avatar[data-state="idle"] .kova-ear-r { animation: kova-ear-twitch 5.5s ease-in-out infinite; }
+
+.kova-avatar[data-state="thinking"] .kova-prop-thinking { display: block; }
+.kova-avatar[data-state="thinking"] .kova-head { animation: kova-head-tilt 2.6s ease-in-out infinite; }
+.kova-avatar[data-state="thinking"] .kova-pupils { transform: translate(2px, -2px); }
+.kova-avatar[data-state="thinking"] .kova-tail { animation: kova-tail-sway 4.2s ease-in-out infinite; }
+.kova-avatar[data-state="thinking"] .kova-dot-1 { animation: kova-dot-pulse 1.4s ease-in-out infinite 0s; }
+.kova-avatar[data-state="thinking"] .kova-dot-2 { animation: kova-dot-pulse 1.4s ease-in-out infinite 0.22s; }
+.kova-avatar[data-state="thinking"] .kova-dot-3 { animation: kova-dot-pulse 1.4s ease-in-out infinite 0.44s; }
+
+.kova-avatar[data-state="coding"] .kova-prop-coding { display: block; }
+.kova-avatar[data-state="coding"] .kova-head { animation: kova-nod-fast 1.2s ease-in-out infinite; }
+.kova-avatar[data-state="coding"] .kova-paw-l { animation: kova-type-paw 0.36s ease-in-out infinite; }
+.kova-avatar[data-state="coding"] .kova-paw-r { animation: kova-type-paw 0.36s ease-in-out infinite 0.18s; }
+.kova-avatar[data-state="coding"] .kova-code-badge { transform-origin: 122px 44px; animation: kova-float 1.8s ease-in-out infinite; }
+
+.kova-avatar[data-state="reading"] .kova-prop-reading { display: block; }
+.kova-avatar[data-state="reading"] .kova-whole { animation: kova-breathe 3.6s ease-in-out infinite; }
+.kova-avatar[data-state="reading"] .kova-pupils { animation: kova-read-scan 2.2s ease-in-out infinite; }
+.kova-avatar[data-state="reading"] .kova-book { transform-origin: 124px 66px; animation: kova-float 2.6s ease-in-out infinite; }
+
+.kova-avatar[data-state="searching"] .kova-prop-searching { display: block; }
+.kova-avatar[data-state="searching"] .kova-pupils { animation: kova-search-eyes 2.4s ease-in-out infinite; }
+.kova-avatar[data-state="searching"] .kova-head { animation: kova-head-look 2.4s ease-in-out infinite; }
+.kova-avatar[data-state="searching"] .kova-loupe { transform-origin: 112px 62px; animation: kova-loupe-orbit 2.4s ease-in-out infinite; }
+
+.kova-avatar[data-state="running"] .kova-prop-running { display: block; }
+.kova-avatar[data-state="running"] .kova-whole { animation: kova-run-bob 0.7s ease-in-out infinite; }
+.kova-avatar[data-state="running"] .kova-tail { animation: kova-tail-wag 0.65s ease-in-out infinite; }
+.kova-avatar[data-state="running"] .kova-term-cursor { animation: kova-cursor-blink 0.8s steps(2, start) infinite; }
+
+.kova-avatar[data-state="editing"] .kova-prop-editing { display: block; }
+.kova-avatar[data-state="editing"] .kova-head { animation: kova-nod-fast 1.6s ease-in-out infinite; }
+.kova-avatar[data-state="editing"] .kova-pupils { transform: translate(2px, 1px); }
+.kova-avatar[data-state="editing"] .kova-pencil { transform-origin: 114px 74px; animation: kova-pencil-write 1.1s ease-in-out infinite; }
+
+.kova-avatar[data-state="success"] .kova-eyes-open { display: none; }
+.kova-avatar[data-state="success"] .kova-eyes-happy { display: block; }
+.kova-avatar[data-state="success"] .kova-prop-success { display: block; }
+.kova-avatar[data-state="success"] .kova-whole { animation: kova-happy-hop 1.15s ease-in-out infinite; }
+.kova-avatar[data-state="success"] .kova-tail { animation: kova-tail-wag 0.55s ease-in-out infinite; }
+.kova-avatar[data-state="success"] .kova-badge-pop { transform-origin: 120px 44px; animation: kova-badge-pulse 1.4s ease-in-out infinite; }
+
+.kova-avatar[data-state="error"] .kova-eyes-open { display: none; }
+.kova-avatar[data-state="error"] .kova-eyes-error { display: block; }
+.kova-avatar[data-state="error"] .kova-prop-error { display: block; }
+.kova-avatar[data-state="error"] .kova-whole { animation: kova-error-shake 2.2s ease-in-out infinite; }
+.kova-avatar[data-state="error"] .kova-ear-l { transform: rotate(-16deg) translateY(3px); }
+.kova-avatar[data-state="error"] .kova-ear-r { transform: rotate(16deg) translateY(3px); }
+.kova-avatar[data-state="error"] .kova-badge-pop { transform-origin: 120px 44px; animation: kova-badge-pulse 1.2s ease-in-out infinite; }
+
+.kova-avatar[data-state="sleeping"] .kova-eyes-open { display: none; }
+.kova-avatar[data-state="sleeping"] .kova-eyes-sleep { display: block; }
+.kova-avatar[data-state="sleeping"] .kova-prop-sleeping { display: block; }
+.kova-avatar[data-state="sleeping"] .kova-whole { animation: kova-sleep-breathe 4.4s ease-in-out infinite; }
+.kova-avatar[data-state="sleeping"] .kova-head { transform: translateY(3px) rotate(-4deg); }
+.kova-avatar[data-state="sleeping"] .kova-ear-l { transform: rotate(-10deg) translateY(2px); }
+.kova-avatar[data-state="sleeping"] .kova-ear-r { transform: rotate(10deg) translateY(2px); }
+.kova-avatar[data-state="sleeping"] .kova-z1 { animation: kova-zzz 2.8s ease-out infinite 0s; }
+.kova-avatar[data-state="sleeping"] .kova-z2 { animation: kova-zzz 2.8s ease-out infinite 1.4s; }
+
+.kova-avatar[data-active="false"] * { animation: none !important; }
+
+@media (prefers-reduced-motion: reduce) {
+  .kova-avatar * { animation: none !important; }
+}
+
+@keyframes kova-breathe { 0%, 100% { transform: scale(1, 1); } 50% { transform: scale(1.018, 0.982); } }
+@keyframes kova-sleep-breathe { 0%, 100% { transform: scale(1, 0.985); } 50% { transform: scale(1.03, 0.96); } }
+@keyframes kova-blink { 0%, 44%, 48%, 94%, 98%, 100% { transform: scaleY(1); } 46%, 96% { transform: scaleY(0.08); } }
+@keyframes kova-tail-sway { 0%, 100% { transform: rotate(0deg); } 50% { transform: rotate(8deg); } }
+@keyframes kova-tail-wag { 0%, 100% { transform: rotate(-6deg); } 50% { transform: rotate(13deg); } }
+@keyframes kova-ear-twitch { 0%, 86%, 100% { transform: rotate(0deg); } 90% { transform: rotate(11deg); } 94% { transform: rotate(-3deg); } }
+@keyframes kova-head-tilt { 0%, 100% { transform: rotate(-4deg); } 50% { transform: rotate(5deg); } }
+@keyframes kova-head-look { 0%, 100% { transform: rotate(0deg) translateX(0); } 50% { transform: rotate(4deg) translateX(2px); } }
+@keyframes kova-nod-fast { 0%, 100% { transform: translateY(0) rotate(0deg); } 50% { transform: translateY(2px) rotate(1.5deg); } }
+@keyframes kova-type-paw { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
+@keyframes kova-read-scan { 0%, 100% { transform: translate(-2px, 1.5px); } 45% { transform: translate(2.5px, 1.5px); } 55% { transform: translate(2.5px, 2px); } 90% { transform: translate(-2px, 2px); } }
+@keyframes kova-search-eyes { 0%, 100% { transform: translate(2px, -1px); } 50% { transform: translate(3px, 1px); } }
+@keyframes kova-loupe-orbit { 0%, 100% { transform: translate(0, 0) rotate(-4deg); } 33% { transform: translate(4px, -4px) rotate(5deg); } 66% { transform: translate(-2px, 3px) rotate(-2deg); } }
+@keyframes kova-run-bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-3.5px); } }
+@keyframes kova-pencil-write { 0%, 100% { transform: translate(0, 0) rotate(0deg); } 25% { transform: translate(3px, -2px) rotate(8deg); } 50% { transform: translate(-2px, 2px) rotate(-6deg); } 75% { transform: translate(2px, 1px) rotate(5deg); } }
+@keyframes kova-happy-hop { 0%, 100% { transform: translateY(0) scale(1, 1); } 35% { transform: translateY(-6px) scale(0.98, 1.03); } 65% { transform: translateY(0) scale(1.03, 0.96); } }
+@keyframes kova-error-shake { 0%, 72%, 100% { transform: translateX(0); } 78% { transform: translateX(-3px); } 84% { transform: translateX(3px); } 90% { transform: translateX(-2px); } 95% { transform: translateX(2px); } }
+@keyframes kova-dot-pulse { 0%, 100% { opacity: 0.35; transform: translateY(0); } 50% { opacity: 1; transform: translateY(-3px); } }
+@keyframes kova-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
+@keyframes kova-badge-pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.09); } }
+@keyframes kova-cursor-blink { 0% { opacity: 1; } 100% { opacity: 0; } }
+@keyframes kova-zzz { 0% { opacity: 0; transform: translate(0, 8px) scale(0.7); } 25% { opacity: 1; } 80% { opacity: 0.9; } 100% { opacity: 0; transform: translate(9px, -16px) scale(1.15); } }
+
+
+/* Kova avatar sizing and agent activity */
+.hero .kova-avatar { width: 118px; height: 118px; }
+.empty .kova-avatar { width: 100px; height: 100px; }
+.msg-avatar .kova-avatar { display: block; width: 64px; height: 64px; }
+.msg.assistant .msg-avatar { width: 64px; height: 64px; background: transparent; border: 0; }
+
+.act { display: flex; flex-direction: column; gap: 3px; margin: 2px 0 5px; border: 1px solid var(--border); border-radius: 7px; background: rgba(255,255,255,.018); overflow: hidden; }
+.act.is-running { border-color: var(--gold-line); background: var(--gold-soft); }
+.act-head { display: flex; align-items: center; gap: 7px; padding: 7px 9px; color: var(--muted); font-size: 9px; list-style: none; cursor: pointer; }
+.act.is-running .act-head { color: var(--gold); cursor: default; }
+.act-head::-webkit-details-marker { display: none; }
+.act-head > svg { margin-left: auto; }
+.act[open] > .act-head > svg { transform: rotate(180deg); }
+.act-spin { width: 11px; height: 11px; border: 1.5px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: act-spin .9s linear infinite; }
+@keyframes act-spin { to { transform: rotate(360deg); } }
+.act-dots { display: inline-flex; gap: 3px; }
+.act-dots i { width: 3px; height: 3px; border-radius: 50%; background: currentColor; animation: act-dot 1.1s ease-in-out infinite; }
+.act-dots i:nth-child(2) { animation-delay: .15s; }
+.act-dots i:nth-child(3) { animation-delay: .3s; }
+@keyframes act-dot { 0%,100% { opacity: .3; transform: translateY(0); } 50% { opacity: 1; transform: translateY(-2px); } }
+.act-list { display: flex; flex-direction: column; gap: 1px; padding: 0 5px 5px; }
+.act-row { border-radius: 5px; background: rgba(255,255,255,.018); }
+.act-row > summary { display: flex; align-items: flex-start; gap: 7px; padding: 6px 7px; color: var(--fg); list-style: none; cursor: pointer; }
+.act-row > summary::-webkit-details-marker { display: none; }
+.act-ico { display: grid; width: 16px; height: 16px; flex: none; place-items: center; color: var(--muted); }
+.act-ico svg { width: 13px; height: 13px; }
+.act-row.is-error .act-ico { color: var(--danger); }
+.act-copy { display: flex; min-width: 0; flex: 1; flex-direction: column; gap: 1px; }
+.act-copy b { font-size: 9px; font-weight: 550; }
+.act-copy small { overflow: hidden; color: var(--muted); font-size: 8px; text-overflow: ellipsis; white-space: nowrap; }
+.act-time { flex: none; color: var(--muted); font-size: 8px; }
+.act-row pre { max-height: 250px; margin: 0; padding: 7px 9px; overflow: auto; border-top: 1px solid var(--border); background: #0b1016; color: #b8c5d4; font: 9px/1.5 var(--vscode-editor-font-family, Consolas, monospace); white-space: pre-wrap; word-break: break-word; }
+.act-row > summary > svg:last-child { flex: none; color: var(--muted); }
+.act-row[open] > summary > svg:last-child { transform: rotate(180deg); }
+
+.msg-actions { display: inline-flex; align-items: center; gap: 9px; margin-left: auto; }
+.msg-actions .link-btn.is-copied { color: var(--success, #3fb27f); }
+
+.safety-strip { display: flex; align-items: center; gap: 6px; padding: 0 12px 7px; color: var(--muted); font-size: 8px; }
+.safety-pill { display: inline-flex; align-items: center; padding: 2px 5px; border: 1px solid var(--gold-line); border-radius: 999px; background: var(--gold-soft); color: var(--gold); font-size: 7px; white-space: nowrap; }
+.safety-pill.is-off { border-color: var(--danger); background: rgba(209,73,73,.12); color: var(--danger); }
+.act-warn { display: inline-flex; align-items: center; gap: 3px; margin-left: auto; color: var(--danger); font-size: 8px; }
+.act-warn + .act-dots { margin-left: 2px; }
+.act-head > .act-warn ~ svg { margin-left: 2px; }
+.act-badge { display: inline-block; margin-left: 4px; padding: 1px 3px; border-radius: 3px; font-size: 6.5px; font-weight: 600; vertical-align: 1px; }
+.act-badge.is-external { background: rgba(209,73,73,.14); color: var(--danger); }
+.act-badge.is-sensitive { background: rgba(214,153,46,.14); color: var(--gold); }
+.act-badge.is-network { background: rgba(90,140,220,.14); color: #7fa8ff; }
+
+.settings-panel textarea { min-height: 62px; padding: 7px 9px; border: 1px solid var(--border); border-radius: 7px; background: var(--panel); color: var(--fg); font: 9.5px/1.45 var(--vscode-editor-font-family, Consolas, monospace); resize: vertical; }
+.settings-hint { color: var(--muted); font-size: 8.5px; line-height: 1.4; }
+
+.consent-overlay { position: fixed; inset: 0; z-index: 90; display: grid; place-items: center; padding: 18px; background: rgba(4,8,14,.68); backdrop-filter: blur(3px); }
+.consent-card { display: flex; width: min(360px, 100%); flex-direction: column; gap: 9px; padding: 15px; border: 1px solid var(--border); border-radius: 12px; background: var(--panel); box-shadow: 0 24px 70px rgba(0,0,0,.45); }
+.consent-card b { font-size: 13px; }
+.consent-card p { margin: 0; color: var(--fg); font-size: 10px; line-height: 1.5; opacity: .82; }
+.consent-target { display: flex; flex-direction: column; gap: 2px; padding: 8px 9px; border: 1px solid var(--border); border-radius: 7px; background: rgba(255,255,255,.02); }
+.consent-target strong { font-size: 10.5px; }
+.consent-target span { color: var(--muted); font: 8.5px/1.4 var(--vscode-editor-font-family, Consolas, monospace); word-break: break-all; }
+.consent-card small { color: var(--muted); font-size: 8.5px; line-height: 1.45; }
+.consent-actions { display: flex; justify-content: flex-end; gap: 6px; }
+.consent-actions button { padding: 6px 9px; border: 1px solid var(--border); border-radius: 6px; background: transparent; color: var(--fg); font: inherit; font-size: 9px; cursor: pointer; }
+.consent-actions button.primary { border-color: var(--gold-line); background: var(--gold); color: #17130c; font-weight: 650; }
+
+.egress { display: flex; flex-direction: column; gap: 4px; margin: 2px 0 5px; padding: 6px 7px; border: 1px solid var(--border); border-radius: 7px; background: rgba(255,255,255,.018); }
+.egress-head { display: flex; align-items: center; gap: 5px; color: var(--muted); font-size: 8.5px; }
+.egress-head b { margin-left: auto; padding-left: 8px; color: var(--muted); font-size: 8px; white-space: nowrap; }
+.egress-files { color: var(--muted); font-size: 8.5px; }
+.egress-files > summary { cursor: pointer; list-style: none; }
+.egress-files > summary::-webkit-details-marker { display: none; }
+.egress-files > summary::before { content: "▸ "; }
+.egress-files[open] > summary::before { content: "▾ "; }
+.egress-files ul { display: flex; flex-direction: column; gap: 2px; max-height: 150px; margin: 5px 0 0; padding: 0; overflow: auto; list-style: none; }
+.egress-files li { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
+.egress-files li span { overflow: hidden; flex: 1; color: var(--fg); font: 8.5px/1.4 var(--vscode-editor-font-family, Consolas, monospace); text-overflow: ellipsis; white-space: nowrap; opacity: .8; }
+.egress-files li small { flex: none; color: var(--muted); font-size: 8px; }
+
+.msg-body strong { color: #e8c37a; font-weight: 650; }
+.msg-body h1, .msg-body h2, .msg-body h3 { margin: 10px 0 5px; color: var(--gold); line-height: 1.3; }
+.msg-body h1 { font-size: 15px; } .msg-body h2 { font-size: 13.5px; } .msg-body h3 { font-size: 12.5px; }
+.msg-body h1:first-child, .msg-body h2:first-child, .msg-body h3:first-child { margin-top: 0; }
+.msg-body p { margin: 0 0 7px; } .msg-body p:last-child { margin-bottom: 0; }
+.msg-body ul, .msg-body ol { margin: 4px 0 7px; padding-left: 17px; }
+.msg-body li { margin: 2px 0; }
+.msg-body hr { height: 1px; margin: 10px 0; border: 0; background: var(--border); }
+.msg-body a { color: var(--gold); text-decoration: underline; }
+.msg-body .chat-callout { margin: 7px 0; padding: 7px 9px; border-left: 3px solid var(--gold); border-radius: 0 6px 6px 0; background: var(--gold-soft); color: var(--fg); }
+.msg-body .chat-callout.is-warning { border-left-color: #d6992e; background: rgba(214,153,46,.09); }
+.msg-body .chat-callout.is-danger { border-left-color: var(--danger); background: rgba(209,73,73,.09); }
+.msg-body .chat-callout p { margin: 0; }
+.msg-body table { width: 100%; margin: 7px 0; border-collapse: collapse; font-size: 8.5px; }
+.msg-body th, .msg-body td { padding: 4px 6px; border: 1px solid var(--border); text-align: left; vertical-align: top; }
+.msg-body th { background: rgba(255,255,255,.035); color: var(--strong); font-weight: 600; }
+.msg-body td { color: var(--fg); opacity: .8; }
 </style>
 </head>
 <body>
 <header class="top">
   <div class="brand">
     <span class="brand-mark">
-      <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11 6 4l4 3h4l4-3 2 7v5a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4Z"/><path d="M9 13h.01M15 13h.01M10 16c1.4 1 2.6 1 4 0"/></svg>
+      <svg viewBox="0 0 32 32" width="19" height="19" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="Kova Hub Logo"><path d="M6.2 14.4L5.2 6.6C5 5.2 6.4 4.3 7.6 5.1L12.4 8.6C14.7 7.9 17.3 7.9 19.6 8.6L24.4 5.1C25.6 4.3 27 5.2 26.8 6.6L25.8 14.4C26.9 16.2 27.2 18.7 26.3 21.1C24.8 25.1 20.8 27.4 16 27.4C11.2 27.4 7.2 25.1 5.7 21.1C4.8 18.7 5.1 16.2 6.2 14.4Z" fill="#232B39" stroke="#E2AE4E" stroke-width="2" stroke-linejoin="round"/><path d="M8.3 12.1L7.8 8.3L10.9 10.4Z" fill="#4C3D31"/><path d="M23.7 12.1L24.2 8.3L21.1 10.4Z" fill="#4C3D31"/><circle cx="12.1" cy="16.8" r="2.1" fill="#E5B254"/><circle cx="12.1" cy="16.8" r="1.05" fill="#171C26"/><circle cx="19.9" cy="16.8" r="2.1" fill="#E5B254"/><circle cx="19.9" cy="16.8" r="1.05" fill="#171C26"/><path d="M14.7 20.1H17.3L16 21.8Z" fill="#E2AE4E"/><path d="M16 24.8L18.1 27L16 29.2L13.9 27Z" fill="#E2AE4E"/></svg>
     </span>
     <span class="brand-copy">
       <b>Kova Chat</b>
@@ -363,36 +746,54 @@ button:disabled { opacity: 0.45; cursor: default; }
 </div>
 
 <div class="context-bar">
-  <div class="segmented" id="scopeSwitch">
-    <button type="button" data-scope="project">Проект</button>
-    <button type="button" data-scope="task">Задача</button>
+  <button class="context-trigger" id="contextButton" type="button">
+    <span class="context-icon" id="contextIcon">▦</span>
+    <span id="contextLabel">Весь проект</span>
+    <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+  </button>
+  <div class="context-menu" id="contextMenu">
+    <input id="taskSearch" type="search" placeholder="Поиск задач…" />
+    <div class="context-menu-list" id="contextMenuList"></div>
   </div>
-  <select id="taskSelect" title="Задача"></select>
   <button class="quick-btn" id="runQuick" title="Последний результат запуска">Результат</button>
   <button class="icon-btn" id="settingsBtn" title="Провайдер и модель">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1 1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1Z"/></svg>
   </button>
-</div>
+</div></div>
 
 <div class="settings-panel" id="settingsPanel">
   <label>Провайдер<select id="provider"></select></label>
-  <label>Модель<select id="model"></select></label>
+  <label>Модель
+    <input id="modelSearch" type="search" placeholder="Поиск модели…" />
+  </label>
+  <div class="editor-model-groups" id="modelGroups"></div>
+  <label>Effort
+    <select id="effort"></select>
+  </label>
+  <label>Внешние папки (только чтение)
+    <textarea id="externalPaths" rows="3" placeholder="C:\work\shared — по одной на строку"></textarea>
+  </label>
+  <small class="settings-hint">Разрешает чтение вне проекта для этого чата. Изменения, команды и сеть остаются запрещены.</small>
   <div class="settings-actions">
     <button type="button" id="run">Результат запуска</button>
     <button type="button" class="primary" id="settingsClose">Готово</button>
   </div>
 </div>
 
+<div class="safety-strip">
+  <span class="safety-pill" id="safetyPill" title="Чат не меняет файлы проекта.">Только чтение</span>
+  <span>чат не меняет файлы проекта</span>
+</div>
 <main class="thread" id="thread"></main>
 
 <div class="attach" id="attach"></div>
 <div class="pending" id="pending"></div>
-<div class="error" id="error"></div>
+<div class="error" id="error"><span id="errorText"></span><button id="errorClose" title="Закрыть">×</button></div>
 
 <footer class="composer">
   <input id="fileInput" type="file" multiple hidden accept="image/*,video/*,.txt,.md,.json,.yaml,.yml,.toml,.ini,.cfg,.csv,.cs,.lua,.py,.ts,.tsx,.js,.jsx,.html,.css,.glsl,.hlsl,.shader,.xml" />
   <div class="composer-box">
-    <textarea id="text" rows="2" placeholder="Спроси про проект, задачу или следующий шаг…"></textarea>
+    <textarea id="text" rows="1" placeholder="Спроси про проект, задачу или следующий шаг…"></textarea>
     <div class="composer-tools">
       <button class="tool-btn" id="file" title="Прикрепить изображение, видео или файл">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m21 11-8.5 8.5a5 5 0 0 1-7-7L14 4a3.5 3.5 0 0 1 5 5l-8.5 8.5a2 2 0 0 1-3-3L15 6"/></svg>
@@ -410,6 +811,12 @@ const vscode = acquireVsCodeApi();
 const API = 'http://127.0.0.1:8765';
 const initial = __INITIAL_CHAT__;
 const FENCE = String.fromCharCode(96).repeat(3);
+const KOVA_INNER = '<g class="kova-whole">\n        <g class="kova-tail">\n          <path d="M 94 128 C 115 128, 125 117, 122 103 C 120 94, 113 91, 108 94" stroke="var(--kova-outline)" stroke-width="15.5" stroke-linecap="round" />\n          <path d="M 94 128 C 115 128, 125 117, 122 103 C 120 94, 113 91, 108 94" stroke="var(--kova-fur)" stroke-width="9.5" stroke-linecap="round" />\n          <path d="M 121 101 C 119 94, 113 91, 108 94" stroke="var(--kova-gold)" stroke-width="9.5" stroke-linecap="round" />\n        </g>\n        <path d="M 44 134 C 41 118, 46 101, 56 96 L 88 96 C 98 101, 103 118, 100 134 C 98 140, 46 140, 44 134 Z" fill="var(--kova-fur)" stroke="var(--kova-outline)" stroke-width="3.2" stroke-linejoin="round" />\n        <path d="M 46.5 133 C 44 118, 48.5 103, 57 98.5 L 62 98.5 C 54.5 104, 51.5 119, 53.5 134 Z" fill="var(--kova-fur-shadow)" />\n        <path d="M 59 136.5 C 57 122, 60 107, 72 105 C 84 107, 87 122, 85 136.5 Z" fill="var(--kova-cream)" />\n        <path d="M 52 97 Q 72 106 92 97 L 94 103 Q 72 112 50 103 Z" fill="var(--kova-gold)" stroke="var(--kova-outline)" stroke-width="2.6" stroke-linejoin="round" />\n        <g class="kova-pendant">\n          <polygon points="72,104 79,112 72,120 65,112" fill="var(--kova-gold)" stroke="var(--kova-outline)" stroke-width="2.6" stroke-linejoin="round" />\n          <circle cx="72" cy="112" r="2" fill="var(--kova-white)" />\n        </g>\n        <ellipse class="kova-paw-l" cx="59" cy="134" rx="10" ry="6.5" fill="var(--kova-fur)" stroke="var(--kova-outline)" stroke-width="3" />\n        <ellipse class="kova-paw-r" cx="85" cy="134" rx="10" ry="6.5" fill="var(--kova-fur)" stroke="var(--kova-outline)" stroke-width="3" />\n        <g class="kova-head">\n          <g class="kova-ear-l">\n            <path d="M 44 58 L 38 24 C 37.5 21, 40.5 19.5, 43 21 L 64 42 Z" fill="var(--kova-fur)" stroke="var(--kova-outline)" stroke-width="3.2" stroke-linejoin="round" />\n            <path d="M 46 51 L 43 30 L 58 43 Z" fill="var(--kova-ear-inner)" />\n          </g>\n          <g class="kova-ear-r">\n            <path d="M 100 58 L 106 24 C 106.5 21, 103.5 19.5, 101 21 L 80 42 Z" fill="var(--kova-fur)" stroke="var(--kova-outline)" stroke-width="3.2" stroke-linejoin="round" />\n            <path d="M 98 51 L 101 30 L 86 43 Z" fill="var(--kova-ear-inner)" />\n          </g>\n          <ellipse cx="72" cy="70" rx="31" ry="27" fill="var(--kova-fur)" stroke="var(--kova-outline)" stroke-width="3.2" />\n          <path d="M 45 77 C 50 92, 94 92, 99 77 C 91 87, 53 87, 45 77 Z" fill="var(--kova-fur-shadow)" />\n          <path d="M 66 47 L 66 53 M 72 45.5 L 72 54 M 78 47 L 78 53" stroke="var(--kova-fur-shadow)" stroke-width="2.6" stroke-linecap="round" />\n          <path d="M 45 73 L 26 70 M 45 79 L 27 83 M 99 73 L 118 70 M 99 79 L 117 83" stroke="var(--kova-fur)" stroke-width="2.6" stroke-linecap="round" />\n          <ellipse cx="72" cy="82" rx="13.5" ry="8.5" fill="var(--kova-cream)" />\n          <path d="M 68.5 78.5 Q 72 77.2 75.5 78.5 L 72 82.2 Z" fill="var(--kova-gold)" />\n          <path d="M 65.5 84 Q 68.7 87.5 72 83.8 Q 75.3 87.5 78.5 84" stroke="var(--kova-outline)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" />\n          <g class="kova-eyes-open">\n            <circle cx="58" cy="69" r="6.8" fill="var(--kova-gold)" stroke="var(--kova-outline)" stroke-width="2.2" />\n            <circle cx="86" cy="69" r="6.8" fill="var(--kova-gold)" stroke="var(--kova-outline)" stroke-width="2.2" />\n            <g class="kova-pupils">\n              <circle cx="58" cy="69" r="3.4" fill="var(--kova-outline)" />\n              <circle cx="59.4" cy="67.5" r="1.3" fill="var(--kova-white)" />\n              <circle cx="86" cy="69" r="3.4" fill="var(--kova-outline)" />\n              <circle cx="87.4" cy="67.5" r="1.3" fill="var(--kova-white)" />\n            </g>\n          </g>\n          <g class="kova-eyes-happy"><path d="M 52 70 Q 58 62 64 70 M 80 70 Q 86 62 92 70" stroke="var(--kova-gold)" stroke-width="3.2" stroke-linecap="round" /></g>\n          <g class="kova-eyes-sleep"><path d="M 52 69 Q 58 75 64 69 M 80 69 Q 86 75 92 69" stroke="var(--kova-gold)" stroke-width="3" stroke-linecap="round" /></g>\n          <g class="kova-eyes-error"><path d="M 54 65 L 62 73 M 62 65 L 54 73 M 82 65 L 90 73 M 90 65 L 82 73" stroke="var(--kova-error)" stroke-width="3" stroke-linecap="round" /></g>\n          <g class="kova-prop kova-prop-coding">\n            <rect x="48" y="62" width="20" height="14" rx="4" fill="var(--kova-white)" fill-opacity="0.14" stroke="var(--kova-outline)" stroke-width="2.4" />\n            <rect x="76" y="62" width="20" height="14" rx="4" fill="var(--kova-white)" fill-opacity="0.14" stroke="var(--kova-outline)" stroke-width="2.4" />\n            <path d="M 68 68 L 76 68" stroke="var(--kova-outline)" stroke-width="2.4" />\n          </g>\n        </g>\n      </g>\n      <g class="kova-prop kova-prop-thinking">\n        <circle class="kova-dot-1" cx="111" cy="48" r="3.2" fill="var(--kova-cream)" stroke="var(--kova-outline)" stroke-width="2" />\n        <circle class="kova-dot-2" cx="120" cy="39" r="4.2" fill="var(--kova-gold)" stroke="var(--kova-outline)" stroke-width="2" />\n        <circle class="kova-dot-3" cx="132" cy="31" r="5.2" fill="var(--kova-cream)" stroke="var(--kova-outline)" stroke-width="2" />\n      </g>\n      <g class="kova-prop kova-prop-coding">\n        <g class="kova-code-badge">\n          <rect x="108" y="34" width="28" height="19" rx="5" fill="var(--kova-fur)" stroke="var(--kova-outline)" stroke-width="2.4" />\n          <path d="M 116 40.5 L 113 43.5 L 116 46.5 M 128 40.5 L 131 43.5 L 128 46.5 M 123.5 39.5 L 120.5 47.5" stroke="var(--kova-gold)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />\n        </g>\n      </g>\n      <g class="kova-prop kova-prop-reading">\n        <g class="kova-book">\n          <rect x="112" y="53" width="24" height="28" rx="4" fill="var(--kova-white)" stroke="var(--kova-outline)" stroke-width="2.6" />\n          <path d="M 117 61 L 131 61 M 117 67 L 129 67 M 117 73 L 126 73" stroke="var(--kova-fur)" stroke-width="2.2" stroke-linecap="round" />\n          <path d="M 117 61 L 123 61" stroke="var(--kova-gold)" stroke-width="2.2" stroke-linecap="round" />\n        </g>\n      </g>\n      <g class="kova-prop kova-prop-searching">\n        <g class="kova-loupe">\n          <line x1="120" y1="70" x2="131" y2="81" stroke="var(--kova-outline)" stroke-width="3.4" stroke-linecap="round" />\n          <circle cx="112" cy="62" r="11" fill="var(--kova-white)" stroke="var(--kova-outline)" stroke-width="3" />\n          <circle cx="112" cy="62" r="8" fill="var(--kova-cream)" fill-opacity="0.45" />\n          <path d="M 107.5 58.5 Q 111.5 55.5 115.5 58.5" stroke="var(--kova-gold)" stroke-width="2.6" stroke-linecap="round" />\n        </g>\n      </g>\n      <g class="kova-prop kova-prop-running">\n        <rect x="108" y="36" width="28" height="20" rx="5" fill="var(--kova-outline)" stroke="var(--kova-fur)" stroke-width="2" />\n        <path d="M 114 43 L 118.5 46 L 114 49" stroke="var(--kova-gold)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />\n        <line class="kova-term-cursor" x1="122" y1="49" x2="129" y2="49" stroke="var(--kova-cream)" stroke-width="2.2" stroke-linecap="round" />\n      </g>\n      <g class="kova-prop kova-prop-editing">\n        <g class="kova-pencil">\n          <path d="M 112 76 L 116 64 L 130 50 L 136 56 L 122 70 Z" fill="var(--kova-gold)" stroke="var(--kova-outline)" stroke-width="2.6" stroke-linejoin="round" />\n          <path d="M 112 76 L 116 64 L 122 70 Z" fill="var(--kova-cream)" stroke="var(--kova-outline)" stroke-width="2.4" stroke-linejoin="round" />\n          <circle cx="112.8" cy="75.2" r="1.6" fill="var(--kova-outline)" />\n        </g>\n      </g>\n      <g class="kova-prop kova-prop-success">\n        <g class="kova-badge-pop">\n          <circle cx="120" cy="44" r="11" fill="var(--kova-success)" stroke="var(--kova-outline)" stroke-width="2.6" />\n          <path d="M 115 44.5 L 118.5 48 L 125.5 40.5" stroke="var(--kova-white)" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" />\n        </g>\n      </g>\n      <g class="kova-prop kova-prop-error">\n        <g class="kova-badge-pop">\n          <circle cx="120" cy="44" r="11" fill="var(--kova-error)" stroke="var(--kova-outline)" stroke-width="2.6" />\n          <path d="M 120 38.5 L 120 45.5" stroke="var(--kova-white)" stroke-width="2.8" stroke-linecap="round" />\n          <circle cx="120" cy="49.5" r="1.5" fill="var(--kova-white)" />\n        </g>\n      </g>\n      <g class="kova-prop kova-prop-sleeping">\n        <text class="kova-z1" x="108" y="50" fill="var(--kova-gold)" stroke="var(--kova-outline)" stroke-width="3" paint-order="stroke" font-family="system-ui, -apple-system, sans-serif" font-weight="800" font-size="14">z</text>\n        <text class="kova-z2" x="120" y="39" fill="var(--kova-gold)" stroke="var(--kova-outline)" stroke-width="3.4" paint-order="stroke" font-family="system-ui, -apple-system, sans-serif" font-weight="800" font-size="18">Z</text>\n      </g>\n    ';
+
+function avatarHtml(state, size) {
+  return '<svg class="kova-avatar" data-state="' + state + '" data-active="true" width="' + size + '" height="' + size + '" viewBox="0 0 160 160" fill="none" xmlns="http://www.w3.org/2000/svg">' + KOVA_INNER + '</svg>';
+}
+
 const CAT = '<svg class="cat" viewBox="0 0 120 112" aria-hidden="true"><g class="tail"><path d="M86 94c16 2 24-7 22-18-2-9-9-13-15-11"/></g><ellipse cx="58" cy="84" rx="31" ry="23" fill="currentColor" opacity="0.1"/><circle cx="52" cy="50" r="24" fill="currentColor" opacity="0.1"/><path d="M31 39 28 20l17 12M73 39l3-19-17 12" fill="currentColor" opacity="0.1"/><g class="eyes"><path d="M40 49c2.5 2.6 5.2 2.6 7.8 0M56 49c2.5 2.6 5.2 2.6 7.8 0"/></g><path d="M52 57l-2 2h4Z" fill="currentColor"/><path d="M52 59c-1.5 2.5-4 3-6 3M52 59c1.5 2.5 4 3 6 3"/><path d="M31 55l-10-1M31 60l-10 2M73 55l10-1M73 60l10 2"/><path d="M37 67c9 4 21 4 30 0"/><ellipse cx="44" cy="102" rx="7" ry="3.5" fill="currentColor" opacity="0.14"/><ellipse cx="70" cy="102" rx="7" ry="3.5" fill="currentColor" opacity="0.14"/></svg>';
 
 let chat = null;
@@ -422,7 +829,15 @@ let listStream = null;
 let busy = false;
 let renderTimer = null;
 let projectEngine = 'generic';
+let projectInfo = null;
 let historyOpen = false;
+let catalogGroups = [];
+let catalogProvider = '';
+let catalogLoading = false;
+let pendingDelete = '';
+let defaultProviderId = '';
+let contextOpen = false;
+let menuSelection = new Set();
 
 const $ = (id) => document.getElementById(id);
 const esc = (value) => String(value ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -456,47 +871,167 @@ async function api(path, method = 'GET', body) {
 }
 
 function showError(message) {
-  const node = $('error');
-  node.textContent = message || '';
-  node.className = message ? 'error show' : 'error';
+  $('errorText').textContent = message || '';
+  $('error').className = message ? 'error show' : 'error';
+}
+
+function localOnly() {
+  return !!(projectInfo && projectInfo.local_only);
+}
+
+function providerAllowed(item) {
+  return !localOnly() || (item.kind === 'api' && item.local_api);
+}
+
+function availableProviders() {
+  return providers.filter((item) => item.installed && item.enabled && (providerAllowed(item) || (chat && item.id === chat.provider_id)));
 }
 
 function currentProvider() {
   return providers.find((item) => item.id === $('provider').value) || null;
 }
 
+function providerIsRemote(item) {
+  return item ? (item.kind === 'api' ? !item.local_api : true) : false;
+}
+
+function providerHost(item) {
+  if (item && item.kind !== 'api') return 'внешний CLI-провайдер';
+  if (item && item.api_url) {
+    try { return new URL(item.api_url).host; } catch { return item.api_url; }
+  }
+  return (item && item.name) || 'AI';
+}
+
+function needsConsent(item) {
+  if (!item || localOnly() || !providerIsRemote(item)) return false;
+  const consents = (projectInfo && projectInfo.remote_consents) || [];
+  return consents.indexOf(item.id) < 0;
+}
+
+async function grantConsent(providerId) {
+  const current = (projectInfo && projectInfo.remote_consents) || [];
+  if (current.indexOf(providerId) >= 0) return;
+  const data = await api('/project', 'PATCH', { remote_consents: current.concat([providerId]) });
+  projectInfo = data.project;
+  renderSafety();
+}
+
+function askConsent(item) {
+  return new Promise((resolve) => {
+    const overlay = document.createElement('div');
+    overlay.className = 'consent-overlay';
+    overlay.innerHTML = '<div class="consent-card">'
+      + '<b>Отправить данные провайдеру?</b>'
+      + '<p>Kova отправит текст запроса и файлы, которые прочитает агент, в этот сервис. Без этого он не сможет ответить.</p>'
+      + '<div class="consent-target"><strong>' + esc(item.name) + '</strong><span>' + esc(providerHost(item)) + '</span></div>'
+      + '<small>Согласие запоминается для проекта и провайдера — повторно спрашивать не будем.</small>'
+      + '<div class="consent-actions"><button type="button" data-consent="no">Отмена</button><button type="button" class="primary" data-consent="yes">Разрешить и отправить</button></div>'
+      + '</div>';
+    overlay.addEventListener('click', (event) => {
+      const button = event.target.closest('[data-consent]');
+      if (!button) return;
+      const value = button.dataset.consent === 'yes';
+      overlay.remove();
+      resolve(value);
+    });
+    document.body.appendChild(overlay);
+  });
+}
+
 function renderMarkdown(value) {
   const NL = String.fromCharCode(10);
   const TICK = String.fromCharCode(96);
+  const inline = (line) => {
+    let html = esc(line);
+    html = html.split(TICK).map((part, index) => index % 2 === 1 ? '<code class="inline">' + part + '</code>' : part).join('');
+    html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+    html = html.replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g, '<a href="$2" target="_blank" rel="noreferrer">$1</a>');
+    return html;
+  };
+  const isSeparator = (line) => line.indexOf('-') >= 0 && /^\s*\|?[\s:|-]+\|?\s*$/.test(line);
+  const cells = (line) => line.trim().replace(/^\|/, '').replace(/\|$/, '').split('|').map((cell) => cell.trim());
   const lines = String(value || '').split(NL);
   const out = [];
+  let paragraph = [];
   let code = [];
   let inCode = false;
-  for (const raw of lines) {
+  let index = 0;
+  const flush = () => {
+    if (!paragraph.length) return;
+    out.push('<p>' + paragraph.join('<br/>') + '</p>');
+    paragraph = [];
+  };
+  while (index < lines.length) {
+    const raw = lines[index];
     const line = raw.replace(/\s+$/, '');
     if (line.trimStart().startsWith(TICK.repeat(3))) {
+      flush();
       if (inCode) {
         out.push('<pre class="code"><code>' + esc(code.join(NL)) + '</code></pre>');
         code = [];
         inCode = false;
-      } else {
-        inCode = true;
-      }
+      } else inCode = true;
+      index += 1;
       continue;
     }
-    if (inCode) { code.push(line); continue; }
-    if (!line.trim()) { out.push(''); continue; }
-    let html = esc(line);
-    html = html.split(TICK).map((part, index) => index % 2 === 1 ? '<code class="inline">' + part + '</code>' : part).join('');
-    html = html.replace(/[*][*]([^*]+)[*][*]/g, '<strong>$1</strong>');
-    if (/^### /.test(html)) out.push('<h3>' + html.slice(4) + '</h3>');
-    else if (/^## /.test(html)) out.push('<h2>' + html.slice(3) + '</h2>');
-    else if (/^# /.test(html)) out.push('<h1>' + html.slice(2) + '</h1>');
-    else if (/^[-*] /.test(html)) out.push('<div class="li">• ' + html.slice(2) + '</div>');
-    else out.push(html);
+    if (inCode) { code.push(raw); index += 1; continue; }
+    if (!line.trim()) { flush(); index += 1; continue; }
+    if (/^\s*(---+|\*\*\*+|___+)\s*$/.test(line)) { flush(); out.push('<hr/>'); index += 1; continue; }
+    const heading = /^(#{1,3})\s+(.*)$/.exec(line);
+    if (heading) {
+      flush();
+      const level = heading[1].length;
+      out.push('<h' + level + '>' + inline(heading[2]) + '</h' + level + '>');
+      index += 1;
+      continue;
+    }
+    if (line.indexOf('|') >= 0 && index + 1 < lines.length && isSeparator(lines[index + 1])) {
+      flush();
+      const header = cells(line);
+      const rows = [];
+      index += 2;
+      while (index < lines.length && lines[index].indexOf('|') >= 0 && lines[index].trim()) {
+        rows.push(cells(lines[index]));
+        index += 1;
+      }
+      out.push('<table class="chat-table"><thead><tr>' + header.map((cell) => '<th>' + inline(cell) + '</th>').join('') + '</tr></thead><tbody>' + rows.map((row) => '<tr>' + row.map((cell) => '<td>' + inline(cell) + '</td>').join('') + '</tr>').join('') + '</tbody></table>');
+      continue;
+    }
+    if (/^\s*>/.test(line)) {
+      flush();
+      const quote = [];
+      while (index < lines.length && /^\s*>/.test(lines[index])) {
+        quote.push(lines[index].replace(/^\s*>\s?/, ''));
+        index += 1;
+      }
+      const joined = quote.join('<br/>');
+      const lower = joined.toLowerCase();
+      const tone = /важно|внимание|warning|осторожно/.test(lower) ? ' is-warning' : /нельзя|ошибка|опасн|запрещ|error/.test(lower) ? ' is-danger' : '';
+      out.push('<blockquote class="chat-callout' + tone + '"><p>' + inline(joined) + '</p></blockquote>');
+      continue;
+    }
+    const unordered = /^\s*[-*]\s+(.*)$/.exec(line);
+    const ordered = /^\s*\d+[.)]\s+(.*)$/.exec(line);
+    if (unordered || ordered) {
+      flush();
+      const orderedList = !!ordered;
+      const items = [];
+      while (index < lines.length) {
+        const match = orderedList ? /^\s*\d+[.)]\s+(.*)$/.exec(lines[index]) : /^\s*[-*]\s+(.*)$/.exec(lines[index]);
+        if (!match) break;
+        items.push('<li>' + inline(match[1]) + '</li>');
+        index += 1;
+      }
+      out.push(orderedList ? '<ol>' + items.join('') + '</ol>' : '<ul>' + items.join('') + '</ul>');
+      continue;
+    }
+    paragraph.push(inline(line));
+    index += 1;
   }
+  flush();
   if (inCode && code.length) out.push('<pre class="code"><code>' + esc(code.join(NL)) + '</code></pre>');
-  return out.join('<br/>');
+  return out.join('');
 }
 
 function scheduleRender() {
@@ -508,33 +1043,152 @@ function renderHistory() {
   const query = ($('historySearch').value || '').trim().toLowerCase();
   const rows = chats.filter((item) => ((item.title || '') + ' ' + (item.last_message || '')).toLowerCase().includes(query));
   $('historyList').innerHTML = rows.length
-    ? rows.map((item) => '<div class="history-item ' + (chat && chat.id === item.id ? 'is-active' : '') + '" data-chat="' + esc(item.id) + '"><span class="history-copy"><b>' + esc(item.title) + '</b><small>' + esc(item.last_message || 'Пустой чат') + '</small></span><time class="history-date">' + esc(formatDate(item.updated_at)) + '</time></div>').join('')
+    ? rows.map((item) => {
+        const active = chat && chat.id === item.id;
+        const actions = pendingDelete === item.id
+          ? '<span class="history-confirm"><button data-confirm-delete="' + esc(item.id) + '" class="is-danger">Удалить</button><button data-cancel-delete="1">Отмена</button></span>'
+          : '<button class="history-delete" data-delete="' + esc(item.id) + '" title="Удалить чат"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 7h16M9 7V4h6v3M7 7l1 13h8l1-13"/></svg></button>';
+        return '<div class="history-item ' + (active ? 'is-active' : '') + '" data-chat="' + esc(item.id) + '"><span class="history-copy"><b>' + esc(item.title) + '</b><small>' + esc(item.last_message || 'Пустой чат') + '</small></span><time class="history-date">' + esc(formatDate(item.updated_at)) + '</time>' + actions + '</div>';
+      }).join('')
     : '<div class="empty-tip">Чатов пока нет</div>';
 }
 
 function renderProviders() {
-  const available = providers.filter((item) => item.installed && item.enabled);
-  $('provider').innerHTML = available.map((item) => '<option value="' + esc(item.id) + '">' + esc(item.name) + '</option>').join('') || '<option value="">Нет провайдеров</option>';
+  const available = availableProviders();
+  $('provider').innerHTML = available.map((item) => '<option value="' + esc(item.id) + '"' + (providerAllowed(item) ? '' : ' disabled') + '>' + esc(item.name) + (providerAllowed(item) ? '' : ' (внешний)') + '</option>').join('') || '<option value="">Нет локальных провайдеров</option>';
   if (chat) $('provider').value = chat.provider_id || (available[0] && available[0].id) || '';
+  else $('provider').value = defaultProviderId && available.some((item) => item.id === defaultProviderId) ? defaultProviderId : ((available[0] && available[0].id) || '');
   renderModels();
+}
+
+function fallbackEfforts(providerId) {
+  if (providerId === 'codex') return ['low', 'medium', 'high', 'xhigh'];
+  if (providerId === 'claude') return ['low', 'medium', 'high', 'xhigh', 'max'];
+  return [];
+}
+
+function currentCatalogModel() {
+  return catalogGroups.flatMap((group) => group.models).find((item) => item.id === (chat && chat.model)) || null;
+}
+
+async function loadCatalog(providerId) {
+  if (!providerId || catalogProvider === providerId) return;
+  catalogProvider = providerId;
+  catalogLoading = true;
+  catalogGroups = [];
+  renderModels();
+  try {
+    const data = await api('/providers/' + encodeURIComponent(providerId) + '/catalog');
+    if (catalogProvider === providerId) catalogGroups = data.groups || [];
+  } catch {
+    if (catalogProvider === providerId) catalogGroups = [];
+  } finally {
+    if (catalogProvider === providerId) {
+      catalogLoading = false;
+      renderModels();
+    }
+  }
 }
 
 function renderModels() {
   const provider = currentProvider();
-  const models = (provider && provider.models) || [];
-  $('model').innerHTML = models.map((model) => '<option value="' + esc(model) + '">' + esc(model) + '</option>').join('');
-  $('model').parentElement.style.display = models.length ? '' : 'none';
-  const value = (chat && chat.model) || (provider && provider.default_model) || '';
-  if (value && models.includes(value)) $('model').value = value;
+  if (provider) void loadCatalog(provider.id);
+  const query = ($('modelSearch').value || '').trim().toLowerCase();
+  const groups = catalogGroups
+    .map((group) => ({ ...group, models: group.models.filter((model) => ((model.name || '') + ' ' + model.id).toLowerCase().includes(query)) }))
+    .filter((group) => group.models.length);
+  if (catalogLoading) {
+    $('modelGroups').innerHTML = '<div class="editor-model-empty">Загрузка моделей…</div>';
+  } else if (!groups.length) {
+    $('modelGroups').innerHTML = '<div class="editor-model-empty">' + (catalogGroups.length ? 'Ничего не найдено' : 'У провайдера нет списка моделей') + '</div>';
+  } else {
+    $('modelGroups').innerHTML = groups.map((group) => '<div class="editor-model-group"><div class="editor-model-head"><span>' + esc(group.label) + '</span><b>' + group.models.length + '</b></div>'
+      + group.models.map((model) => '<button class="editor-model-row ' + (chat && chat.model === model.id ? 'is-active' : '') + '" data-model="' + esc(model.id) + '"><span>' + esc(model.name) + '</span>' + (model.free ? '<em>Free</em>' : '') + '</button>').join('')
+      + '</div>').join('');
+  }
+  renderEffort();
+}
+
+function renderEffort() {
+  const model = currentCatalogModel();
+  const values = ['auto', ...((model && model.efforts && model.efforts.length) ? model.efforts : fallbackEfforts(chat && chat.provider_id))];
+  $('effort').innerHTML = values.map((value) => '<option value="' + esc(value) + '">' + esc(value === 'auto' ? 'Auto' : value) + '</option>').join('');
+  const current = (chat && chat.effort) || 'auto';
+  $('effort').value = values.includes(current) ? current : 'auto';
+}
+
+function selectedTaskIds() {
+  if (!chat) return [];
+  if (Array.isArray(chat.task_ids) && chat.task_ids.length) return chat.task_ids.map(String);
+  return chat.task_id ? [String(chat.task_id)] : [];
+}
+
+const ENGINE_ICONS = {
+  blender: 'data:image/svg+xml;base64,PHN2ZyBmaWxsPSIjRjU3OTJBIiByb2xlPSJpbWciIHZpZXdCb3g9IjAgMCAyNCAyNCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48dGl0bGU+QmxlbmRlcjwvdGl0bGU+PHBhdGggZD0iTTEyLjUxIDEzLjIxNGMuMDQ2LS44LjQzOC0xLjUwNiAxLjAzLTIuMDA2YTMuNDI0IDMuNDI0IDAgMCAxIDIuMjEyLS43OWMuODUgMCAxLjYzMS4zIDIuMjExLjc5LjU5Mi41Ljk4MyAxLjIwNiAxLjAyOCAyLjAwNS4wNDUuODIzLS4yODUgMS41ODYtLjg2NSAyLjE1M2EzLjM4OSAzLjM4OSAwIDAgMS0yLjM3NC45MzggMy4zOTMgMy4zOTMgMCAwIDEtMi4zNzYtLjkzOGMtLjU4LS41NjctLjkxLTEuMzMtLjg2NS0yLjE1Mk03LjM1IDE0LjgzMWMuMDA2LjMxNC4xMDYuOTIyLjI1NiAxLjM5OGE3LjM3MiA3LjM3MiAwIDAgMCAxLjU5MyAyLjc1NyA4LjIyNyA4LjIyNyAwIDAgMCAyLjc4NyAyLjAwMSA4Ljk0NyA4Ljk0NyAwIDAgMCAzLjY2Ljc2IDguOTY0IDguOTY0IDAgMCAwIDMuNjU3LS43NzIgOC4yODUgOC4yODUgMCAwIDAgMi43ODUtMi4wMSA3LjQyOCA3LjQyOCAwIDAgMCAxLjU5Mi0yLjc2MiA2Ljk2NCA2Ljk2NCAwIDAgMCAuMjUtMy4wNzQgNy4xMjMgNy4xMjMgMCAwIDAtMS4wMTYtMi43NzkgNy43NjQgNy43NjQgMCAwIDAtMS44NTItMi4wNDNoLjAwMkwxMy41NjYgMi41NWwtLjAyLS4wMTVjLS40OTItLjM3OC0xLjMxOS0uMzc2LTEuODYuMDAyLS41NDcuMzgyLS42MDkgMS4wMTUtLjEyMyAxLjQxNWwtLjAwMS4wMDEgMy4xMjYgMi41NDMtOS41My4wMWgtLjAxM2MtLjc4OC4wMDEtMS41NDUuNTE4LTEuNjk1IDEuMTcyLS4xNTQuNjY1LjM4IDEuMjE3IDEuMiAxLjIyVjguOWw0LjgzLS4wMS04LjYyIDYuNjE3LS4wMzQuMDI1Yy0uODEzLjYyMi0xLjA3NSAxLjY1OC0uNTYzIDIuMzEzLjUyLjY2NyAxLjYyNS42NjggMi40NDcuMDA0TDcuNDE0IDE0cy0uMDY5LjUyLS4wNjMuODMxem0xMi4wOSAxLjc0MWMtLjk3Ljk4OC0yLjMyNiAxLjU0OC0zLjc5NSAxLjU1LTEuNDcuMDA0LTIuODI3LS41NTItMy43OTctMS41MzhhNC41MSA0LjUxIDAgMCAxLTEuMDM2LTEuNjIyIDQuMjgyIDQuMjgyIDAgMCAxIC4yODItMy41MTkgNC43MDIgNC43MDIgMCAwIDEgMS4xNTMtMS4zNzFjLjk0Mi0uNzY4IDIuMTQxLTEuMTgzIDMuMzk2LTEuMTg1IDEuMjU2LS4wMDIgMi40NTUuNDEgMy4zOTggMS4xNzUuNDguMzkxLjg3Ljg1NCAxLjE1MiAxLjM2N2E0LjI4IDQuMjggMCAwIDEgLjUyMiAxLjcwNiA0LjIzNiA0LjIzNiAwIDAgMS0uMjM5IDEuODExIDQuNTQgNC41NCAwIDAgMS0xLjAzNSAxLjYyNiIvPjwvc3ZnPg==',
+  roblox: 'data:image/svg+xml;base64,PHN2ZyBmaWxsPSIjRTIyMzFBIiByb2xlPSJpbWciIHZpZXdCb3g9IjAgMCAyNCAyNCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48dGl0bGU+Um9ibG94PC90aXRsZT48cGF0aCBkPSJNMTguOTI2IDIzLjk5OCAwIDE4Ljg5MiA1LjA3NS4wMDIgMjQgNS4xMDhaTTE1LjM0OCAxMC4wOWwtNS4yODItMS40NTMtMS40MTQgNS4yNzMgNS4yODIgMS40NTN6Ii8+PC9zdmc+',
+  unity: 'data:image/svg+xml;base64,PHN2ZyBmaWxsPSIjQzJDOEQyIiByb2xlPSJpbWciIHZpZXdCb3g9IjAgMCAyNCAyNCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48dGl0bGU+VW5pdHk8L3RpdGxlPjxwYXRoIGQ9Im0xMi45Mjg4IDQuMjkzOSAzLjc5OTcgMi4xOTI5Yy4xMzY2LjA3Ny4xNDE1LjI5MDUgMCAuMzY3NWwtNC41MTUgMi42MDc2YS40MTkyLjQxOTIgMCAwIDEtLjQyNDYgMEw3LjI3NCA2Ljg1NDNjLS4xMzktLjA3NDUtLjE0MTUtLjI5MyAwLS4zNjc1bDMuNzk3Mi0yLjE5M1YwTDEuMzc1OCA1LjU5NzdWMTYuNzkzbDMuNzE3Ny0yLjE0NTZ2LTQuMzg1OGMtLjAwMjUtLjE1NjUuMTgxMy0uMjY4Mi4zMTgtLjE4MzhsNC41MTQ4IDIuNjA3NmEuNDI1Mi40MjUyIDAgMCAxIC4yMTM2LjM2NzZ2NS4yMTI3Yy4wMDI1LjE1NjUtLjE4MTMuMjY4Mi0uMzE3OS4xODM4bC0zLjc5OTYtMi4xOTI5LTMuNzE3OCAyLjE0NTdMMTIgMjRsOS42OTU0LTUuNTk3Ny0zLjcxNzgtMi4xNDU3LTMuNzk5NiAyLjE5MjljLS4xMzQxLjA4Mi0uMzIyOS0uMDI0OC0uMzE3OS0uMTgzOFYxMy4wNTNjMC0uMTU2NS4wODctLjI5NTYuMjEzNi0uMzY3Nmw0LjUxNDktMi42MDc2Yy4xMzQtLjA4Mi4zMjI4LjAyMjQuMzE3OS4xODM4djQuMzg1OGwzLjcxNzcgMi4xNDU2VjUuNTk3N0wxMi45Mjg4IDBaIi8+PC9zdmc+',
+  godot: 'data:image/svg+xml;base64,PHN2ZyBmaWxsPSIjNDc4Q0JGIiByb2xlPSJpbWciIHZpZXdCb3g9IjAgMCAyNCAyNCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48dGl0bGU+R29kb3QgRW5naW5lPC90aXRsZT48cGF0aCBkPSJNOS41NTk4LjY4M2MtMS4wOTYuMjQ0LTIuMTgxMi41ODMxLTMuMTk4MyAxLjA5NTEuMDIzLjg5ODEuMDgxIDEuNzU4Mi4xOTkgMi42MzIzLS4zOTUuMjUzLS44MS40Ny0xLjE3OC43NjYtLjM3NS4yODgtLjc1ODEuNTY0LTEuMDk3MS45MDExLS42NzgxLS40NDgtMS4zOTYyLS44NjktMi4xMzUyLTEuMjQxMUMxLjM1MzIgNS42OTM0LjYwOCA2LjYxODYgMCA3LjY1NDZjLjQ1OC43NDExLjkzNiAxLjQzNTIgMS40NTIxIDIuMDk0MmguMDE0djYuMzU2NWMuMDEyIDAgLjAyMyAwIC4wMzUuMDAzbDMuODk2My4zNzZjLjIwNC4wMi4zNjQuMTg0LjM3OC4zODkxbC4xMiAxLjcyMDEgMy4zOTk0LjI0Mi4yMzQtMS41ODdjLjAzLS4yMDYuMjA3LS4zNTguNDE1LS4zNThoNC4xMTE0Yy4yMDggMCAuMzg1LjE1Mi40MTUuMzU4bC4yMzQgMS41ODcgMy4zOTkzLS4yNDIuMTItMS43MmEuNDE5Ni40MTk2IDAgMDEuMzc4LS4zODkxbDMuODk1NC0uMzc2Yy4wMTIgMCAuMDIzLS4wMDMuMDM1LS4wMDN2LS41MDcxaC4wMDJWOS43NDk4aC4wMTRjLjUxNi0uNjU5Ljk5NC0xLjM1MzEgMS40NTIxLTIuMDk0Mi0uNjA4LTEuMDM2LTEuMzU0MS0xLjk2MTEtMi4xNTEyLTIuODE5Mi0uNzM5LjM3Mi0xLjQ1NzEuNzkzLTIuMTM1MiAxLjI0MTEtLjMzOS0uMzM3LS43MjEtLjYxMy0xLjA5Ni0uOTAxLS4zNjktLjI5Ni0uNzg0MS0uNTEzMS0xLjE3ODEtLjc2NjEuMTE3LS44NzQxLjE3NS0xLjczNDIuMTk5LTIuNjMyMy0xLjAxNzEtLjUxMi0yLjEwMTItLjg1MS0zLjE5ODMtMS4wOTUtLjQzOC43MzYtLjgzOCAxLjUzMy0xLjE4NzEgMi4zMTIxLS40MTQtLjA2OS0uODI5LS4wOTQtMS4yNDYxLS4wOTloLS4wMTZjLS40MTcuMDA1LS44MzIuMDMtMS4yNDYxLjA5OS0uMzQ5LS43NzktLjc0OS0xLjU3Ni0xLjE4ODEtMi4zMTIxbC4wMDEtLjAwMXpNNi40NzY1IDkuOTg4OWMxLjI5NzEgMCAyLjM0OTIgMS4wNTExIDIuMzQ5MiAyLjM0ODJzLTEuMDUyIDIuMzQ4Mi0yLjM0OTIgMi4zNDgyYy0xLjI5NiAwLTIuMzQ4Mi0xLjA1MS0yLjM0ODItMi4zNDgyIDAtMS4yOTcgMS4wNTExLTIuMzQ4MiAyLjM0ODItMi4zNDgyem0xMS4wNDkgMGMxLjI5NiAwIDIuMzQ4MiAxLjA1MTEgMi4zNDgyIDIuMzQ4MnMtMS4wNTExIDIuMzQ4Mi0yLjM0ODIgMi4zNDgyLTIuMzQ5Mi0xLjA1MS0yLjM0OTItMi4zNDgyYzAtMS4yOTcgMS4wNTEtMi4zNDgyIDIuMzQ5Mi0yLjM0ODJ6bS0xMC44MjQuOTMwMWMtLjg2MSAwLTEuNTU5LjY5OC0xLjU1OSAxLjU1OTFzLjY5OCAxLjU1ODIgMS41NTkgMS41NTgyYy44NjExIDAgMS41NTkyLS42OTggMS41NTkyLTEuNTU4MiAwLS44Ni0uNjk3LTEuNTU5LTEuNTU5MS0xLjU1OXptMTAuNTk4IDBjLS44NjExIDAtMS41NTgyLjY5OC0xLjU1ODIgMS41NTkxcy42OTcgMS41NTgyIDEuNTU4MSAxLjU1ODJjLjg2MTEgMCAxLjU1OTItLjY5OCAxLjU1OTItMS41NTgyIDAtLjg2LS42OTctMS41NTktMS41NTkyLTEuNTU5em0tNS4yOTg1LjQ1M2MuNDE3IDAgLjc1Ny4zMDguNzU3LjY4NzF2Mi4xNjIyYzAgLjM3OS0uMzM5LjY4Ny0uNzU3LjY4N3MtLjc1Ni0uMzA4LS43NTYtLjY4N1YxMi4wNTljMC0uMzc5LjMzOS0uNjg3Ljc1Ni0uNjg3ek0xLjQ2MDEgMTYuOTQ2NGMuMDAyLjM3Ny4wMDYuNzg5LjAwNi44NzEgMCAzLjcwMTQgNC42OTQ0IDUuNDc5NSAxMC41MjY5IDUuNTAwNWguMDE0YzUuODMyNS0uMDIgMTAuNTI1OS0xLjc5OTEgMTAuNTI1OS01LjUwMDQgMC0uMDg0LjAwNS0uNDk1LjAwNy0uODcxbC0zLjUwMjMuMzM4LS4xMjEgMS43MjlhLjQyMS40MjEgMCAwMS0uMzg5LjM5MDFsLTQuMTgxNC4yOTZhLjQyMDMuNDIwMyAwIDAxLS40MTUtLjM1OGwtLjIzOC0xLjYxNDFoLTMuMzg2M2wtLjIzOCAxLjYxNDFhLjQxOTIuNDE5MiAwIDAxLS40NDUxLjM1N2wtNC4xNTEzLS4yOTZjLS4yMDgtLjAxNS0uMzc1LS4xODEtLjM4OS0uMzg5bC0uMTItMS43MjkyLTMuNTA0NC0uMzM3eiIvPjwvc3ZnPg==',
+  unreal: 'data:image/svg+xml;base64,PHN2ZyBmaWxsPSIjQzJDOEQyIiByb2xlPSJpbWciIHZpZXdCb3g9IjAgMCAyNCAyNCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48dGl0bGU+VW5yZWFsIEVuZ2luZTwvdGl0bGU+PHBhdGggZD0iTTEyIDBhMTIgMTIgMCAxMDEyIDEyQTEyIDEyIDAgMDAxMiAwem0wIDIzLjUyQTExLjUyIDExLjUyIDAgMTEyMy41MiAxMiAxMS41MiAxMS41MiAwIDAxMTIgMjMuNTJ6bTcuMTMtOS43OTFjLS4yMDYuOTk3LTEuMTI2IDMuNTU3LTQuMDYgNC45NDJsLTEuMTc5LTEuMzI1LTEuOTg4IDJhNy4zMzggNy4zMzggMCAwMS01LjgwNC0yLjk3OCAyLjg1OSAyLjg1OSAwIDAwLjY1LjEyM2MuMzI2LjAwNi42NzgtLjExNC42NzgtLjY2di01LjM5NGEuODkuODkgMCAwMC0xLjExNi0uODljLS45Mi4yMTItMS42NTYgMi41MDktMS42NTYgMi41MDlhNy4zMDQgNy4zMDQgMCAwMTIuNTI4LTUuNTk3IDcuNDA4IDcuNDA4IDAgMDEzLjczLTEuNzIxYy0xLjAwNi41NzMtMS41NyAxLjUwNy0xLjU3IDIuMjkgMCAxLjI2Mi43NiAxLjEwOS45ODQuOTIzdjcuMjhhMS4xNTcgMS4xNTcgMCAwMC4xNDguMjU2IDEuMDc1IDEuMDc1IDAgMDAuODguNDQ1Yy43NiAwIDEuNzQ3LS44NjggMS43NDctLjg2OFY5LjE3MmMwLS42LS40NTItMS4zMjQtLjkwNS0xLjU3MiAwIDAgLjgzOC0uMTQ5IDEuNDg0LjM0NmE1LjUzNyA1LjUzNyAwIDAxLjM4Ny0uNDI1YzEuNTA4LTEuNDggMi45MjktMS45MDIgNC4xMTItMi4xMTIgMCAwLTIuMTUxIDEuNjktMi4xNTEgMy45NiAwIDEuNjg3LjA0MyA1LjgwMS4wNDMgNS44MDEuNzk5Ljc3MSAxLjk4Ni0uMzQyIDMuMDU5LTEuNDQxWiIvPjwvc3ZnPg==',
+  web: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjNEFBOEZGIiBzdHJva2Utd2lkdGg9IjEuOCI+PGNpcmNsZSBjeD0iMTIiIGN5PSIxMiIgcj0iOSIvPjxwYXRoIGQ9Ik0zIDEyaDE4TTEyIDNjMi41IDIuOCA0IDYgNCA5cy0xLjUgNi4yLTQgOWMtMi41LTIuOC00LTYtNC05czEuNS02LjIgNC05WiIvPjwvc3ZnPg==',
+  generic: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjOEZBMUI4IiBzdHJva2Utd2lkdGg9IjEuOCI+PHBhdGggZD0ibTEyIDMgOCA0LjV2OUwxMiAyMWwtOC00LjV2LTlaIi8+PHBhdGggZD0iTTQgNy41IDEyIDEybDgtNC41TTEyIDEydjkiLz48L3N2Zz4='
+};
+
+function engineMeta(engine) {
+  const key = String(engine || 'generic');
+  const labels = {
+    roblox: 'Roblox', blender: 'Blender', unity: 'Unity', unreal: 'Unreal Engine',
+    godot: 'Godot', web: 'Web', rpgmaker: 'RPG Maker', generic: 'Generic',
+  };
+  return { label: labels[key] || key, icon: ENGINE_ICONS[key] || ENGINE_ICONS.generic };
+}
+
+const TYPE_ICONS = {
+  code: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m8 9-4 3 4 3M16 9l4 3-4 3M14 5l-4 14"/></svg>',
+  model: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3 8 4.5v9L12 21l-8-4.5v-9Z"/><path d="M4 7.5 12 12l8-4.5M12 12v9"/></svg>',
+  animation: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m8 5 11 7-11 7Z"/></svg>',
+  texture: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.5" cy="9.5" r="1.5"/><path d="m21 15-5-5L5 20"/></svg>',
+  level: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>',
+  effect: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3 2.2 6.3L21 11l-6.8 1.7L12 19l-2.2-6.3L3 11l6.8-1.7Z"/></svg>',
+  export: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M7 9l5-5 5 5M5 20h14"/></svg>',
+};
+
+function typeMeta(type) {
+  const key = String(type || 'code');
+  const labels = { code: 'code', model: 'model', animation: 'animation', texture: 'texture', level: 'level', effect: 'fx', export: 'export' };
+  return { label: labels[key] || key, icon: TYPE_ICONS[key] || TYPE_ICONS.code };
+}
+
+function renderTaskMenu() {
+  if (!contextOpen) {
+    $('contextMenu').className = 'context-menu';
+    return;
+  }
+  const query = ($('taskSearch').value || '').trim().toLowerCase();
+  const selected = menuSelection;
+  const rows = tasks.filter((task) => (task.title + ' ' + (task.goal || '')).toLowerCase().includes(query));
+  const project = '<button class="context-option ' + (selected.size === 0 ? 'is-active' : '') + '" data-context-project="1"><span class="context-check">' + (selected.size === 0 ? '✓' : '') + '</span><span class="context-option-copy"><b>Весь проект</b><small>Общий контекст проекта</small></span></button>';
+  const items = rows.map((task) => {
+    const engine = engineMeta(task.engine);
+    const kind = typeMeta(task.type);
+    const active = selected.has(task.id);
+    return '<button class="context-option ' + (active ? 'is-active' : '') + '" data-task-id="' + esc(task.id) + '"><span class="context-check">' + (active ? '✓' : '') + '</span><span class="context-option-copy"><b>' + esc(task.title) + '</b><small><span class="task-kind" title="' + esc(kind.label) + '">' + kind.icon + '<span>' + esc(kind.label) + '</span></span><span class="task-engine" title="' + esc(engine.label) + '"><img src="' + engine.icon + '" alt=""/></span><span>' + esc(task.status) + '</span></small></span></button>';
+  }).join('');
+  $('contextMenuList').innerHTML = project + (items || '<div class="editor-model-empty">Задачи не найдены</div>');
+  $('contextMenu').className = 'context-menu is-open';
 }
 
 function renderTasks() {
-  $('taskSelect').innerHTML = '<option value="">Выбери задачу</option>' + tasks.map((task) => '<option value="' + esc(task.id) + '">' + esc(task.title) + '</option>').join('');
-  const scope = (chat && chat.scope) || 'project';
-  document.querySelectorAll('#scopeSwitch button').forEach((button) => button.classList.toggle('is-active', button.dataset.scope === scope));
-  $('taskSelect').style.display = scope === 'task' ? '' : 'none';
-  if (chat) $('taskSelect').value = chat.task_id || '';
-  $('runQuick').style.display = chat && chat.scope === 'task' && chat.task_id ? '' : 'none';
+  const selected = selectedTaskIds();
+  const selectedTasks = tasks.filter((task) => selected.includes(task.id));
+  const label = selectedTasks.length === 0
+    ? 'Весь проект'
+    : selectedTasks.length === 1
+      ? selectedTasks[0].title
+      : selectedTasks.length + (selectedTasks.length < 5 ? ' задачи' : ' задач');
+  $('contextLabel').textContent = label;
+  $('contextIcon').textContent = selectedTasks.length ? '✓' : '▦';
+  $('runQuick').style.display = selected.length ? '' : 'none';
+  if (contextOpen) renderTaskMenu();
 }
 
 function recentHtml(limit) {
@@ -546,11 +1200,12 @@ function recentHtml(limit) {
 }
 
 function welcomeHtml(withRecent) {
-  return '<div class="welcome"><div class="hero">' + CAT + '<h1>Что мы <em>создаём?</em></h1><p>Я вижу проект, задачи и ассеты. Спроси что угодно или прикрепи файл.</p></div>'
+  return '<div class="welcome"><div class="hero">' + avatarHtml('idle', 118) + '<h1>Что мы <em>создаём?</em></h1><p>Я вижу проект, задачи и ассеты. В чате только читаю проект и не меняю файлы. Спроси что угодно или прикрепи файл.</p></div>'
     + '<div class="suggestions">'
     + '<button class="suggestion" data-prompt="Что сейчас по проекту? Какие задачи в работе и что делать дальше?"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V5a2 2 0 0 1 2-2h9l5 5v11a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2Z"/><path d="M14 3v6h6M8 13h8M8 17h5"/></svg>Что сейчас по проекту?</button>'
     + '<button class="suggestion" data-prompt="Какие задачи сейчас в работе и что нужно сделать дальше?"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3 8-8"/><path d="M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h9"/></svg>Какие задачи в работе?</button>'
     + '<button class="suggestion" data-prompt="Предложи следующий шаг для проекта и объясни почему."><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3 2.2 6.3L21 11l-6.8 1.7L12 19l-2.2-6.3L3 11l6.8-1.7Z"/></svg>Предложи следующий шаг</button>'
+    + '<button class="suggestion" data-prompt="Расскажи, что умеет Kova: какие разделы есть, какие настройки важны и с чего начать работу."><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 6v6l4 2"/><circle cx="12" cy="12" r="9"/></svg>Что умеет Kova?</button>'
     + '</div>' + (withRecent ? recentHtml(5) : '') + '</div>';
 }
 
@@ -570,12 +1225,22 @@ function actionsHtml(message) {
 function actionLabel(action) {
   if (action.type === 'create_task') return 'Создать задачу';
   if (action.type === 'update_task') return 'Обновить задачу';
+  if (action.type === 'update_project_settings') return 'Изменить настройки проекта';
   return 'Запустить агента';
 }
 
 function actionDetail(action) {
   const payload = action.payload || {};
   if (action.type === 'create_task') return String(payload.title || 'Задача из чата');
+  if (action.type === 'update_project_settings') {
+    const parts = [];
+    if (payload.isolation) parts.push(payload.isolation === 'worktree' ? 'worktree' : payload.isolation === 'sandbox' ? 'песочница-копия' : 'прямо в проекте');
+    if (payload.local_only === true) parts.push('только локальные');
+    if (payload.egress_guard === true) parts.push('сетевой щит');
+    if (payload.max_parallel_runs) parts.push('запусков: ' + payload.max_parallel_runs);
+    if (payload.token_budget) parts.push('лимит: ' + payload.token_budget);
+    return parts.join(' · ') || 'Настройки проекта';
+  }
   const parts = [String(payload.task_id || '')];
   if (payload.status) parts.push('статус: ' + payload.status);
   if (payload.provider_id) parts.push(payload.provider_id);
@@ -592,9 +1257,149 @@ function attachmentsHtml(message) {
   }).join('') + '</div>';
 }
 
+const FLAG_LABELS = { external: 'вне проекта', sensitive: 'секрет', network: 'сеть' };
+
+const ACTIVITY_ICONS = {
+  thought: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 4.5a3.5 3.5 0 0 0-3.4 4.3A3 3 0 0 0 4 12a3 3 0 0 0 2.1 2.9A3.5 3.5 0 0 0 10 19.5c1 0 1.8-.4 2.4-1.1M14.5 4.5a3.5 3.5 0 0 1 3.4 4.3A3 3 0 0 1 20 12a3 3 0 0 1-2.1 2.9 3.5 3.5 0 0 1-3.9 4.6c-1 0-1.8-.4-2.4-1.1M12 6v12"/></svg>',
+  command: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m4 7 5 5-5 5M12 17h8"/></svg>',
+  file: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>',
+  network: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18"/></svg>',
+  read: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h8"/><path d="M14 2v6h6M8 13h4M8 17h3"/><circle cx="17" cy="17" r="3"/><path d="m21 21-2-2"/></svg>',
+  tool: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.3 2.3-3-3Z"/></svg>',
+};
+
+function activityState(activity, running, failed) {
+  if (failed) return 'error';
+  if (!running) return activity.length ? 'success' : 'idle';
+  const last = [...activity].reverse().find((item) => item.status === 'running') || activity[activity.length - 1];
+  if (!last) return 'thinking';
+  if (last.kind === 'command') return 'running';
+  if (last.kind === 'file') return 'editing';
+  if (last.kind === 'thought') return 'thinking';
+  const label = String(last.label || '').toLowerCase();
+  if (label.includes('read')) return 'reading';
+  if (label.includes('explor') || label.includes('search')) return 'searching';
+  if (label.includes('edit')) return 'editing';
+  if (label.includes('command')) return 'running';
+  return 'thinking';
+}
+
+function durationText(ms) {
+  if (!ms) return '';
+  return ms < 1000 ? ms + 'ms' : (ms / 1000).toFixed(ms < 10000 ? 1 : 0) + 's';
+}
+
+function activityRows(activity) {
+  return activity.map((item) => {
+    const label = String(item.label || '');
+    const icon = item.kind === 'thought' ? ACTIVITY_ICONS.thought : item.kind === 'command' ? ACTIVITY_ICONS.command : item.kind === 'file' ? ACTIVITY_ICONS.file : item.kind === 'network' ? ACTIVITY_ICONS.network : label.toLowerCase().includes('read') ? ACTIVITY_ICONS.read : ACTIVITY_ICONS.tool;
+    const output = item.output ? '<pre>' + esc(item.output) + '</pre>' : '';
+    const flags = (item.flags || []).map((flag) => '<span class="act-badge is-' + esc(flag) + '">' + esc(FLAG_LABELS[flag] || flag) + '</span>').join('');
+    return '<details class="act-row is-' + esc(item.status) + '"><summary><span class="act-ico">' + icon + '</span><span class="act-copy"><b>' + esc(label) + flags + '</b>' + (item.detail ? '<small>' + esc(item.detail) + '</small>' : '') + '</span>' + (item.duration_ms ? '<span class="act-time">' + esc(durationText(item.duration_ms)) + '</span>' : '') + (item.output ? '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>' : '<span></span>') + '</summary>' + output + '</details>';
+  }).join('');
+}
+
+function egressHtml(egress) {
+  if (!egress) return '';
+  const files = egress.files || [];
+  const attachments = egress.attachments || 0;
+  if (!files.length && !attachments && !(egress.network && egress.network.length)) return '';
+  const network = egress.network || [];
+  const label = (files.length || attachments)
+    ? (egress.remote ? 'Отправлено модели' : 'Локально прочитано') + ':'
+    : 'Сеть:';
+  const parts = [];
+  if (files.length) parts.push(files.length + ' файлов · ' + formatBytes(egress.file_bytes));
+  if (attachments) parts.push(attachments + ' вложений · ' + formatBytes(egress.attachment_bytes));
+  if (!files.length && !attachments) parts.push(network.length + ' домен(ов)');
+  const rows = files.map((file) => '<li><span>' + esc(file.path) + '</span><small>' + esc(formatBytes(file.bytes)) + '</small></li>').join('');
+  const netRows = network.map((item) => '<li><span>' + esc(item.host) + '</span><small>' + (item.allowed ? esc(item.count + '×') : 'заблокировано') + '</small></li>').join('');
+  return '<div class="egress"><div class="egress-head"><span>' + label + ' ' + esc(parts.join(' · ')) + '</span><b>' + esc(egress.provider_name || 'AI') + '</b></div>'
+    + (files.length ? '<details class="egress-files"><summary>Файлы</summary><ul>' + rows + '</ul></details>' : '')
+    + (network.length ? '<details class="egress-files"><summary>Сеть</summary><ul>' + netRows + '</ul></details>' : '')
+    + '</div>';
+}
+
+function activityHtml(activity, running) {
+  const items = activity || [];
+  const flagged = items.filter((item) => item.flags && item.flags.length).length;
+  const external = items.filter((item) => item.flags && item.flags.indexOf('external') >= 0).length;
+  const warnText = external ? external + ' вне проекта' : flagged + ' требует внимания';
+  const warn = flagged ? '<span class="act-warn"><svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3 2 21h20L12 3Z"/><path d="M12 9v5M12 17h.01"/></svg>' + warnText + '</span>' : '';
+  if (!items.length) {
+    return running ? '<div class="act is-running"><div class="act-head"><span class="act-spin"></span><span>Kova работает</span><span class="act-dots"><i></i><i></i><i></i></span></div></div>' : '';
+  }
+  if (running) {
+    return '<div class="act is-running"><div class="act-head"><span class="act-spin"></span><span>Kova работает</span>' + warn + '<span class="act-dots"><i></i><i></i><i></i></span></div><div class="act-list">' + activityRows(items) + '</div></div>';
+  }
+  return '<details class="act"><summary class="act-head"><span>Действия (' + items.length + ')</span>' + warn + '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg></summary><div class="act-list">' + activityRows(items) + '</div></details>';
+}
+
+async function copyText(text, button) {
+  try {
+    await navigator.clipboard.writeText(text);
+  } catch {
+    const area = document.createElement('textarea');
+    area.value = text;
+    area.style.position = 'fixed';
+    area.style.opacity = '0';
+    document.body.appendChild(area);
+    area.select();
+    try { document.execCommand('copy'); } finally { area.remove(); }
+  }
+  if (button) {
+    const label = button.textContent;
+    button.textContent = 'Скопировано';
+    button.classList.add('is-copied');
+    setTimeout(() => { button.textContent = label; button.classList.remove('is-copied'); }, 1600);
+  }
+}
+
+function chatSafety(provider) {
+  const external = (chat && chat.external_paths && chat.external_paths.length) || 0;
+  const onlyLocal = localOnly();
+  const remote = provider ? (provider.kind === 'api' ? !provider.local_api : true) : false;
+  if (onlyLocal && remote) return { label: 'Заблокировано', title: 'Включён режим только локальных моделей. Этот провайдер отправляет данные в интернет, поэтому отправка заблокирована.' };
+  if (onlyLocal && provider && !remote) return { label: 'Локально', title: 'Локальный API: данные не уходят за пределы этой машины. Чат только читает проект.' };
+  if (!provider) return { label: onlyLocal ? 'Локально' : 'Без изменений', title: onlyLocal ? 'Включён режим только локальных моделей. Внешние провайдеры заблокированы.' : 'Чат не меняет файлы проекта.' };
+  if (provider.kind === 'api') return { label: 'Без инструментов', title: 'API-чат отвечает текстом и не получает доступ к файлам, командам или сети проекта.' };
+  if (provider.id === 'opencode') return {
+    label: external ? 'Читает + папки' : 'Читает проект',
+    title: external
+      ? 'OpenCode читает проект и ' + external + ' явно разрешённых внешних папок. Изменения, команды, сеть и MCP заблокированы.'
+      : 'OpenCode в чате читает только папку проекта. Внешние пути, изменения файлов, команды, сеть и MCP заблокированы.'
+  };
+  if ((provider.chat_args && provider.chat_args.length) || (provider.read_only_args && provider.read_only_args.length)) return {
+    label: external ? 'Без изменений + папки' : 'Без изменений',
+    title: external
+      ? 'Чат работает без правок и команд; разрешено чтение проекта и ' + external + ' внешних папок.'
+      : 'Чат работает без правок файлов и без команд. Внешние пути контролируются возможностями CLI.'
+  };
+  return { label: 'Не настроен', title: 'Для этого CLI не заданы безопасные аргументы чата. Добавь аргументы «только чтение» в настройках провайдера.' };
+}
+
+function renderSafety() {
+  const provider = chat ? providers.find((item) => item.id === chat.provider_id) : null;
+  const safety = chatSafety(provider);
+  const pill = $('safetyPill');
+  if (!pill) return;
+  pill.textContent = safety.label;
+  pill.title = safety.title;
+  pill.className = 'safety-pill' + (safety.label === 'Чат не настроен' ? ' is-off' : '');
+}
+
+function renderExternalPaths() {
+  const node = $('externalPaths');
+  if (!node || document.activeElement === node) return;
+  node.value = ((chat && chat.external_paths) || []).join(String.fromCharCode(10));
+}
+
 function render() {
+  renderSafety();
+  renderExternalPaths();
   renderProviders();
   renderTasks();
+  renderEffort();
   renderHistory();
   const scope = chat ? (chat.scope === 'task' ? 'Чат по задаче' : 'Чат по проекту') : 'Проект и задачи';
   $('subtitle').textContent = chat ? scope : 'Проект и задачи';
@@ -608,17 +1413,19 @@ function render() {
     const isUser = message.role === 'user';
     const canTask = !isUser && message.content && !(message.actions && message.actions.length);
     return '<article class="msg ' + (isUser ? 'user' : 'assistant') + '">'
-      + '<div class="msg-head"><span class="msg-avatar">' + (isUser ? '●' : '◆') + '</span><span class="msg-name">' + (isUser ? 'Вы' : 'Kova') + '</span></div>'
+      + '<div class="msg-head"><span class="msg-avatar">' + (isUser ? '●' : avatarHtml(activityState(message.activity || [], false, String(message.content || '').startsWith('Ошибка')), 24)) + '</span><span class="msg-name">' + (isUser ? 'Вы' : 'Kova') + '</span></div>'
+      + (isUser ? '' : activityHtml(message.activity || [], false) + egressHtml(message.egress))
       + '<div class="msg-body">' + renderMarkdown(message.content) + '</div>'
       + attachmentsHtml(message)
       + actionsHtml(message)
       + '<div class="msg-foot"><small>' + esc(new Date(message.created_at).toLocaleString()) + '</small>'
-      + (canTask ? '<button class="link-btn" data-make-task="' + esc(message.id) + '">Создать задачу</button>' : '')
+      + (isUser ? '' : '<span class="msg-actions"><button class="link-btn" data-copy-message="' + esc(message.id) + '">Копировать</button>'
+        + (canTask ? '<button class="link-btn" data-make-task="' + esc(message.id) + '">Создать задачу</button>' : '') + '</span>')
       + '</div></article>';
   }).join('');
 
   const stream = chat.status === 'running'
-    ? '<article class="msg assistant stream"><div class="msg-head"><span class="msg-avatar">◆</span><span class="msg-name">Kova</span></div><div class="msg-body">' + esc(chat.streaming_output || '') + '<span class="thinking"><i></i><i></i><i></i></span></div></article>'
+    ? '<article class="msg assistant stream"><div class="msg-head"><span class="msg-avatar">' + avatarHtml(activityState(chat.activity || [], true, false), 24) + '</span><span class="msg-name">Kova</span></div>' + activityHtml(chat.activity || [], true) + '</article>'
     : '';
 
   const content = messages + stream;
@@ -655,7 +1462,13 @@ function connectChat(id) {
   chatStream.onmessage = (event) => {
     try {
       const data = JSON.parse(event.data);
-      if (data.type === 'deleted') { chat = null; render(); return; }
+      if (data.type === 'deleted') {
+        chat = null;
+        showError('');
+        vscode.postMessage({ type: 'chatChanged', chatId: '' });
+        render();
+        return;
+      }
       if (data.type === 'chat' && data.chat && chat && data.chat.id === chat.id) {
         chat = data.chat;
         scheduleRender();
@@ -680,14 +1493,23 @@ async function openChat(id) {
     vscode.postMessage({ type: 'chatChanged', chatId: id });
     renderPending();
     render();
+    resizeComposer();
     connectChat(id);
   } catch (error) {
-    showError(error.message || String(error));
+    const message = error.message || String(error);
+    if (/not found/i.test(message)) {
+      chat = null;
+      showError('');
+      vscode.postMessage({ type: 'chatChanged', chatId: '' });
+      render();
+      return;
+    }
+    showError(message);
   }
 }
 
 async function newChat() {
-  const provider = currentProvider() || providers.find((item) => item.installed && item.enabled);
+  const provider = currentProvider() || availableProviders()[0];
   if (!provider) { showError('Нет доступных провайдеров. Настрой их в Kova Hub → Агенты.'); return; }
   try {
     showError('');
@@ -696,6 +1518,7 @@ async function newChat() {
       scope: 'project',
       provider_id: provider.id,
       model: provider.default_model || (provider.models && provider.models[0]) || '',
+      effort: provider.default_effort || 'auto',
     });
     await refreshChats();
     await openChat(created.id);
@@ -714,11 +1537,20 @@ async function updateChat(payload) {
   }
 }
 
+function resizeComposer() {
+  const node = $('text');
+  if (!node) return;
+  node.style.height = 'auto';
+  const max = Math.min(300, Math.round(window.innerHeight * 0.42));
+  node.style.height = Math.min(node.scrollHeight, max) + 'px';
+  node.style.overflowY = node.scrollHeight > max ? 'auto' : 'hidden';
+}
+
 async function send() {
   const text = $('text').value.trim();
   if (busy || (chat && chat.status === 'running') || (!text && !pending.length)) return;
   if (!chat) {
-    const provider = currentProvider() || providers.find((item) => item.installed && item.enabled);
+    const provider = currentProvider() || availableProviders()[0];
     if (!provider) { showError('Нет доступных провайдеров. Настрой их в Kova Hub → Агенты.'); return; }
     try {
       chat = await api('/chats', 'POST', {
@@ -726,6 +1558,7 @@ async function send() {
         scope: 'project',
         provider_id: provider.id,
         model: provider.default_model || (provider.models && provider.models[0]) || '',
+        effort: provider.default_effort || 'auto',
       });
       await refreshChats();
       connectChat(chat.id);
@@ -735,8 +1568,24 @@ async function send() {
       return;
     }
   }
+  const provider = providers.find((item) => item.id === (chat && chat.provider_id)) || currentProvider();
+  if (provider && localOnly() && providerIsRemote(provider)) {
+    showError('Включён режим только локальных моделей. Выбери локальный API в настройках провайдера.');
+    return;
+  }
+  if (provider && needsConsent(provider)) {
+    const allowed = await askConsent(provider);
+    if (!allowed) return;
+    try {
+      await grantConsent(provider.id);
+    } catch (error) {
+      showError(error.message || String(error));
+      return;
+    }
+  }
   const attachments = pending.map((item) => ({ name: item.name, mime: item.mime, data: item.data }));
   $('text').value = '';
+  resizeComposer();
   busy = true;
   showError('');
   try {
@@ -748,6 +1597,7 @@ async function send() {
   } catch (error) {
     showError(error.message || String(error));
     $('text').value = text;
+    resizeComposer();
   } finally {
     busy = false;
   }
@@ -783,11 +1633,17 @@ async function addFiles(files) {
 
 async function decide(actionId, decision) {
   if (!chat) return;
+  const action = (chat.messages || []).flatMap((message) => message.actions || []).find((item) => item.id === actionId);
   busy = true;
   showError('');
   try {
     chat = await api('/chats/' + encodeURIComponent(chat.id) + '/actions/' + encodeURIComponent(actionId), 'POST', { decision });
     vscode.postMessage({ type: 'refreshTrees' });
+    if (decision === 'approve' && action && action.type === 'update_project_settings') {
+      busy = false;
+      await reload();
+      return;
+    }
     render();
   } catch (error) {
     showError(error.message || String(error));
@@ -813,6 +1669,7 @@ async function makeTask(messageId) {
 }
 
 $('new').onclick = () => void newChat();
+$('errorClose').onclick = () => showError('');
 $('historyBtn').onclick = () => { historyOpen = !historyOpen; $('historyPanel').className = 'history-panel' + (historyOpen ? ' is-open' : ''); renderHistory(); };
 $('historyClose').onclick = () => { historyOpen = false; $('historyPanel').className = 'history-panel'; };
 $('historySearch').oninput = renderHistory;
@@ -821,23 +1678,62 @@ $('file').onclick = () => $('fileInput').click();
 $('fileInput').onchange = (event) => { void addFiles(event.target.files); event.target.value = ''; };
 $('settingsBtn').onclick = () => $('settingsPanel').classList.toggle('is-open');
 $('settingsClose').onclick = () => $('settingsPanel').classList.remove('is-open');
-$('scopeSwitch').onclick = (event) => {
-  const button = event.target.closest('button[data-scope]');
-  if (!button || !chat) return;
-  const scope = button.dataset.scope;
-  void updateChat({ scope, task_id: scope === 'task' ? ($('taskSelect').value || (tasks[0] && tasks[0].id) || '') : '' });
+$('contextButton').onclick = () => {
+  contextOpen = !contextOpen;
+  if (contextOpen) {
+    $('taskSearch').value = '';
+    menuSelection = new Set(selectedTaskIds());
+    renderTaskMenu();
+  } else renderTaskMenu();
 };
-$('taskSelect').onchange = (event) => { if (event.target.value) void updateChat({ scope: 'task', task_id: event.target.value }); };
+$('taskSearch').oninput = renderTaskMenu;
+$('contextMenuList').addEventListener('click', (event) => {
+  if (!chat) return;
+  if (event.target.closest('[data-context-project]')) {
+    menuSelection = new Set();
+    renderTaskMenu();
+    void updateChat({ scope: 'project', task_id: '', task_ids: [] });
+    return;
+  }
+  const row = event.target.closest('[data-task-id]');
+  if (!row) return;
+  const id = row.dataset.taskId;
+  if (menuSelection.has(id)) menuSelection.delete(id); else menuSelection.add(id);
+  renderTaskMenu();
+  const ids = [...menuSelection];
+  if (!ids.length) void updateChat({ scope: 'project', task_id: '', task_ids: [] });
+  else void updateChat({ scope: 'task', task_id: ids[0], task_ids: ids });
+});
 $('provider').onchange = (event) => {
   const provider = providers.find((item) => item.id === event.target.value);
   void updateChat({ provider_id: event.target.value, model: (provider && (provider.default_model || (provider.models && provider.models[0]))) || '' });
 };
-$('model').onchange = (event) => void updateChat({ model: event.target.value });
-$('run').onclick = () => { if (chat && chat.task_id) { vscode.postMessage({ type: 'openRun', taskId: chat.task_id }); $('settingsPanel').classList.remove('is-open'); } };
-$('runQuick').onclick = () => { if (chat && chat.task_id) vscode.postMessage({ type: 'openRun', taskId: chat.task_id }); };
+$('modelSearch').oninput = renderModels;
+$('effort').onchange = (event) => void updateChat({ effort: event.target.value });
+$('externalPaths').addEventListener('change', () => {
+  const paths = $('externalPaths').value.split(String.fromCharCode(10)).map((item) => item.trim()).filter(Boolean);
+  void updateChat({ external_paths: paths });
+});
+$('modelGroups').addEventListener('click', (event) => {
+  const button = event.target.closest('[data-model]');
+  if (!button) return;
+  const model = catalogGroups.flatMap((group) => group.models).find((item) => item.id === button.dataset.model);
+  const current = (chat && chat.effort) || 'auto';
+  const effort = model && (current === 'auto' || model.efforts.includes(current)) ? current : 'auto';
+  void updateChat({ model: button.dataset.model, effort });
+});
+$('run').onclick = () => { const ids = selectedTaskIds(); if (ids.length) { vscode.postMessage({ type: 'openRun', taskId: ids[0] }); $('settingsPanel').classList.remove('is-open'); } };
+$('runQuick').onclick = () => { const ids = selectedTaskIds(); if (ids.length) vscode.postMessage({ type: 'openRun', taskId: ids[0] }); };
+$('text').addEventListener('input', resizeComposer);
 $('text').addEventListener('keydown', (event) => { if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); void send(); } });
 
 $('thread').addEventListener('click', (event) => {
+  const copyButton = event.target.closest('[data-copy-message]');
+  if (copyButton && chat) {
+    const message = (chat.messages || []).find((item) => item.id === copyButton.dataset.copyMessage);
+    if (message) void copyText(message.content, copyButton);
+    return;
+  }
   const prompt = event.target.closest('[data-prompt]');
   if (prompt) { $('text').value = prompt.dataset.prompt; $('text').focus(); return; }
   const recent = event.target.closest('[data-chat]');
@@ -851,7 +1747,36 @@ $('thread').addEventListener('click', (event) => {
   if (target.dataset.action && target.dataset.id) void decide(target.dataset.id, target.dataset.action);
 });
 
-$('historyList').addEventListener('click', (event) => {
+$('historyList').addEventListener('click', async (event) => {
+  const deleteButton = event.target.closest('[data-delete]');
+  if (deleteButton) {
+    event.stopPropagation();
+    pendingDelete = deleteButton.dataset.delete;
+    renderHistory();
+    return;
+  }
+  const confirmButton = event.target.closest('[data-confirm-delete]');
+  if (confirmButton) {
+    event.stopPropagation();
+    const id = confirmButton.dataset.confirmDelete;
+    try {
+      await api('/chats/' + encodeURIComponent(id), 'DELETE');
+      if (chat && chat.id === id) {
+        chat = null;
+        if (chatStream) { chatStream.close(); chatStream = null; }
+        vscode.postMessage({ type: 'chatChanged', chatId: '' });
+        render();
+      }
+      chats = await api('/chats');
+      pendingDelete = '';
+      renderHistory();
+    } catch (error) {
+      showError(error.message || String(error));
+    }
+    return;
+  }
+  const cancel = event.target.closest('[data-cancel-delete]');
+  if (cancel) { event.stopPropagation(); pendingDelete = ''; renderHistory(); return; }
   const row = event.target.closest('[data-chat]');
   if (row) void openChat(row.dataset.chat);
 });
@@ -866,18 +1791,26 @@ window.addEventListener('message', (event) => {
 
 async function reload() {
   try {
-    const [chatRows, providerRows, taskRows, project] = await Promise.all([
+    const [chatRows, providerData, taskRows, project] = await Promise.all([
       api('/chats'),
-      api('/providers').then((data) => data.providers || []),
+      api('/providers'),
       api('/tasks'),
       api('/project').catch(() => null),
     ]);
     chats = chatRows;
-    providers = providerRows;
+    providers = (providerData && providerData.providers) || [];
+    defaultProviderId = (providerData && providerData.default_provider) || '';
     tasks = taskRows;
-    projectEngine = (project && project.engine) || 'generic';
+    projectInfo = (project && project.project) || null;
+    projectEngine = (projectInfo && projectInfo.engine) || 'generic';
     if (chat) {
-      try { chat = await api('/chats/' + encodeURIComponent(chat.id)); } catch { chat = null; }
+      try {
+        chat = await api('/chats/' + encodeURIComponent(chat.id));
+      } catch {
+        chat = null;
+        showError('');
+        vscode.postMessage({ type: 'chatChanged', chatId: '' });
+      }
     }
     render();
     connectList();

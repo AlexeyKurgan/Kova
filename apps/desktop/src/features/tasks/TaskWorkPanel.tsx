@@ -617,7 +617,20 @@ export default function TaskWorkPanel({
                                         : "только чтение"
                                   } · `
                                 : ""}
-                              {run.isolation === "worktree" ? "worktree · " : ""}
+                              {run.isolation === "worktree"
+                                ? "worktree · "
+                                : run.isolation === "sandbox"
+                                  ? "sandbox-копия · "
+                                  : ""}
+                              {run.network?.length
+                                ? `сеть: ${run.network
+                                    .map((item) =>
+                                      item.allowed
+                                        ? item.host
+                                        : `${item.host} (блок)`,
+                                    )
+                                    .join(", ")} · `
+                                : ""}
                               {usageLine(run)}
                             </div>
                             {run.actions.length > 0 ? (

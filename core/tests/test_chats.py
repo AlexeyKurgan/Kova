@@ -13,6 +13,11 @@ def make_client(tmp_path: Path, monkeypatch) -> TestClient:
     return TestClient(create_app())
 
 
+def grant_consent(client: TestClient, provider_id: str) -> None:
+    response = client.patch("/project", json={"remote_consents": [provider_id]})
+    assert response.status_code == 200, response.text
+
+
 def test_project_chat_with_context(tmp_path: Path, monkeypatch) -> None:
     client = make_client(tmp_path, monkeypatch)
     game = tmp_path / "game"
@@ -28,9 +33,14 @@ def test_project_chat_with_context(tmp_path: Path, monkeypatch) -> None:
                 "-c",
                 "import sys, pathlib; pathlib.Path('chat_prompt.txt').write_text(sys.argv[1], encoding='utf-8'); print('Ответ ассистента')",
             ],
+            "read_only_args": [
+                "-c",
+                "import sys, pathlib; pathlib.Path('chat_prompt.txt').write_text(sys.argv[1], encoding='utf-8'); print('Ответ ассистента')",
+            ],
         },
     ).json()
 
+    grant_consent(client, provider["id"])
     created = client.post(
         "/chats",
         json={"provider_id": provider["id"], "scope": "task", "task_id": task["id"]},
@@ -85,8 +95,10 @@ def test_chat_action_create_task(tmp_path: Path, monkeypatch) -> None:
             "name": "Action CLI",
             "command": sys.executable,
             "args": [str(script)],
+            "read_only_args": [str(script)],
         },
     ).json()
+    grant_consent(client, provider["id"])
     chat = client.post(
         "/chats",
         json={"title": "Action", "provider_id": provider["id"]},
@@ -140,8 +152,14 @@ def test_chat_action_update_task(tmp_path: Path, monkeypatch) -> None:
     )
     provider = client.post(
         "/providers",
-        json={"name": "Update CLI", "command": sys.executable, "args": [str(script)]},
+        json={
+            "name": "Update CLI",
+            "command": sys.executable,
+            "args": [str(script)],
+            "read_only_args": [str(script)],
+        },
     ).json()
+    grant_consent(client, provider["id"])
     chat = client.post("/chats", json={"title": "Update", "provider_id": provider["id"]}).json()
     client.post(f"/chats/{chat['id']}/messages", json={"text": "обнови"})
     final = None
@@ -180,9 +198,11 @@ def test_chat_parses_jsonl_cli_output(tmp_path: Path, monkeypatch) -> None:
             "name": "JSONL CLI",
             "command": sys.executable,
             "args": [str(script)],
+            "read_only_args": [str(script)],
             "output_mode": "jsonl-auto",
         },
     ).json()
+    grant_consent(client, provider["id"])
     chat = client.post(
         "/chats",
         json={"title": "JSONL", "provider_id": provider["id"]},
@@ -198,6 +218,8 @@ def test_chat_parses_jsonl_cli_output(tmp_path: Path, monkeypatch) -> None:
     content = final["messages"][-1]["content"]
     assert content == "Привет! Я на связи."
     assert "step_start" not in content
+    assert final["messages"][-1].get("activity")
+    assert any(item["kind"] == "thought" for item in final["messages"][-1]["activity"])
 
 
 def test_chat_attachments(tmp_path: Path, monkeypatch) -> None:
@@ -216,8 +238,13 @@ def test_chat_attachments(tmp_path: Path, monkeypatch) -> None:
                 "-c",
                 "import sys, pathlib; pathlib.Path('media_prompt.txt').write_text(sys.argv[1], encoding='utf-8'); print('ok')",
             ],
+            "read_only_args": [
+                "-c",
+                "import sys, pathlib; pathlib.Path('media_prompt.txt').write_text(sys.argv[1], encoding='utf-8'); print('ok')",
+            ],
         },
     ).json()
+    grant_consent(client, provider["id"])
     chat = client.post("/chats", json={"title": "Media", "provider_id": provider["id"]}).json()
     text_data = base64.b64encode("важная заметка".encode("utf-8")).decode("ascii")
     image_data = base64.b64encode(
@@ -254,3 +281,140 @@ def test_chat_attachments(tmp_path: Path, monkeypatch) -> None:
     served = client.get(f"/chats/{chat['id']}/attachments/{attachment_id}")
     assert served.status_code == 200
     assert served.content
+
+
+def test_chat_external_paths_are_validated(tmp_path: Path, monkeypatch) -> None:
+    client = make_client(tmp_path, monkeypatch)
+    game = tmp_path / "game"
+    game.mkdir()
+    client.post("/project/open", json={"path": str(game), "name": "Shared Game"})
+    shared = tmp_path / "shared"
+    shared.mkdir()
+    chat = client.post("/chats", json={"title": "Access"}).json()
+    assert chat["external_paths"] == []
+
+    updated = client.patch(
+        f"/chats/{chat['id']}",
+        json={
+            "external_paths": [
+                str(shared),
+                "relative/path",
+                str(tmp_path / "missing"),
+                f'"{shared}"',
+            ]
+        },
+    )
+    assert updated.status_code == 200, updated.text
+    rows = updated.json()["external_paths"]
+    assert rows == [str(shared.resolve())]
+
+
+def test_local_only_blocks_remote_cli(tmp_path: Path, monkeypatch) -> None:
+    client = make_client(tmp_path, monkeypatch)
+    game = tmp_path / "game"
+    game.mkdir()
+    client.post("/project/open", json={"path": str(game), "name": "Local Game"})
+    marker = tmp_path / "should_not_run.txt"
+    provider = client.post(
+        "/providers",
+        json={
+            "name": "Remote CLI",
+            "command": sys.executable,
+            "args": ["-c", f"open(r'{marker}', 'w').write('ran')"],
+            "read_only_args": ["-c", f"open(r'{marker}', 'w').write('ran')"],
+        },
+    ).json()
+    chat = client.post("/chats", json={"provider_id": provider["id"]}).json()
+    grant_consent(client, provider["id"])
+    updated = client.patch("/project", json={"local_only": True})
+    assert updated.status_code == 200, updated.text
+    assert updated.json()["project"]["local_only"] is True
+
+    sent = client.post(f"/chats/{chat['id']}/messages", json={"text": "привет"})
+    assert sent.status_code == 200, sent.text
+    final = sent.json()
+    assert final["status"] == "idle"
+    assert [message["role"] for message in final["messages"]] == ["user", "assistant"]
+    assert "только локальные" in final["messages"][-1]["content"].lower()
+    assert not marker.exists()
+
+
+def test_remote_provider_requires_consent(tmp_path: Path, monkeypatch) -> None:
+    client = make_client(tmp_path, monkeypatch)
+    game = tmp_path / "game"
+    game.mkdir()
+    client.post("/project/open", json={"path": str(game), "name": "Consent Game"})
+    marker = tmp_path / "ran.txt"
+    provider = client.post(
+        "/providers",
+        json={
+            "name": "Consent CLI",
+            "command": sys.executable,
+            "args": ["-c", f"open(r'{marker}', 'w').write('ran')"],
+            "read_only_args": ["-c", f"open(r'{marker}', 'w').write('ran')"],
+        },
+    ).json()
+    chat = client.post("/chats", json={"provider_id": provider["id"]}).json()
+
+    blocked = client.post(f"/chats/{chat['id']}/messages", json={"text": "привет"}).json()
+    assert [message["role"] for message in blocked["messages"]] == ["user", "assistant"]
+    assert "подтвердить отправку" in blocked["messages"][-1]["content"].lower()
+    assert blocked["error"] == "consent-required"
+    assert not marker.exists()
+
+    grant_consent(client, provider["id"])
+    sent = client.post(f"/chats/{chat['id']}/messages", json={"text": "теперь можно"}).json()
+    for _ in range(100):
+        if sent["status"] != "running":
+            break
+        time.sleep(0.1)
+        sent = client.get(f"/chats/{chat['id']}").json()
+    assert sent["status"] == "idle"
+    assert marker.exists()
+    project = client.get("/project").json()
+    assert provider["id"] in project["project"]["remote_consents"]
+
+
+def test_chat_can_propose_project_settings(tmp_path: Path, monkeypatch) -> None:
+    client = make_client(tmp_path, monkeypatch)
+    game = tmp_path / "game"
+    game.mkdir()
+    client.post("/project/open", json={"path": str(game), "name": "Settings Game"})
+    script = tmp_path / "emit_settings.py"
+    script.write_text(
+        "print('Предлагаю безопасные настройки.')\n"
+        "print('```kova-action')\n"
+        "print('{\"action\":\"update_project_settings\",\"isolation\":\"sandbox\",\"max_parallel_runs\":2,\"local_only\":true,\"egress_guard\":true}')\n"
+        "print('```')\n",
+        encoding="utf-8",
+    )
+    provider = client.post(
+        "/providers",
+        json={
+            "name": "Settings CLI",
+            "command": sys.executable,
+            "args": [str(script)],
+            "read_only_args": [str(script)],
+        },
+    ).json()
+    grant_consent(client, provider["id"])
+    chat = client.post("/chats", json={"provider_id": provider["id"]}).json()
+    client.post(f"/chats/{chat['id']}/messages", json={"text": "настрой проект"})
+    final = None
+    for _ in range(100):
+        time.sleep(0.1)
+        final = client.get(f"/chats/{chat['id']}").json()
+        if final["status"] != "running":
+            break
+    action = final["messages"][-1]["actions"][0]
+    assert action["type"] == "update_project_settings"
+    approved = client.post(
+        f"/chats/{chat['id']}/actions/{action['id']}",
+        json={"decision": "approve"},
+    )
+    assert approved.status_code == 200, approved.text
+    project = client.get("/project").json()["project"]
+    assert project["isolation"] == "sandbox"
+    assert project["max_parallel_runs"] == 2
+    assert project["local_only"] is True
+    assert project["egress_guard"] is True

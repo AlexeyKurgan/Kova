@@ -2,7 +2,7 @@ import json
 from pathlib import Path
 
 from ..config import app_data_dir
-from ..domain.enums import Engine
+from ..domain.enums import Engine, IsolationMode
 from ..domain.project import Project
 from .hub import create_hub, find_hub
 
@@ -66,9 +66,17 @@ def open_project(
     if not root.is_dir():
         raise FileNotFoundError(f"project folder not found: {project_dir}")
 
-    hub = find_hub(root) or create_hub(root, name)
+    existing_hub = find_hub(root)
+    has_project_file = bool(
+        existing_hub is not None and (existing_hub / "project.json").is_file()
+    )
+    hub = existing_hub or create_hub(root, name)
     project = load_project(hub)
     changed = False
+
+    if not has_project_file and (root / ".git").exists():
+        project.isolation = IsolationMode.worktree
+        changed = True
 
     if name and project.name != name:
         project.name = name

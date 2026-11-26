@@ -195,3 +195,16 @@ def test_native_deny_stops_run(tmp_path: Path, monkeypatch) -> None:
     finally:
         server.shutdown()
         server.server_close()
+
+
+def test_delete_file_uses_trash(tmp_path: Path) -> None:
+    from kova_core.agents import tools
+
+    root = tmp_path / "root"
+    root.mkdir()
+    target = root / "delete-me.txt"
+    target.write_text("data", encoding="utf-8")
+    result = tools.run_tool("delete_file", {"path": "delete-me.txt"}, root, "workspace")
+    assert result["ok"] is True
+    assert result.get("trash")
+    assert not target.exists()

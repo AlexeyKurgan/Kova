@@ -49,7 +49,7 @@ export type TaskType =
 
 export type AgentMode = "clipboard" | "cli" | "api" | "local" | "mcp";
 
-export type IsolationMode = "direct" | "worktree";
+export type IsolationMode = "direct" | "worktree" | "sandbox";
 
 export type RoutingRule = { id: string; tag: string; provider_id: string };
 
@@ -98,6 +98,9 @@ export type Project = {
   max_parallel_runs: number;
   isolation: IsolationMode;
   token_budget: number;
+  local_only: boolean;
+  egress_guard: boolean;
+  remote_consents: string[];
   created_at: string;
   updated_at: string;
 };
@@ -128,6 +131,19 @@ export type ProjectCard = {
 export type ProjectsResponse = {
   projects: ProjectCard[];
   default_parent: string;
+};
+
+export type TrashProject = {
+  id: string;
+  name: string;
+  engine: string;
+  original_path: string;
+  deleted_at: string;
+  path: string;
+};
+
+export type TrashProjectsResponse = {
+  items: TrashProject[];
 };
 
 export type CreateProjectInput = {
@@ -270,12 +286,26 @@ export type AssetMetrics = {
 
 export type ChatAction = {
   id: string;
-  type: "create_task" | "update_task" | "start_agent_run";
+  type: "create_task" | "update_task" | "start_agent_run" | "update_project_settings";
   payload: Record<string, unknown>;
   status: "pending" | "approved" | "rejected" | "failed";
   result: Record<string, unknown>;
   error: string;
 };
+
+export type ChatActivity = {
+  id: string;
+  kind: "thought" | "tool" | "command" | "file" | "network" | "step";
+  label: string;
+  detail: string;
+  status: "running" | "done" | "error";
+  duration_ms: number;
+  output: string;
+  tool?: string;
+  flags?: ChatActivityFlag[];
+};
+
+export type ChatActivityFlag = "external" | "sensitive" | "network";
 
 export type ChatAttachment = {
   id: string;
@@ -287,14 +317,51 @@ export type ChatAttachment = {
   text?: string;
 };
 
+export type ChatEgressFile = {
+  path: string;
+  bytes: number;
+};
+
+export type ChatEgress = {
+  provider_id: string;
+  provider_name: string;
+  remote: boolean;
+  files: ChatEgressFile[];
+  file_bytes: number;
+  attachments: number;
+  attachment_bytes: number;
+  request_bytes: number;
+  network?: { host: string; count: number; allowed: boolean }[];
+};
+
 export type ChatMessage = {
   id: string;
   role: "user" | "assistant";
   content: string;
   raw_content?: string;
   actions?: ChatAction[];
+  activity?: ChatActivity[];
+  egress?: ChatEgress;
   attachments?: ChatAttachment[];
   created_at: string;
+};
+
+export type ChatEffort = string;
+
+export type ModelCatalogModel = {
+  id: string;
+  name: string;
+  free: boolean;
+  efforts: string[];
+  modalities: string[];
+  attachment: boolean;
+};
+
+export type ModelCatalogGroup = {
+  id: string;
+  label: string;
+  count: number;
+  models: ModelCatalogModel[];
 };
 
 export type ChatSummary = {
@@ -302,8 +369,10 @@ export type ChatSummary = {
   title: string;
   scope: "project" | "task";
   task_id: string;
+  task_ids?: string[];
   provider_id: string;
   model: string;
+  effort?: ChatEffort;
   status: "idle" | "running" | "failed";
   updated_at: string;
   message_count: number;
@@ -315,10 +384,15 @@ export type ChatSession = {
   title: string;
   scope: "project" | "task";
   task_id: string;
+  task_ids?: string[];
   provider_id: string;
   model: string;
+  effort?: ChatEffort;
   status: "idle" | "running" | "failed";
   streaming_output: string;
+  activity?: ChatActivity[];
+  run_started_at?: string;
+  external_paths?: string[];
   error: string;
   messages: ChatMessage[];
   created_at: string;
@@ -385,8 +459,10 @@ export type ProviderInfo = {
   timeout: number;
   models: string[];
   default_model: string;
+  default_effort: string;
   models_args: string[];
   read_only_args: string[];
+  chat_args: string[];
   resume_args: string[];
   api_url: string;
   api_model: string;
@@ -481,7 +557,8 @@ export type AiRun = {
   changes_error: string;
   queue_position: number;
   max_parallel_runs: number;
-  isolation: "direct" | "worktree";
+  isolation: "direct" | "worktree" | "sandbox";
+  network?: { host: string; count: number; allowed: boolean }[];
   worktree_path: string;
   worktree_applied_at: string;
   worktree_applied: number;

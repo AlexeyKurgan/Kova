@@ -168,7 +168,12 @@ class ChatViewProvider {
 async function firstProvider() {
   const payload = await request("/providers");
   const providers = (payload && payload.providers) || [];
-  return providers.find((item) => item.installed && item.enabled) || null;
+  const defaultId = payload && payload.default_provider;
+  return (
+    providers.find((item) => item.id === defaultId && item.installed && item.enabled) ||
+    providers.find((item) => item.installed && item.enabled) ||
+    null
+  );
 }
 
 async function openTaskChat(provider, taskId) {
@@ -192,6 +197,7 @@ async function openTaskChat(provider, taskId) {
       task_id: taskId,
       provider_id: providerInfo.id,
       model: providerInfo.default_model || (providerInfo.models && providerInfo.models[0]) || "",
+      effort: providerInfo.default_effort || "auto",
     });
     provider.open(chat.id);
   } catch (error) {
@@ -268,6 +274,7 @@ function activate(context) {
           scope: "project",
           provider_id: provider.id,
           model: provider.default_model || (provider.models && provider.models[0]) || "",
+          effort: provider.default_effort || "auto",
         });
         chatView.open(chat.id);
       } catch (error) {

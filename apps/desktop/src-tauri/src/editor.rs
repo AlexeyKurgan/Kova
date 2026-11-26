@@ -392,6 +392,16 @@ fn open_window(app: &tauri::AppHandle, url: &str) -> Result<(), String> {
         tauri::Theme::Dark
     }));
 
+    let close_handle = app.clone();
+    window.on_window_event(move |event| {
+        if matches!(
+            event,
+            tauri::WindowEvent::CloseRequested { .. } | tauri::WindowEvent::Destroyed
+        ) {
+            shutdown(&close_handle);
+        }
+    });
+
     let chrome = window.clone();
     std::thread::spawn(move || {
         std::thread::sleep(Duration::from_secs(3));
@@ -403,7 +413,18 @@ fn open_window(app: &tauri::AppHandle, url: &str) -> Result<(), String> {
 pub fn shutdown(app: &tauri::AppHandle) {
     let state = app.state::<EditorState>();
     if let Some(mut child) = state.child.lock().unwrap().take() {
-        let _ = child.kill();
+        #[cfg(windows)]
+        {
+            use std::os::windows::process::CommandExt;
+            let _ = std::process::Command::new("taskkill")
+                .args(["/PID", &child.id().to_string(), "/T", "/F"])
+                .creation_flags(0x0800_0000)
+                .status();
+        }
+        #[cfg(not(windows))]
+        {
+            let _ = child.kill();
+        }
         let _ = child.wait();
     }
     *state.url.lock().unwrap() = None;

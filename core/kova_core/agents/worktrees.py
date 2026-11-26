@@ -2,6 +2,7 @@ import hashlib
 import shutil
 import subprocess
 from pathlib import Path
+from typing import Any
 
 from ..config import app_data_dir
 from ..security.paths import resolve_inside
@@ -32,6 +33,38 @@ def worktrees_root(root: Path) -> Path:
     return app_data_dir() / "worktrees" / f"{slug or 'project'}-{digest}"
 
 
+def sandboxes_root(root: Path) -> Path:
+    digest = hashlib.sha256(str(root.resolve()).lower().encode("utf-8")).hexdigest()[:10]
+    slug = "".join(ch if ch.isalnum() or ch in "-_" else "-" for ch in root.name).strip("-")
+    return app_data_dir() / "sandboxes" / f"{slug or 'project'}-{digest}"
+
+
+def create_sandbox(root: Path, run_id: str) -> Path:
+    target = sandboxes_root(root) / run_id
+    if target.exists():
+        shutil.rmtree(target, ignore_errors=True)
+    target.parent.mkdir(parents=True, exist_ok=True)
+    ignore = shutil.ignore_patterns(
+        ".git",
+        ".hub",
+        "node_modules",
+        "__pycache__",
+        ".venv",
+        "dist",
+        "build",
+        ".pytest_cache",
+    )
+    shutil.copytree(root, target, ignore=ignore)
+    return target
+
+
+def remove_sandbox(root: Path, sandbox: Path) -> None:
+    sandbox_base = sandboxes_root(root).resolve()
+    target = sandbox.resolve()
+    if target != sandbox_base and sandbox_base in target.parents and target.is_dir():
+        shutil.rmtree(target, ignore_errors=True)
+
+
 def create_worktree(root: Path, run_id: str) -> Path:
     if not is_git_repo(root):
         raise RuntimeError("проект не является git-репозиторием")
@@ -58,12 +91,40 @@ def remove_worktree(root: Path, worktree: Path) -> None:
     _git(root, "worktree", "prune")
 
 
+def _conflicts(root: Path, paths: list[str]) -> list[str]:
+    if not paths or not is_git_repo(root):
+        return []
+    result = _git(root, "status", "--porcelain", "--", *paths)
+    if result.returncode != 0:
+        return []
+    requested = {path.replace("\\", "/") for path in paths}
+    conflicts: set[str] = set()
+    for line in result.stdout.splitlines():
+        raw = line[3:].strip()
+        if " -> " in raw:
+            raw = raw.split(" -> ", 1)[1]
+        raw = raw.strip('"').replace("\\", "/")
+        if raw in requested:
+            conflicts.add(raw)
+    return sorted(conflicts)
+
+
 def apply_changes(
     root: Path,
     worktree: Path,
     changes: list[dict[str, object]],
-) -> dict[str, int]:
-    counters = {"applied": 0, "deleted": 0, "skipped": 0}
+) -> dict[str, Any]:
+    counters: dict[str, Any] = {"applied": 0, "deleted": 0, "skipped": 0, "conflicts": []}
+    requested = [
+        str(item.get("path") or "")
+        for item in changes
+        if item.get("path")
+        and not (set(Path(str(item.get("path"))).parts) & EXCLUDE_FROM_APPLY)
+    ]
+    conflicts = _conflicts(root, requested)
+    if conflicts:
+        counters["conflicts"] = conflicts
+        return counters
     for item in changes:
         rel = str(item.get("path") or "")
         if not rel:

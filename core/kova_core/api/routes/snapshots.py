@@ -7,7 +7,13 @@ from ...domain.enums import SnapshotScope
 from ...domain.ledger import LedgerEvent
 from ...domain.snapshot import Snapshot
 from ...storage.ledger import append_event
-from ...storage.snapshots import create_snapshot, list_snapshots, restore_snapshot
+from ...storage.snapshots import (
+    cleanup_snapshots,
+    create_snapshot,
+    delete_snapshot,
+    list_snapshots,
+    restore_snapshot,
+)
 from ..deps import require_hub
 
 router = APIRouter(prefix="/snapshots", tags=["snapshots"])
@@ -38,6 +44,17 @@ def post_snapshot(
         ),
     )
     return snapshot
+
+
+@router.post("/cleanup")
+def post_cleanup(keep: int = 10, days: int = 30, hub: Path = Depends(require_hub)) -> dict[str, int]:
+    return cleanup_snapshots(hub, keep, days)
+
+
+@router.delete("/{snapshot_id}", status_code=204)
+def delete_snapshot_route(snapshot_id: str, hub: Path = Depends(require_hub)) -> None:
+    if not delete_snapshot(hub, snapshot_id):
+        raise HTTPException(status_code=404, detail="snapshot not found")
 
 
 @router.post("/{snapshot_id}/restore", response_model=Snapshot)

@@ -24,6 +24,7 @@ def cleanup(hub: Path, keep: int = 50) -> dict[str, int]:
         "worktrees_removed": 0,
     }
     worktrees_base = (app_data_dir() / "worktrees").resolve()
+    sandboxes_base = (app_data_dir() / "sandboxes").resolve()
 
     runs_dir = hub / "agents" / "runs"
     if runs_dir.is_dir():
@@ -55,7 +56,7 @@ def cleanup(hub: Path, keep: int = 50) -> dict[str, int]:
             worktree_path = str(payload.get("worktree_path") or "")
             if worktree_path:
                 target = Path(worktree_path).resolve()
-                if worktrees_base in target.parents and target.is_dir():
+                if (worktrees_base in target.parents or sandboxes_base in target.parents) and target.is_dir():
                     shutil.rmtree(target, ignore_errors=True)
                     counters["worktrees_removed"] += 1
 

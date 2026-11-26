@@ -7,6 +7,7 @@ from kova_core.api.server import create_app
 
 def make_client(tmp_path: Path, monkeypatch) -> TestClient:
     monkeypatch.setenv("KOVA_DATA_DIR", str(tmp_path / "data"))
+    monkeypatch.setenv("LOCALAPPDATA", str(tmp_path / "local"))
     monkeypatch.delenv("KOVA_CORE_TOKEN", raising=False)
     return TestClient(create_app())
 
@@ -132,3 +133,83 @@ def test_task_archive_and_delete(tmp_path: Path, monkeypatch) -> None:
     assert client.delete(f"/tasks/{task['id']}").status_code == 204
     assert client.delete(f"/tasks/{task['id']}/purge").status_code == 204
     assert client.get("/tasks/trash").json() == []
+
+
+def test_git_project_defaults_to_worktree(tmp_path: Path, monkeypatch) -> None:
+    client = make_client(tmp_path, monkeypatch)
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    (repo / ".git").mkdir()
+    (repo / "README.md").write_text("game", encoding="utf-8")
+    opened = client.post(
+        "/project/open",
+        json={"path": str(repo), "name": "Git Game"},
+    )
+    assert opened.status_code == 200, opened.text
+    assert opened.json()["project"]["isolation"] == "worktree"
+
+    plain = tmp_path / "plain"
+    plain.mkdir()
+    other = client.post(
+        "/project/open",
+        json={"path": str(plain), "name": "Plain Game"},
+    )
+    assert other.status_code == 200, other.text
+    assert other.json()["project"]["isolation"] == "direct"
+
+
+def test_project_trash_restore_and_purge(tmp_path: Path, monkeypatch) -> None:
+    client = make_client(tmp_path, monkeypatch)
+    parent = tmp_path / "games"
+    created = client.post(
+        "/projects",
+        json={"name": "Trash Me", "engine": "godot", "parent": str(parent)},
+    ).json()
+    root = Path(created["path"])
+    assert root.is_dir()
+
+    deleted = client.delete(f"/projects/{created['id']}?delete_files=true")
+    assert deleted.status_code == 204
+    assert not root.exists()
+    items = client.get("/projects/trash").json()["items"]
+    assert len(items) == 1
+    item = items[0]
+    assert item["name"] == "Trash Me"
+    assert item["original_path"] == str(root.resolve())
+
+    restored = client.post(f"/projects/trash/{item['id']}/restore")
+    assert restored.status_code == 200, restored.text
+    assert root.is_dir()
+    assert client.get("/projects/trash").json()["items"] == []
+    cards = client.get("/projects").json()["projects"]
+    assert any(card["name"] == "Trash Me" for card in cards)
+
+    deleted_again = client.delete(f"/projects/{created['id']}?delete_files=true")
+    assert deleted_again.status_code == 204
+    item = client.get("/projects/trash").json()["items"][0]
+    purged = client.delete(f"/projects/trash/{item['id']}")
+    assert purged.status_code == 204
+    assert not root.exists()
+    assert client.get("/projects/trash").json()["items"] == []
+
+
+def test_project_trash_cleanup_removes_old_entries(tmp_path: Path, monkeypatch) -> None:
+    import json
+
+    client = make_client(tmp_path, monkeypatch)
+    created = client.post(
+        "/projects",
+        json={"name": "Old Trash", "engine": "generic", "parent": str(tmp_path / "games")},
+    ).json()
+    client.delete(f"/projects/{created['id']}?delete_files=true")
+    item = client.get("/projects/trash").json()["items"][0]
+    meta_path = Path(item["path"]) / ".kova-trash.json"
+    meta = json.loads(meta_path.read_text(encoding="utf-8"))
+    meta["deleted_at"] = "2020-01-01T00:00:00+00:00"
+    meta_path.write_text(json.dumps(meta), encoding="utf-8")
+
+    cleaned = client.post("/projects/trash/cleanup?days=30")
+    assert cleaned.status_code == 200, cleaned.text
+    assert cleaned.json()["removed"] == 1
+    assert client.get("/projects/trash").json()["items"] == []
+    assert not Path(item["path"]).exists()

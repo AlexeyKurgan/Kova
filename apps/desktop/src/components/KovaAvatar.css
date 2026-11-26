@@ -1,0 +1,124 @@
+.kova-avatar {
+  --kova-fur: #323b4b;
+  --kova-fur-shadow: #262d3a;
+  --kova-cream: #efe8dc;
+  --kova-ear-inner: #e5c394;
+  --kova-outline: #1e2430;
+  --kova-gold: #d6992e;
+  --kova-success: #229965;
+  --kova-error: #d14949;
+  --kova-white: #ffffff;
+  display: inline-block;
+  flex-shrink: 0;
+  user-select: none;
+  overflow: visible;
+}
+
+.kova-avatar .kova-whole { transform-origin: 72px 136px; }
+.kova-avatar .kova-head { transform-origin: 72px 78px; }
+.kova-avatar .kova-ear-l { transform-origin: 48px 50px; }
+.kova-avatar .kova-ear-r { transform-origin: 96px 50px; }
+.kova-avatar .kova-tail { transform-origin: 94px 128px; }
+.kova-avatar .kova-paw-l { transform-origin: 59px 134px; }
+.kova-avatar .kova-paw-r { transform-origin: 85px 134px; }
+.kova-avatar .kova-eyes-open { transform-origin: 72px 69px; }
+.kova-avatar .kova-pupils { transform-origin: 72px 69px; }
+.kova-avatar .kova-pendant { transform-origin: 72px 104px; }
+
+.kova-avatar .kova-eyes-happy,
+.kova-avatar .kova-eyes-sleep,
+.kova-avatar .kova-eyes-error,
+.kova-avatar .kova-prop { display: none; }
+
+.kova-avatar[data-state="idle"] .kova-whole { animation: kova-breathe 3.4s ease-in-out infinite; }
+.kova-avatar[data-state="idle"] .kova-tail { animation: kova-tail-sway 3.2s ease-in-out infinite; }
+.kova-avatar[data-state="idle"] .kova-eyes-open { animation: kova-blink 4.6s ease-in-out infinite; }
+.kova-avatar[data-state="idle"] .kova-ear-r { animation: kova-ear-twitch 5.5s ease-in-out infinite; }
+
+.kova-avatar[data-state="thinking"] .kova-prop-thinking { display: block; }
+.kova-avatar[data-state="thinking"] .kova-head { animation: kova-head-tilt 2.6s ease-in-out infinite; }
+.kova-avatar[data-state="thinking"] .kova-pupils { transform: translate(2px, -2px); }
+.kova-avatar[data-state="thinking"] .kova-tail { animation: kova-tail-sway 4.2s ease-in-out infinite; }
+.kova-avatar[data-state="thinking"] .kova-dot-1 { animation: kova-dot-pulse 1.4s ease-in-out infinite 0s; }
+.kova-avatar[data-state="thinking"] .kova-dot-2 { animation: kova-dot-pulse 1.4s ease-in-out infinite 0.22s; }
+.kova-avatar[data-state="thinking"] .kova-dot-3 { animation: kova-dot-pulse 1.4s ease-in-out infinite 0.44s; }
+
+.kova-avatar[data-state="coding"] .kova-prop-coding { display: block; }
+.kova-avatar[data-state="coding"] .kova-head { animation: kova-nod-fast 1.2s ease-in-out infinite; }
+.kova-avatar[data-state="coding"] .kova-paw-l { animation: kova-type-paw 0.36s ease-in-out infinite; }
+.kova-avatar[data-state="coding"] .kova-paw-r { animation: kova-type-paw 0.36s ease-in-out infinite 0.18s; }
+.kova-avatar[data-state="coding"] .kova-code-badge { transform-origin: 122px 44px; animation: kova-float 1.8s ease-in-out infinite; }
+
+.kova-avatar[data-state="reading"] .kova-prop-reading { display: block; }
+.kova-avatar[data-state="reading"] .kova-whole { animation: kova-breathe 3.6s ease-in-out infinite; }
+.kova-avatar[data-state="reading"] .kova-pupils { animation: kova-read-scan 2.2s ease-in-out infinite; }
+.kova-avatar[data-state="reading"] .kova-book { transform-origin: 124px 66px; animation: kova-float 2.6s ease-in-out infinite; }
+
+.kova-avatar[data-state="searching"] .kova-prop-searching { display: block; }
+.kova-avatar[data-state="searching"] .kova-pupils { animation: kova-search-eyes 2.4s ease-in-out infinite; }
+.kova-avatar[data-state="searching"] .kova-head { animation: kova-head-look 2.4s ease-in-out infinite; }
+.kova-avatar[data-state="searching"] .kova-loupe { transform-origin: 112px 62px; animation: kova-loupe-orbit 2.4s ease-in-out infinite; }
+
+.kova-avatar[data-state="running"] .kova-prop-running { display: block; }
+.kova-avatar[data-state="running"] .kova-whole { animation: kova-run-bob 0.7s ease-in-out infinite; }
+.kova-avatar[data-state="running"] .kova-tail { animation: kova-tail-wag 0.65s ease-in-out infinite; }
+.kova-avatar[data-state="running"] .kova-term-cursor { animation: kova-cursor-blink 0.8s steps(2, start) infinite; }
+
+.kova-avatar[data-state="editing"] .kova-prop-editing { display: block; }
+.kova-avatar[data-state="editing"] .kova-head { animation: kova-nod-fast 1.6s ease-in-out infinite; }
+.kova-avatar[data-state="editing"] .kova-pupils { transform: translate(2px, 1px); }
+.kova-avatar[data-state="editing"] .kova-pencil { transform-origin: 114px 74px; animation: kova-pencil-write 1.1s ease-in-out infinite; }
+
+.kova-avatar[data-state="success"] .kova-eyes-open { display: none; }
+.kova-avatar[data-state="success"] .kova-eyes-happy { display: block; }
+.kova-avatar[data-state="success"] .kova-prop-success { display: block; }
+.kova-avatar[data-state="success"] .kova-whole { animation: kova-happy-hop 1.15s ease-in-out infinite; }
+.kova-avatar[data-state="success"] .kova-tail { animation: kova-tail-wag 0.55s ease-in-out infinite; }
+.kova-avatar[data-state="success"] .kova-badge-pop { transform-origin: 120px 44px; animation: kova-badge-pulse 1.4s ease-in-out infinite; }
+
+.kova-avatar[data-state="error"] .kova-eyes-open { display: none; }
+.kova-avatar[data-state="error"] .kova-eyes-error { display: block; }
+.kova-avatar[data-state="error"] .kova-prop-error { display: block; }
+.kova-avatar[data-state="error"] .kova-whole { animation: kova-error-shake 2.2s ease-in-out infinite; }
+.kova-avatar[data-state="error"] .kova-ear-l { transform: rotate(-16deg) translateY(3px); }
+.kova-avatar[data-state="error"] .kova-ear-r { transform: rotate(16deg) translateY(3px); }
+.kova-avatar[data-state="error"] .kova-badge-pop { transform-origin: 120px 44px; animation: kova-badge-pulse 1.2s ease-in-out infinite; }
+
+.kova-avatar[data-state="sleeping"] .kova-eyes-open { display: none; }
+.kova-avatar[data-state="sleeping"] .kova-eyes-sleep { display: block; }
+.kova-avatar[data-state="sleeping"] .kova-prop-sleeping { display: block; }
+.kova-avatar[data-state="sleeping"] .kova-whole { animation: kova-sleep-breathe 4.4s ease-in-out infinite; }
+.kova-avatar[data-state="sleeping"] .kova-head { transform: translateY(3px) rotate(-4deg); }
+.kova-avatar[data-state="sleeping"] .kova-ear-l { transform: rotate(-10deg) translateY(2px); }
+.kova-avatar[data-state="sleeping"] .kova-ear-r { transform: rotate(10deg) translateY(2px); }
+.kova-avatar[data-state="sleeping"] .kova-z1 { animation: kova-zzz 2.8s ease-out infinite 0s; }
+.kova-avatar[data-state="sleeping"] .kova-z2 { animation: kova-zzz 2.8s ease-out infinite 1.4s; }
+
+.kova-avatar[data-active="false"] * { animation: none !important; }
+
+@media (prefers-reduced-motion: reduce) {
+  .kova-avatar * { animation: none !important; }
+}
+
+@keyframes kova-breathe { 0%, 100% { transform: scale(1, 1); } 50% { transform: scale(1.018, 0.982); } }
+@keyframes kova-sleep-breathe { 0%, 100% { transform: scale(1, 0.985); } 50% { transform: scale(1.03, 0.96); } }
+@keyframes kova-blink { 0%, 44%, 48%, 94%, 98%, 100% { transform: scaleY(1); } 46%, 96% { transform: scaleY(0.08); } }
+@keyframes kova-tail-sway { 0%, 100% { transform: rotate(0deg); } 50% { transform: rotate(8deg); } }
+@keyframes kova-tail-wag { 0%, 100% { transform: rotate(-6deg); } 50% { transform: rotate(13deg); } }
+@keyframes kova-ear-twitch { 0%, 86%, 100% { transform: rotate(0deg); } 90% { transform: rotate(11deg); } 94% { transform: rotate(-3deg); } }
+@keyframes kova-head-tilt { 0%, 100% { transform: rotate(-4deg); } 50% { transform: rotate(5deg); } }
+@keyframes kova-head-look { 0%, 100% { transform: rotate(0deg) translateX(0); } 50% { transform: rotate(4deg) translateX(2px); } }
+@keyframes kova-nod-fast { 0%, 100% { transform: translateY(0) rotate(0deg); } 50% { transform: translateY(2px) rotate(1.5deg); } }
+@keyframes kova-type-paw { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
+@keyframes kova-read-scan { 0%, 100% { transform: translate(-2px, 1.5px); } 45% { transform: translate(2.5px, 1.5px); } 55% { transform: translate(2.5px, 2px); } 90% { transform: translate(-2px, 2px); } }
+@keyframes kova-search-eyes { 0%, 100% { transform: translate(2px, -1px); } 50% { transform: translate(3px, 1px); } }
+@keyframes kova-loupe-orbit { 0%, 100% { transform: translate(0, 0) rotate(-4deg); } 33% { transform: translate(4px, -4px) rotate(5deg); } 66% { transform: translate(-2px, 3px) rotate(-2deg); } }
+@keyframes kova-run-bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-3.5px); } }
+@keyframes kova-pencil-write { 0%, 100% { transform: translate(0, 0) rotate(0deg); } 25% { transform: translate(3px, -2px) rotate(8deg); } 50% { transform: translate(-2px, 2px) rotate(-6deg); } 75% { transform: translate(2px, 1px) rotate(5deg); } }
+@keyframes kova-happy-hop { 0%, 100% { transform: translateY(0) scale(1, 1); } 35% { transform: translateY(-6px) scale(0.98, 1.03); } 65% { transform: translateY(0) scale(1.03, 0.96); } }
+@keyframes kova-error-shake { 0%, 72%, 100% { transform: translateX(0); } 78% { transform: translateX(-3px); } 84% { transform: translateX(3px); } 90% { transform: translateX(-2px); } 95% { transform: translateX(2px); } }
+@keyframes kova-dot-pulse { 0%, 100% { opacity: 0.35; transform: translateY(0); } 50% { opacity: 1; transform: translateY(-3px); } }
+@keyframes kova-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
+@keyframes kova-badge-pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.09); } }
+@keyframes kova-cursor-blink { 0% { opacity: 1; } 100% { opacity: 0; } }
+@keyframes kova-zzz { 0% { opacity: 0; transform: translate(0, 8px) scale(0.7); } 25% { opacity: 1; } 80% { opacity: 0.9; } 100% { opacity: 0; transform: translate(9px, -16px) scale(1.15); } }

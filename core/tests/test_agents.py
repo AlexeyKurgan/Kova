@@ -913,3 +913,97 @@ def test_routing_rules_and_roles(tmp_path: Path, monkeypatch) -> None:
     prompt = (game / "role.txt").read_text(encoding="utf-8")
     assert "## Роль" in prompt
     assert "Be strict and list risks." in prompt
+
+
+def test_worktree_apply_detects_conflicts(tmp_path: Path, monkeypatch) -> None:
+    client = make_client(tmp_path, monkeypatch)
+    game = tmp_path / "game"
+    game.mkdir()
+    _git(game, "init")
+    (game / "readme.txt").write_text("base" + chr(10), encoding="utf-8")
+    _git(game, "add", "readme.txt")
+    _git(
+        game,
+        "-c",
+        "user.email=test@example.com",
+        "-c",
+        "user.name=Test",
+        "commit",
+        "-m",
+        "init",
+    )
+    client.post("/project/open", json={"path": str(game)})
+    client.patch("/project", json={"isolation": "worktree"})
+    task = client.post("/tasks", json={"title": "Conflict task"}).json()
+    provider = client.post(
+        "/providers",
+        json={
+            "name": "Writer",
+            "command": sys.executable,
+            "args": [
+                "-c",
+                "from pathlib import Path; Path('readme.txt').write_text('from worktree')",
+            ],
+        },
+    ).json()
+    run = client.post(
+        "/ai/runs",
+        json={"task_id": task["id"], "provider": provider["id"]},
+    ).json()
+    final = run
+    for _ in range(300):
+        time.sleep(0.2)
+        final = client.get(f"/ai/runs/{run['id']}").json()
+        if final["status"] not in {"queued", "running"}:
+            break
+    assert final["status"] == "succeeded"
+    (game / "readme.txt").write_text("user change" + chr(10), encoding="utf-8")
+
+    applied = client.post(f"/ai/runs/{run['id']}/apply-worktree")
+    assert applied.status_code == 400, applied.text
+    assert "конфликт" in applied.json()["detail"].lower()
+    assert (game / "readme.txt").read_text(encoding="utf-8") == "user change" + chr(10)
+    assert Path(run["worktree_path"]).is_dir()
+
+
+def test_sandbox_copy_apply(tmp_path: Path, monkeypatch) -> None:
+    client = make_client(tmp_path, monkeypatch)
+    game = tmp_path / "game"
+    game.mkdir()
+    (game / "readme.txt").write_text("base", encoding="utf-8")
+    client.post("/project/open", json={"path": str(game)})
+    patched = client.patch("/project", json={"isolation": "sandbox"})
+    assert patched.status_code == 200
+    assert patched.json()["project"]["isolation"] == "sandbox"
+
+    task = client.post("/tasks", json={"title": "Sandbox task"}).json()
+    provider = client.post(
+        "/providers",
+        json={
+            "name": "Writer",
+            "command": sys.executable,
+            "args": [
+                "-c",
+                "from pathlib import Path; Path('created.txt').write_text('from sandbox')",
+            ],
+        },
+    ).json()
+    run = client.post(
+        "/ai/runs",
+        json={"task_id": task["id"], "provider": provider["id"]},
+    ).json()
+    assert run["isolation"] == "sandbox"
+    assert run["worktree_path"]
+    final = run
+    for _ in range(300):
+        time.sleep(0.2)
+        final = client.get(f"/ai/runs/{run['id']}").json()
+        if final["status"] not in {"queued", "running"}:
+            break
+    assert final["status"] == "succeeded"
+    assert not (game / "created.txt").exists()
+
+    applied = client.post(f"/ai/runs/{run['id']}/apply-worktree")
+    assert applied.status_code == 200, applied.text
+    assert (game / "created.txt").read_text(encoding="utf-8") == "from sandbox"
+    assert not Path(run["worktree_path"]).exists()

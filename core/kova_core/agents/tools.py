@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Any
 
 from ..security.paths import resolve_inside
+from ..security.trash import move_to_trash
 
 EXCLUDE_DIRS = {".git", ".hub", "node_modules", "__pycache__", ".venv", "dist", "build"}
 MAX_READ = 120_000
@@ -110,8 +111,11 @@ def run_tool(
         target = _safe(root, str(args.get("path") or ""))
         if not target.is_file():
             return {"ok": False, "error": "файл не найден"}
-        target.unlink()
-        return {"ok": True, "path": target.relative_to(root).as_posix()}
+        relative = target.relative_to(root).as_posix()
+        result = move_to_trash(target)
+        if not result.get("ok"):
+            return {"ok": False, "error": str(result.get("error") or "не удалось удалить")}
+        return {"ok": True, "path": relative, "trash": result.get("method")}
 
     if name == "run_command":
         if policy != "auto":

@@ -5,6 +5,8 @@ import shutil
 from datetime import datetime, timezone
 from pathlib import Path
 
+from ..security.trash import move_project_to_trash, move_to_trash
+
 from ..config import app_data_dir
 from ..domain.enums import Engine
 from ..domain.project import Project
@@ -362,5 +364,9 @@ def delete_project(project: str, delete_files: bool = False) -> bool:
         if len(root.parts) < 3 or root == Path(root.anchor):
             raise ValueError("нельзя удалить корневую папку")
         if root.is_dir():
-            shutil.rmtree(root)
+            move_project_to_trash(
+                root,
+                str(row.get("name") or root.name),
+                str(row.get("engine") or ""),
+            )
     return True

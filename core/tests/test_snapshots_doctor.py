@@ -48,6 +48,13 @@ def test_doctor_reports_environment(tmp_path: Path, monkeypatch) -> None:
     assert response.status_code == 200
     checks = {item["name"]: item for item in response.json()}
     assert checks["Структура .hub"]["status"] == "passed"
+    assert checks["Изоляция агентов"]["status"] in {"passed", "warning"}
+    assert checks["Локальный режим"]["status"] in {"passed", "warning"}
+    assert checks["Сетевой щит"]["status"] in {"passed", "warning"}
+    assert checks["Токен Core API"]["status"] in {"passed", "warning"}
+    assert checks["Корзина проектов"]["status"] in {"passed", "warning"}
+    assert checks["Process containment"]["status"] in {"passed", "warning"}
+    assert checks["OS sandbox"]["status"] in {"passed", "warning"}
     assert "Свободное место" in checks
     assert "Blender" in checks
 
@@ -83,3 +90,29 @@ def test_snapshot_diff(tmp_path: Path) -> None:
             patch = (game / ".hub" / item["patch_path"]).read_text(encoding="utf-8")
             assert "-before" in patch
             assert "+after" in patch
+
+
+def test_snapshot_delete_and_cleanup(tmp_path: Path, monkeypatch) -> None:
+    import json
+
+    client = make_client(tmp_path, monkeypatch)
+    game = tmp_path / "game"
+    game.mkdir()
+    (game / "a.txt").write_text("a", encoding="utf-8")
+    client.post("/project/open", json={"path": str(game)})
+    first = client.post("/snapshots", json={"reason": "first"}).json()
+    second = client.post("/snapshots", json={"reason": "second"}).json()
+
+    meta = game / ".hub" / "snapshots" / f"{first['id']}.json"
+    data = json.loads(meta.read_text(encoding="utf-8"))
+    data["created_at"] = "2020-01-01T00:00:00+00:00"
+    meta.write_text(json.dumps(data), encoding="utf-8")
+
+    cleaned = client.post("/snapshots/cleanup?keep=1&days=1")
+    assert cleaned.status_code == 200, cleaned.text
+    assert cleaned.json()["removed"] == 1
+    assert [item["id"] for item in client.get("/snapshots").json()] == [second["id"]]
+
+    deleted = client.delete(f"/snapshots/{second['id']}")
+    assert deleted.status_code == 204
+    assert client.get("/snapshots").json() == []

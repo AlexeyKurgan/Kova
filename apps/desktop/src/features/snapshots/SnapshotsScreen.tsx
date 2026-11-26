@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
-import { Camera, Plus, RotateCcw, Sparkles, X } from "lucide-react";
+import { Camera, Plus, RotateCcw, Sparkles, Trash2, X } from "lucide-react";
 import { formatDate } from "../../lib/format";
 import type { Snapshot } from "../../lib/types";
 
@@ -8,12 +8,21 @@ type Props = {
   snapshots: Snapshot[];
   onCreate: (reason: string) => Promise<void>;
   onRestore: (snapshotId: string) => void;
+  onDelete: (snapshotId: string) => Promise<void>;
+  onCleanup: () => Promise<void>;
 };
 
-export default function SnapshotsScreen({ snapshots, onCreate, onRestore }: Props) {
+export default function SnapshotsScreen({
+  snapshots,
+  onCreate,
+  onRestore,
+  onDelete,
+  onCleanup,
+}: Props) {
   const [reasonOpen, setReasonOpen] = useState(false);
   const [reason, setReason] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [busySnapshot, setBusySnapshot] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -40,6 +49,32 @@ export default function SnapshotsScreen({ snapshots, onCreate, onRestore }: Prop
     setSubmitting(false);
   };
 
+  const deleteOne = async (snapshotId: string) => {
+    if (!window.confirm("Удалить этот снапшот навсегда?")) return;
+    setBusySnapshot(snapshotId);
+    setError(null);
+    try {
+      await onDelete(snapshotId);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Не удалось удалить снапшот");
+    } finally {
+      setBusySnapshot(null);
+    }
+  };
+
+  const cleanupOld = async () => {
+    if (!window.confirm("Удалить снапшоты старше 30 дней, кроме последних 10?")) return;
+    setBusySnapshot("cleanup");
+    setError(null);
+    try {
+      await onCleanup();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Не удалось очистить снапшоты");
+    } finally {
+      setBusySnapshot(null);
+    }
+  };
+
   return (
     <section className="assets-screen">
       <div className="assets-heading">
@@ -51,6 +86,17 @@ export default function SnapshotsScreen({ snapshots, onCreate, onRestore }: Prop
           </p>
         </div>
         <div className="header-actions">
+          {snapshots.length ? (
+            <button
+              type="button"
+              className="btn btn-secondary"
+              disabled={busySnapshot !== null}
+              onClick={() => void cleanupOld()}
+            >
+              <Trash2 size={15} />
+              Очистить старые
+            </button>
+          ) : null}
           <button
             type="button"
             className="btn btn-primary"
@@ -95,6 +141,15 @@ export default function SnapshotsScreen({ snapshots, onCreate, onRestore }: Prop
                 >
                   <RotateCcw size={15} />
                   Откатить
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-danger btn-small"
+                  disabled={busySnapshot !== null}
+                  onClick={() => void deleteOne(snapshot.id)}
+                >
+                  <Trash2 size={13} />
+                  Удалить
                 </button>
               </div>
             </article>

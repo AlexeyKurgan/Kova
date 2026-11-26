@@ -18,6 +18,8 @@ class ChatCreateRequest(BaseModel):
     task_id: str = ""
     provider_id: str = ""
     model: str = ""
+    effort: str = "auto"
+    task_ids: list[str] = Field(default_factory=list)
 
 
 class ChatUpdateRequest(BaseModel):
@@ -26,6 +28,9 @@ class ChatUpdateRequest(BaseModel):
     model: str | None = None
     scope: str | None = None
     task_id: str | None = None
+    task_ids: list[str] | None = None
+    effort: str | None = None
+    external_paths: list[str] | None = None
 
 
 class ChatAttachmentInput(BaseModel):
@@ -83,6 +88,8 @@ def create_chat(payload: ChatCreateRequest, hub: Path = Depends(require_hub)) ->
         payload.task_id,
         payload.provider_id,
         payload.model,
+        payload.effort,
+        payload.task_ids,
     )
 
 

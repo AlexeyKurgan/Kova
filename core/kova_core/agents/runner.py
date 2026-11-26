@@ -22,6 +22,8 @@ from .api_agent import run_agent
 from .api_provider import RunCancelled
 from .cli_output import parse_output, stream_display
 from .providers import build_command, build_resume_command, get_provider, provider_env
+from ..security.egress import EgressGuard, apply_guard_env, egress_hosts
+from ..security.job import ProcessJail
 from ..security.secrets import get_secret
 
 RUNS: dict[str, dict[str, Any]] = {}
@@ -267,7 +269,14 @@ def _kill(process: subprocess.Popen[str]) -> None:
         process.terminate()
 
 
-def _execute(hub: Path, run_id: str, provider: dict[str, Any], argv: list[str], cwd: Path) -> None:
+def _execute(
+    hub: Path,
+    run_id: str,
+    provider: dict[str, Any],
+    prompt: str,
+    argv: list[str],
+    cwd: Path,
+) -> None:
     current = get_run(hub, run_id) or {}
     if current.get("shutdown_requested"):
         return
@@ -301,9 +310,21 @@ def _execute(hub: Path, run_id: str, provider: dict[str, Any], argv: list[str], 
         queue_position=0,
     )
     timeout = int(provider.get("timeout") or 1800)
+    guard: EgressGuard | None = None
+    try:
+        project = load_project(hub)
+    except (OSError, ValueError):
+        project = None
+    if project is not None and project.egress_guard:
+        hosts = egress_hosts(provider)
+        if hosts:
+            guard = EgressGuard(hosts)
+    jail = ProcessJail()
     env = provider_env()
     env["KOVA_PROJECT_PATH"] = str(cwd)
     env["KOVA_RUN_ID"] = run_id
+    if guard is not None:
+        env = apply_guard_env(env, guard)
     chunks: list[str] = []
     chunks_lock = threading.Lock()
 
@@ -324,6 +345,8 @@ def _execute(hub: Path, run_id: str, provider: dict[str, Any], argv: list[str], 
         if use_stdin and process.stdin is not None:
             process.stdin.write(prompt)
             process.stdin.close()
+        if jail.available:
+            jail.assign(process.pid)
         with LOCK:
             PROCESSES[run_id] = process
         _update(hub, run_id, pid=process.pid)
@@ -428,6 +451,13 @@ def _execute(hub: Path, run_id: str, provider: dict[str, Any], argv: list[str], 
         if not (get_run(hub, run_id) or {}).get("shutdown_requested"):
             _finish(hub, run_id, status="failed", output="", exit_code=None, error=str(exc))
     finally:
+        if guard is not None:
+            try:
+                _update(hub, run_id, network=guard.summary())
+            except (OSError, ValueError):
+                pass
+            guard.stop()
+        jail.close()
         SLOTS.release(hub, run_id)
         with LOCK:
             PROCESSES.pop(run_id, None)
@@ -923,6 +953,15 @@ def start_run(
         worktree_path = str(worktree)
         isolation = "worktree"
         snapshot = True
+    elif project.isolation == IsolationMode.sandbox:
+        try:
+            sandbox = worktrees.create_sandbox(hub.parent, run_id)
+        except (OSError, RuntimeError, subprocess.SubprocessError) as exc:
+            raise RuntimeError(f"sandbox: {exc}") from exc
+        cwd = sandbox
+        worktree_path = str(sandbox)
+        isolation = "sandbox"
+        snapshot = True
 
     role = routing.get_role(role_id) if role_id else None
     role_prefix = ""
@@ -1074,6 +1113,7 @@ def start_run(
         "cli_session_id": resume_cli_id,
         "usage": None,
         "actions": [],
+        "network": [],
         "worktree_path": worktree_path,
         "worktree_applied_at": "",
         "worktree_applied": 0,
@@ -1102,7 +1142,7 @@ def start_run(
         target=_execute_api if is_api else _execute,
         args=(hub, run_id, provider, prompt, cwd, tool_policy)
         if is_api
-        else (hub, run_id, provider, argv, cwd),
+        else (hub, run_id, provider, prompt, argv, cwd),
         daemon=True,
         name=f"kova-run-{run_id}",
     )
@@ -1202,7 +1242,16 @@ def apply_worktree_run(hub: Path, run_id: str) -> dict[str, Any]:
         worktree,
         list(record.get("changes") or []),
     )
-    worktrees.remove_worktree(hub.parent, worktree)
+    conflicts = list(counters.get("conflicts") or [])
+    if conflicts:
+        raise RuntimeError(
+            "конфликт: эти файлы изменены в проекте после запуска: "
+            + ", ".join(conflicts[:8])
+        )
+    if str(record.get("isolation") or "") == "sandbox":
+        worktrees.remove_sandbox(hub.parent, worktree)
+    else:
+        worktrees.remove_worktree(hub.parent, worktree)
     updated = _update(
         hub,
         run_id,

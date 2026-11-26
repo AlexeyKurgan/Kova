@@ -4,7 +4,6 @@ import {
   Bot,
   Box,
   Camera,
-  Cat,
   ChevronDown,
   ClipboardList,
   Code2,
@@ -23,6 +22,7 @@ import { engineBrand } from "../lib/brands";
 import { ENGINE_LABELS } from "../lib/labels";
 import type { Engine, Section } from "../lib/types";
 import BrandIcon from "./BrandIcon";
+import KovaLogo from "./KovaLogo";
 
 type NavItem = {
   label: Section;
@@ -166,7 +166,7 @@ export default function Sidebar({
   return (
     <aside className={`sidebar${collapsed ? " is-collapsed" : ""}`}>
       <div className="sidebar-logo">
-        <Cat size={20} strokeWidth={1.7} className="brand-icon" />
+        <KovaLogo size={20} className="brand-icon" />
         <span className="sidebar-brand">Kova Hub</span>
       </div>
 
@@ -180,7 +180,7 @@ export default function Sidebar({
           <img className="project-thumb" src={projectCover} alt="" />
         ) : (
           <span className="project-thumb project-thumb-brand">
-            {brand ? <BrandIcon name={brand} size={22} /> : <Cat size={20} />}
+            {brand ? <BrandIcon name={brand} size={22} /> : <KovaLogo size={20} />}
           </span>
         )}
         <span className="project-meta">

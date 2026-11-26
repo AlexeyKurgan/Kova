@@ -28,6 +28,9 @@ class UpdateProjectRequest(BaseModel):
     max_parallel_runs: int | None = Field(default=None, ge=1, le=4)
     isolation: IsolationMode | None = None
     token_budget: int | None = Field(default=None, ge=0, le=100_000_000)
+    local_only: bool | None = None
+    egress_guard: bool | None = None
+    remote_consents: list[str] | None = None
 
 
 class ProjectResponse(BaseModel):
@@ -66,6 +69,18 @@ def update_project_route(payload: UpdateProjectRequest) -> ProjectResponse:
         project.isolation = payload.isolation
     if payload.token_budget is not None:
         project.token_budget = payload.token_budget
+    if payload.local_only is not None:
+        project.local_only = payload.local_only
+    if payload.egress_guard is not None:
+        project.egress_guard = payload.egress_guard
+    if payload.remote_consents is not None:
+        project.remote_consents = list(
+            dict.fromkeys(
+                str(item).strip()
+                for item in payload.remote_consents
+                if str(item).strip()
+            )
+        )[:50]
     save_project(hub, project)
     return _response(project, hub)
 

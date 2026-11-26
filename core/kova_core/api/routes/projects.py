@@ -7,6 +7,12 @@ from pydantic import BaseModel, Field
 from ...domain.enums import Engine
 from ...domain.ledger import LedgerEvent
 from ...storage.ledger import append_event
+from ...security.trash import (
+    cleanup_project_trash,
+    list_project_trash,
+    purge_project_trash,
+    restore_project_trash,
+)
 from ...storage.registry import (
     cover_file,
     create_project,
@@ -16,6 +22,7 @@ from ...storage.registry import (
     get_project,
     list_projects,
     open_project_by_id,
+    register,
     set_cover,
     update_project,
 )
@@ -59,6 +66,18 @@ class UpdateProjectRequest(BaseModel):
     name: str | None = Field(default=None, min_length=1, max_length=120)
     engine: Engine | None = None
 
+class TrashProject(BaseModel):
+    id: str
+    name: str
+    engine: str = ""
+    original_path: str
+    deleted_at: str = ""
+    path: str = ""
+
+
+class TrashProjectsResponse(BaseModel):
+    items: list[TrashProject]
+
 
 class DuplicateProjectRequest(BaseModel):
     name: str = Field(min_length=1, max_length=120)
@@ -67,6 +86,44 @@ class DuplicateProjectRequest(BaseModel):
 
 class CoverRequest(BaseModel):
     path: str
+
+
+@router.get("/trash", response_model=TrashProjectsResponse)
+def list_trash_route() -> TrashProjectsResponse:
+    return TrashProjectsResponse(
+        items=[TrashProject(**item) for item in list_project_trash()]
+    )
+
+
+@router.post("/trash/cleanup")
+def cleanup_trash_route(days: int = Query(default=30, ge=1, le=3650)) -> dict[str, int]:
+    return cleanup_project_trash(days)
+
+
+@router.post("/trash/{trash_id}/restore", response_model=TrashProject)
+def restore_trash_route(trash_id: str) -> TrashProject:
+    result = restore_project_trash(trash_id)
+    if not result.get("ok"):
+        raise HTTPException(status_code=400, detail=str(result.get("error") or "restore failed"))
+    original = Path(str(result.get("original_path") or ""))
+    try:
+        register(original, str(result.get("name") or ""), Engine(str(result.get("engine") or "generic")))
+    except (FileNotFoundError, ValueError):
+        pass
+    return TrashProject(
+        id=str(result.get("id") or trash_id),
+        name=str(result.get("name") or original.name),
+        engine=str(result.get("engine") or ""),
+        original_path=str(original),
+        deleted_at=str(result.get("deleted_at") or ""),
+        path=str(result.get("path") or original),
+    )
+
+
+@router.delete("/trash/{trash_id}", status_code=204)
+def purge_trash_route(trash_id: str) -> None:
+    if not purge_project_trash(trash_id):
+        raise HTTPException(status_code=404, detail="trash entry not found")
 
 
 @router.get("", response_model=ProjectsResponse)

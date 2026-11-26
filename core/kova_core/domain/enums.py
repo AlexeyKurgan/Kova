@@ -15,6 +15,7 @@ class TaskStatus(StrEnum):
 class IsolationMode(StrEnum):
     direct = "direct"
     worktree = "worktree"
+    sandbox = "sandbox"
 
 
 class ValidationMode(StrEnum):

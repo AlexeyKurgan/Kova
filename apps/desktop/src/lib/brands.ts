@@ -10,6 +10,8 @@ export const ENGINE_BRAND: Partial<Record<Engine, BrandName>> = {
 };
 
 export const PROVIDER_BRAND: Record<string, BrandName | undefined> = {
+  openai: "openai",
+  google: "gemini",
   claude: "claude",
   codex: "openai",
   gemini: "gemini",

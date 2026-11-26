@@ -12,13 +12,20 @@ import {
   Pencil,
   Plus,
   RefreshCw,
+  RotateCcw,
   Search,
   Trash2,
   X,
 } from "lucide-react";
 import BrandIcon from "../../components/BrandIcon";
 import { engineBrand } from "../../lib/brands";
-import { coreUrl } from "../../lib/coreClient";
+import {
+  cleanupProjectTrash,
+  coreUrl,
+  listProjectTrash,
+  purgeProjectTrash,
+  restoreProjectTrash,
+} from "../../lib/coreClient";
 import { plural } from "../../lib/format";
 import { pickFolder, pickImage } from "../../lib/dialogs";
 import { ENGINE_LABELS } from "../../lib/labels";
@@ -27,6 +34,7 @@ import type {
   DuplicateProjectInput,
   Engine,
   ProjectCard,
+  TrashProject,
 } from "../../lib/types";
 
 type Props = {
@@ -93,6 +101,11 @@ export default function ProjectsScreen({
   const [sort, setSort] = useState("recent");
   const [view, setView] = useState<"grid" | "list">("grid");
   const [menuFor, setMenuFor] = useState<string | null>(null);
+  const [trashOpen, setTrashOpen] = useState(false);
+  const [trashItems, setTrashItems] = useState<TrashProject[]>([]);
+  const [trashLoading, setTrashLoading] = useState(false);
+  const [trashBusy, setTrashBusy] = useState<string | null>(null);
+  const [trashError, setTrashError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!menuFor) return;
@@ -211,6 +224,67 @@ export default function ProjectsScreen({
     }
   };
 
+  const loadTrash = async () => {
+    setTrashLoading(true);
+    setTrashError(null);
+    try {
+      const data = await listProjectTrash();
+      setTrashItems(data.items);
+    } catch (err) {
+      setTrashError(err instanceof Error ? err.message : "Не удалось загрузить корзину");
+    } finally {
+      setTrashLoading(false);
+    }
+  };
+
+  const openTrash = () => {
+    setTrashOpen(true);
+    void loadTrash();
+  };
+
+  const restoreTrash = async (item: TrashProject) => {
+    setTrashBusy(item.id);
+    setTrashError(null);
+    try {
+      await restoreProjectTrash(item.id);
+      await loadTrash();
+      onRefresh();
+    } catch (err) {
+      setTrashError(err instanceof Error ? err.message : "Не удалось восстановить проект");
+    } finally {
+      setTrashBusy(null);
+    }
+  };
+
+  const cleanupTrash = async () => {
+    if (!window.confirm("Удалить из корзины проекты старше 30 дней?")) return;
+    setTrashBusy("cleanup");
+    setTrashError(null);
+    try {
+      const result = await cleanupProjectTrash(30);
+      await loadTrash();
+      if (!result.removed) setTrashError("Старых записей нет.");
+    } catch (err) {
+      setTrashError(err instanceof Error ? err.message : "Не удалось очистить корзину");
+    } finally {
+      setTrashBusy(null);
+    }
+  };
+
+  const purgeTrash = async (item: TrashProject) => {
+    if (!window.confirm(`Удалить «${item.name}» из корзины навсегда?`)) return;
+    setTrashBusy(item.id);
+    setTrashError(null);
+    try {
+      await purgeProjectTrash(item.id);
+      await loadTrash();
+    } catch (err) {
+      setTrashError(err instanceof Error ? err.message : "Не удалось очистить корзину");
+    } finally {
+      setTrashBusy(null);
+    }
+  };
+
   const openProject = async (project: ProjectCard) => {
     if (!project.exists || project.active) return;
     setBusy(true);
@@ -237,6 +311,10 @@ export default function ProjectsScreen({
           </p>
         </div>
         <div className="header-actions">
+          <button type="button" className="btn btn-secondary" onClick={openTrash}>
+            <Trash2 size={15} />
+            Корзина
+          </button>
           <button type="button" className="btn btn-primary" onClick={openCreate}>
             <Plus size={15} />
             Новый проект
@@ -505,8 +583,8 @@ export default function ProjectsScreen({
                         onChange={() => setDeleteFiles(true)}
                       />
                       <span>
-                        <b>Удалить с диска</b>
-                        <small>Проект, .hub и все ассеты будут удалены безвозвратно.</small>
+                        <b>Удалить из Kova</b>
+                        <small>Проект, .hub и ассеты будут перемещены в корзину Kova — их можно восстановить.</small>
                       </span>
                     </label>
                   </div>
@@ -603,8 +681,94 @@ export default function ProjectsScreen({
                       : dialog.kind === "duplicate"
                         ? "Дублировать"
                         : deleteFiles
-                          ? "Удалить с диска"
+                          ? "Переместить в корзину"
                           : "Убрать из Kova"}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {trashOpen ? (
+        <div
+          className="modal-backdrop"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget && !trashBusy) setTrashOpen(false);
+          }}
+        >
+          <div className="modal project-trash-dialog">
+            <div className="modal-header">
+              <span className="modal-title">Корзина проектов</span>
+              <button
+                type="button"
+                className="icon-btn"
+                onClick={() => !trashBusy && setTrashOpen(false)}
+                aria-label="Закрыть"
+              >
+                <X size={14} />
+              </button>
+            </div>
+            <div className="modal-body">
+              {trashError ? <p className="modal-error">{trashError}</p> : null}
+              {trashLoading ? (
+                <p className="project-hint">Загрузка…</p>
+              ) : trashItems.length === 0 ? (
+                <p className="project-hint">Корзина пуста.</p>
+              ) : (
+                <div className="project-trash-list">
+                  {trashItems.map((item) => (
+                    <div className="project-trash-row" key={item.id}>
+                      <div className="project-trash-copy">
+                        <b>{item.name}</b>
+                        <small title={item.original_path}>{item.original_path}</small>
+                        <span>
+                          {item.deleted_at
+                            ? new Date(item.deleted_at).toLocaleString()
+                            : "Удалён"}
+                        </span>
+                      </div>
+                      <div className="project-trash-actions">
+                        <button
+                          type="button"
+                          className="btn btn-secondary btn-small"
+                          disabled={trashBusy !== null}
+                          onClick={() => void restoreTrash(item)}
+                        >
+                          <RotateCcw size={12} />
+                          Восстановить
+                        </button>
+                        <button
+                          type="button"
+                          className="btn btn-danger btn-small"
+                          disabled={trashBusy !== null}
+                          onClick={() => void purgeTrash(item)}
+                        >
+                          <Trash2 size={12} />
+                          Навсегда
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className="modal-footer">
+              <button
+                type="button"
+                className="btn btn-secondary"
+                disabled={trashBusy !== null || trashItems.length === 0}
+                onClick={() => void cleanupTrash()}
+              >
+                Очистить старше 30 дней
+              </button>
+              <span className="modal-footer-spacer" />
+              <button
+                type="button"
+                className="btn btn-secondary"
+                disabled={trashBusy !== null}
+                onClick={() => setTrashOpen(false)}
+              >
+                Закрыть
               </button>
             </div>
           </div>

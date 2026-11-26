@@ -11,6 +11,13 @@ import AssetPassportScreen from "./features/assets/AssetPassportScreen";
 import AssetsScreen from "./features/assets/AssetsScreen";
 import BlenderModal from "./features/blender/BlenderModal";
 import DoctorScreen from "./features/doctor/DoctorScreen";
+import SettingsScreen from "./features/settings/SettingsScreen";
+import {
+  DEFAULT_CHAT_PREFERENCES,
+  applyChatPreferences,
+  loadChatPreferences,
+  saveChatPreferences,
+} from "./lib/chatPreferences";
 import OverviewScreen from "./features/overview/OverviewScreen";
 import ProjectsScreen from "./features/projects/ProjectsScreen";
 import SkillsScreen from "./features/skills/SkillsScreen";
@@ -26,6 +33,8 @@ import TaskDialog from "./features/tasks/TaskDialog";
 import TasksScreen from "./features/tasks/TasksScreen";
 import {
   acceptReview,
+  cleanupSnapshots,
+  deleteSnapshot,
   activateAssetVersion,
   addAssetVersion,
   captureBlenderScreenshot,
@@ -73,6 +82,7 @@ import {
   setProjectCover,
   setupBlender,
   updateAsset,
+  updateProject,
   updateProjectCard,
   updateProvider,
   updateTask,
@@ -109,6 +119,7 @@ export default function App() {
     if (saved === "dark" || saved === "light") return saved;
     return window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
   });
+  const [chatPreferences, setChatPreferences] = useState(loadChatPreferences);
   const [inspectorOpen, setInspectorOpen] = useState(true);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(
     () => window.localStorage.getItem("kova-sidebar-collapsed") === "1",
@@ -244,6 +255,11 @@ export default function App() {
     document.documentElement.dataset.theme = theme;
     window.localStorage.setItem("kova-theme", theme);
   }, [theme]);
+
+  useEffect(() => {
+    applyChatPreferences(chatPreferences);
+    saveChatPreferences(chatPreferences);
+  }, [chatPreferences]);
 
   const toggleTheme = useCallback(
     () => setTheme((current) => (current === "dark" ? "light" : "dark")),
@@ -398,6 +414,15 @@ export default function App() {
     },
     [refreshProviders],
   );
+
+  const grantRemoteConsent = async (providerId: string) => {
+    const current = project?.remote_consents ?? [];
+    if (current.includes(providerId)) return;
+    const data = await updateProject({
+      remote_consents: [...current, providerId],
+    });
+    setProject(data.project);
+  };
 
   const refreshProjects = useCallback(async () => {
     setProjectsLoading(true);
@@ -582,6 +607,19 @@ export default function App() {
     },
     [reload],
   );
+
+  const handleDeleteSnapshot = useCallback(
+    async (snapshotId: string) => {
+      await deleteSnapshot(snapshotId);
+      await loadProjectData();
+    },
+    [loadProjectData],
+  );
+
+  const handleCleanupSnapshots = useCallback(async () => {
+    await cleanupSnapshots(10, 30);
+    await loadProjectData();
+  }, [loadProjectData]);
 
   const handleRestoreSnapshot = useCallback(
     async (snapshotId: string) => {
@@ -1097,6 +1135,11 @@ export default function App() {
               defaultProvider={defaultProvider}
               tasks={tasks}
               engine={project?.engine ?? "generic"}
+              localOnly={project?.local_only ?? false}
+              remoteConsents={project?.remote_consents ?? []}
+              onGrantConsent={grantRemoteConsent}
+              onProjectChanged={() => void loadProjectData()}
+              chatPreferences={chatPreferences}
               onOpenTask={(taskId) => {
                 setActive("Задачи");
                 setOpenTaskId(taskId);
@@ -1159,6 +1202,14 @@ export default function App() {
               snapshots={snapshots}
               onCreate={handleCreateSnapshot}
               onRestore={(id) => void handleRestoreSnapshot(id)}
+              onDelete={handleDeleteSnapshot}
+              onCleanup={handleCleanupSnapshots}
+            />
+          ) : active === "Настройки" ? (
+            <SettingsScreen
+              preferences={chatPreferences}
+              onPreferences={setChatPreferences}
+              onReset={() => setChatPreferences(DEFAULT_CHAT_PREFERENCES)}
             />
           ) : active === "Doctor" ? (
             <DoctorScreen checks={doctor} onRefresh={() => void reload()} />

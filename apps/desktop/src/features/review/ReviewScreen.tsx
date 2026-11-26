@@ -322,18 +322,18 @@ export default function ReviewScreen({ items, tasks, onAccept, onRework }: Props
                   <div className="review-changes">
                     <div className="review-changes-head">
                       <span>Изменения</span>
-                      {run.isolation === "worktree" ? (
+                      {run.isolation !== "direct" ? (
                         <span
                           className="review-isolation"
-                          title={run.worktree_path || "Отдельная git-копия"}
+                          title={run.worktree_path || "Отдельная копия"}
                         >
-                          worktree
+                          {run.isolation === "sandbox" ? "sandbox копия" : "worktree"}
                         </span>
                       ) : null}
                       <b>
                         +{added} ~{modified} -{deleted}
                       </b>
-                      {run.isolation === "worktree" && !run.worktree_applied_at ? (
+                      {run.isolation !== "direct" && !run.worktree_applied_at ? (
                         <button
                           type="button"
                           className="agent-link"

@@ -12,9 +12,16 @@ from typing import Any
 
 from .agents.providers import build_command, get_provider, provider_env
 from .agents.cli_output import parse_output, stream_display
+from .agents.model_catalog import apply_effort
+from .agents.activity import extract_activity
+from .agents.chat_safety import harden_chat_args, prepare_chat_env
+from .agents.app_guide import KOVA_APP_GUIDE
 from .agents.api_provider import run_chat as run_api_chat
 from .domain.ids import new_id
 from .security.secrets import get_secret
+from .security.egress import EgressGuard, apply_guard_env, egress_hosts
+from .security.job import ProcessJail
+from .storage.projects import load_project
 
 LOCK = threading.Lock()
 PROCESSES: dict[str, subprocess.Popen[str]] = {}
@@ -270,16 +277,23 @@ def create_chat(
     task_id: str = "",
     provider_id: str = "",
     model: str = "",
+    effort: str = "auto",
+    task_ids: list[str] | None = None,
 ) -> dict[str, Any]:
     chat = {
         "id": new_id("chat"),
         "title": title.strip() or "Новый чат",
         "scope": "task" if scope == "task" and task_id else "project",
         "task_id": task_id if scope == "task" else "",
+        "task_ids": list(task_ids or ([task_id] if scope == "task" and task_id else [])),
         "provider_id": provider_id,
         "model": model,
+        "effort": effort if effort in {"auto", "low", "medium", "high"} else "auto",
+        "external_paths": [],
         "status": "idle",
         "streaming_output": "",
+        "activity": [],
+        "run_started_at": "",
         "error": "",
         "messages": [],
         "created_at": _now(),
@@ -295,11 +309,33 @@ def update_chat(hub: Path, chat_id: str, payload: dict[str, Any]) -> dict[str, A
         chat = get_chat(hub, chat_id)
         if chat is None:
             return None
-        for key in ("title", "provider_id", "model", "scope", "task_id"):
+        for key in ("title", "provider_id", "model", "scope", "task_id", "effort", "task_ids"):
             if key in payload:
                 chat[key] = payload[key]
+        if "external_paths" in payload:
+            paths: list[str] = []
+            for raw in (payload.get("external_paths") or [])[:8]:
+                text = str(raw).strip().strip('"')
+                if not text:
+                    continue
+                candidate = Path(text).expanduser()
+                if not candidate.is_absolute():
+                    continue
+                try:
+                    resolved = candidate.resolve()
+                except (OSError, ValueError):
+                    continue
+                if resolved.is_dir() and str(resolved) not in paths:
+                    paths.append(str(resolved))
+            chat["external_paths"] = paths
+        if "task_ids" in payload and isinstance(chat.get("task_ids"), list):
+            chat["task_ids"] = [str(item) for item in chat["task_ids"] if str(item).strip()]
+        elif "task_id" in payload:
+            task_id = str(chat.get("task_id") or "")
+            chat["task_ids"] = [task_id] if task_id else []
         if chat.get("scope") != "task":
             chat["task_id"] = ""
+            chat["task_ids"] = []
         chat["updated_at"] = _now()
         _save(hub, chat)
         return chat
@@ -363,12 +399,22 @@ def _task_context(hub: Path, chat: dict[str, Any]) -> str:
     lines.append(f"Ассеты: {len(assets)}")
     for asset in assets[:12]:
         lines.append(f"- {asset.name} · {asset.type.value} · {asset.engine.value}")
-    if chat.get("scope") == "task" and chat.get("task_id"):
-        task = get_task(hub, str(chat["task_id"]))
-        if task is not None:
+    if chat.get("scope") == "task":
+        selected_ids = [
+            str(item)
+            for item in (chat.get("task_ids") or [])
+            if str(item).strip()
+        ]
+        if not selected_ids and chat.get("task_id"):
+            selected_ids = [str(chat["task_id"])]
+        for task_id in selected_ids[:8]:
+            task = get_task(hub, task_id)
+            if task is None:
+                continue
             lines += [
                 "",
-                f"Фокус задачи: {task.title}",
+                f"Выбранная задача: {task.title}",
+                f"Тип: {task.type.value} · движок: {task.engine.value}",
                 f"Цель: {task.goal}",
                 f"Статус: {task.status.value}",
                 "Критерии:",
@@ -425,8 +471,13 @@ def _actions_hint() -> str:
         + fence + nl + nl
         + "Доступные действия: create_task (title, goal, criteria, type), "
         + "update_task (task_id, status, next_step, goal), "
-        + "start_agent_run (task_id, provider_id, message, model)." + nl
-        + "Не утверждай, что действие выполнено: Kova выполнит его только после подтверждения пользователя."
+        + "start_agent_run (task_id, provider_id, message, model), "
+        + "update_project_settings (isolation: direct|worktree|sandbox, "
+        + "max_parallel_runs: 1-4, token_budget: 0+, local_only: true|false, "
+        + "egress_guard: true|false)." + nl
+        + "Если пользователь просит настроить проект или изменить настройки, предложи "
+        + "update_project_settings отдельным блоком. Не утверждай, что настройка уже изменена: "
+        + "Kova применит её только после подтверждения пользователя."
     )
 
 
@@ -443,7 +494,7 @@ def _parse_actions(text: str) -> tuple[str, list[dict[str, Any]]]:
         if not isinstance(payload, dict):
             continue
         kind = str(payload.get("action") or "").strip()
-        if kind not in {"create_task", "update_task", "start_agent_run"}:
+        if kind not in {"create_task", "update_task", "start_agent_run", "update_project_settings"}:
             continue
         if kind == "create_task":
             title = str(payload.get("title") or "").strip()[:200]
@@ -468,6 +519,25 @@ def _parse_actions(text: str) -> tuple[str, list[dict[str, Any]]]:
                 value = payload.get(key)
                 if isinstance(value, str) and value.strip():
                     data[key] = value.strip()[:4000]
+        elif kind == "update_project_settings":
+            data = {}
+            isolation = str(payload.get("isolation") or "").strip()
+            if isolation in {"direct", "worktree", "sandbox"}:
+                data["isolation"] = isolation
+            for key, low, high in (
+                ("max_parallel_runs", 1, 4),
+                ("token_budget", 0, 100_000_000),
+            ):
+                if payload.get(key) is not None:
+                    try:
+                        data[key] = max(low, min(high, int(payload[key])))
+                    except (TypeError, ValueError):
+                        pass
+            for key in ("local_only", "egress_guard"):
+                if isinstance(payload.get(key), bool):
+                    data[key] = bool(payload[key])
+            if not data:
+                continue
         else:
             task_id = str(payload.get("task_id") or "").strip()
             if not task_id:
@@ -492,17 +562,118 @@ def _parse_actions(text: str) -> tuple[str, list[dict[str, Any]]]:
     return clean, actions
 
 
+def _effort_hint(chat: dict[str, Any]) -> str:
+    effort = str(chat.get("effort") or "auto")
+    if effort in {"none", "minimal", "low"}:
+        return "Отвечай максимально кратко и по делу, без длинных вступлений. "
+    if effort == "medium":
+        return "Давай сбалансированный ответ: вывод, краткое объяснение и следующий шаг. "
+    if effort == "high":
+        return (
+            "Анализируй глубоко: проверяй допущения, рассматривай альтернативы, "
+            "явно указывай риски и неуверенность. "
+        )
+    if effort in {"xhigh", "max"}:
+        return (
+            "Работай с максимальной глубиной: проверяй допущения, рассматривай альтернативы, "
+            "явно указывай риски, ограничения и неуверенность. "
+        )
+    return ""
+
+
+def _external_paths_hint(chat: dict[str, Any]) -> str:
+    paths = [
+        str(item).strip()
+        for item in (chat.get("external_paths") or [])
+        if str(item).strip()
+    ][:8]
+    if not paths:
+        return (
+            "Можно читать только папку проекта. Не читай другие проекты, AppData, "
+            "домашнюю папку и системные каталоги. "
+        )
+    return (
+        "Пользователь явно разрешил чтение этих внешних папок (только чтение): "
+        + "; ".join(paths)
+        + ". Другие внешние пути читать нельзя. "
+    )
+
+
+def _settings_context(hub: Path, chat: dict[str, Any]) -> str:
+    project = load_project(hub)
+    providers, default_provider = get_providers_with_default()
+    lines = [
+        "## Текущие настройки Kova",
+        f"Изоляция запусков: {project.isolation.value}",
+        f"Параллельных запусков: {project.max_parallel_runs}",
+        f"Локальный режим: {'включён' if project.local_only else 'выключен'}",
+        f"Сетевой щит: {'включён' if project.egress_guard else 'выключен'}",
+        f"Лимит токенов: {project.token_budget} (0 = без лимита)",
+        f"Провайдер по умолчанию: {default_provider or 'не выбран'}",
+        "Провайдеры: "
+        + (
+            ", ".join(
+                f"{item.get('name')}{' (основной)' if item.get('default') else ''}"
+                for item in providers
+                if item.get("installed") and item.get("enabled")
+            )
+            or "нет доступных"
+        ),
+        f"Провайдер этого чата: {chat.get('provider_id') or 'не выбран'}; "
+        f"модель: {chat.get('model') or 'не выбрана'}",
+        f"Внешние папки чата: {', '.join(chat.get('external_paths') or []) or 'нет'}",
+    ]
+    try:
+        from .checks.doctor import run_doctor
+
+        warnings = [
+            f"{item.name}: {item.message}"
+            for item in run_doctor(hub)
+            if item.status.value == "warning"
+        ]
+    except (OSError, ValueError):
+        warnings = []
+    if warnings:
+        lines.append("Предупреждения Doctor: " + "; ".join(warnings[:8]))
+    return chr(10).join(lines)
+
+
+def get_providers_with_default() -> tuple[list[dict[str, Any]], str]:
+    try:
+        from .agents.providers import list_providers
+
+        rows, default = list_providers()
+        return rows, default
+    except (OSError, ValueError):
+        return [], ""
+
+
 def _prompt(hub: Path, chat: dict[str, Any]) -> tuple[str, str]:
     system = (
         "Ты — Kova, локальный ассистент проекта. Отвечай по делу, опираясь на контекст ниже. "
+        "Оформляй ответы структурно: короткие заголовки, списки и таблицы для сравнений; "
+        "важное выделяй **жирным**, предупреждения — цитатой вида `> **Важно:** ...`. "
+        "Не перегружай ответ форматированием. "
         "Если данных не хватает — скажи, чего не хватает, и предложи следующий шаг. "
         "Не утверждай, что изменил файлы или создал задачу, если это не сделано. "
         "Используй только факты из контекста. Не выдумывай задачи, ассеты, запуски и цифры; "
         "если данных нет — так и скажи. "
-        "Создание задач, запуск агентов и изменения файлов выполняются только через Kova с подтверждением."
+        "Создание задач, запуск агентов и изменения файлов выполняются только через Kova с подтверждением. "
+        "В чате у тебя только чтение. Не меняй файлы, не запускай команды и не ходи в интернет. "
+        + _external_paths_hint(chat)
+        + "Если для ответа нужен другой внешний путь или действие — скажи об этом и предложи отдельную задачу."
         + _actions_hint()
     )
-    context = _task_context(hub, chat)
+    system += (
+        chr(10) * 2
+        + "## Справка по Kova"
+        + chr(10)
+        + "Если вопрос о самом приложении, его меню, настройках, запуске или безопасности — "
+        + "отвечай по этой справке, а не по внутренней структуре .hub."
+        + chr(10)
+        + KOVA_APP_GUIDE
+    )
+    context = _task_context(hub, chat) + chr(10) * 2 + _settings_context(hub, chat)
     budget = max(4_000, MAX_PROMPT_CHARS - len(context) - len(system) - 400)
     history = _history(chat, budget)
     nl = chr(10)
@@ -519,11 +690,75 @@ def _prompt(hub: Path, chat: dict[str, Any]) -> tuple[str, str]:
     return system, prompt
 
 
-def _finish(hub: Path, chat_id: str, output: str, error: str = "") -> None:
+def _egress_network(activity: list[dict[str, Any]] | None) -> list[dict[str, Any]]:
+    rows: dict[str, dict[str, Any]] = {}
+    for item in activity or []:
+        if str(item.get("tool") or "") != "network":
+            continue
+        host = str(item.get("host") or item.get("detail") or "").split(":")[0]
+        if not host:
+            continue
+        row = rows.setdefault(
+            host,
+            {"host": host, "count": 0, "allowed": item.get("status") != "error"},
+        )
+        row["count"] += 1
+        if item.get("status") == "error":
+            row["allowed"] = False
+    return sorted(rows.values(), key=lambda item: item["host"])
+
+
+def _build_egress(
+    chat: dict[str, Any],
+    provider: dict[str, Any] | None,
+    activity: list[dict[str, Any]] | None,
+) -> dict[str, Any]:
+    files: dict[str, int] = {}
+    for item in activity or []:
+        tool = str(item.get("tool") or "").lower()
+        detail = str(item.get("detail") or "").strip()
+        if tool not in {"read", "read_file"} or not detail:
+            continue
+        size = len(str(item.get("output") or "").encode("utf-8"))
+        files[detail] = max(files.get(detail, 0), size)
+    attachments: list[dict[str, Any]] = []
+    request_bytes = 0
+    for message in reversed(chat.get("messages") or []):
+        if message.get("role") != "user":
+            continue
+        request_bytes = len(str(message.get("content") or "").encode("utf-8"))
+        attachments = list(message.get("attachments") or [])
+        break
+    data = {
+        "provider_id": str((provider or {}).get("id") or ""),
+        "provider_name": str((provider or {}).get("name") or "AI"),
+        "remote": _provider_is_remote(provider) if provider else True,
+        "files": [
+            {"path": path, "bytes": size}
+            for path, size in list(files.items())[:40]
+        ],
+        "file_bytes": sum(files.values()),
+        "attachments": len(attachments),
+        "attachment_bytes": sum(int(item.get("size") or 0) for item in attachments),
+        "request_bytes": request_bytes,
+        "network": _egress_network(activity),
+    }
+    return data
+
+
+def _finish(
+    hub: Path,
+    chat_id: str,
+    output: str,
+    error: str = "",
+    activity: list[dict[str, Any]] | None = None,
+) -> None:
     with LOCK:
         chat = get_chat(hub, chat_id)
         if chat is None:
             return
+        provider = get_provider(str(chat.get("provider_id") or ""))
+        egress = _build_egress(chat, provider, activity)
         if output.strip():
             clean, actions = _parse_actions(output.strip())
             _append(
@@ -532,29 +767,108 @@ def _finish(hub: Path, chat_id: str, output: str, error: str = "") -> None:
                 clean or "Подготовил действие — подтверди его в сообщении.",
                 raw_content=output.strip(),
                 actions=actions,
+                activity=activity or [],
+                egress=egress,
             )
         elif error:
-            _append(chat, "assistant", f"Ошибка: {error}")
+            _append(
+                chat,
+                "assistant",
+                f"Ошибка: {error}",
+                activity=activity or [],
+                egress=egress,
+            )
         chat["status"] = "failed" if error else "idle"
         chat["error"] = error
         chat["streaming_output"] = ""
+        chat["activity"] = []
+        chat["run_started_at"] = ""
         chat["updated_at"] = _now()
         _save(hub, chat)
 
 
-def _run_cli(hub: Path, chat_id: str, provider: dict[str, Any], prompt: str, model: str) -> None:
+def _network_activity(guard: EgressGuard) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    for index, event in enumerate(guard.summary()):
+        host = str(event.get("host") or "")
+        port = int(event.get("port") or 443)
+        allowed = bool(event.get("allowed"))
+        rows.append(
+            {
+                "id": f"net-{index}",
+                "kind": "network",
+                "label": "Сеть: " + host,
+                "detail": f"{host}:{port}",
+                "host": host,
+                "status": "done" if allowed else "error",
+                "duration_ms": 0,
+                "output": "" if allowed else "заблокировано egress allowlist",
+                "tool": "network",
+                **({"flags": ["network"]} if not allowed else {}),
+            }
+        )
+    return rows
+
+
+def _run_cli(
+    hub: Path,
+    chat_id: str,
+    provider: dict[str, Any],
+    prompt: str,
+    model: str,
+    effort: str = "auto",
+) -> None:
     timeout = int(provider.get("timeout") or 1800)
     chunks: list[str] = []
+    guard: EgressGuard | None = None
+    jail = ProcessJail()
     try:
         use_stdin = bool(provider.get("prompt_via_stdin"))
-        chat_provider = {
-            **provider,
-            "args": provider.get("chat_args") or provider.get("args") or [],
-        }
+        chat_args = list(provider.get("chat_args") or [])
+        if not chat_args:
+            chat_args = list(provider.get("read_only_args") or [])
+        if not chat_args:
+            raise RuntimeError(
+                "для этого CLI не настроен безопасный режим чата: задай аргументы "
+                "«только чтение» в настройках провайдера"
+            )
+        chat_state = get_chat(hub, chat_id) or {}
+        external_paths = [
+            str(item)
+            for item in chat_state.get("external_paths") or []
+            if str(item).strip()
+        ]
+        chat_args = harden_chat_args(provider, chat_args, external_paths)
+        try:
+            project = load_project(hub)
+        except (OSError, ValueError):
+            project = None
+        if project is not None and project.egress_guard:
+            hosts = egress_hosts(provider)
+            if hosts:
+                guard = EgressGuard(hosts)
+        if effort and effort != "auto":
+            if provider.get("id") == "claude" and effort in {
+                "low",
+                "medium",
+                "high",
+                "xhigh",
+                "max",
+            }:
+                chat_args += ["--effort", effort]
+            elif provider.get("id") == "codex" and effort in {
+                "low",
+                "medium",
+                "high",
+                "xhigh",
+            }:
+                chat_args += ["-c", f'model_reasoning_effort="{effort}"']
+        chat_provider = {**provider, "args": chat_args}
+        model_for_cli = apply_effort(provider, model, effort)
         argv = build_command(
             chat_provider,
             prompt,
-            model,
+            model_for_cli,
             prompt_via_stdin=use_stdin,
         )
         process = subprocess.Popen(
@@ -566,12 +880,27 @@ def _run_cli(hub: Path, chat_id: str, provider: dict[str, Any], prompt: str, mod
             text=True,
             encoding="utf-8",
             errors="replace",
-            env=provider_env(),
+            env=apply_guard_env(
+                prepare_chat_env(
+                    provider,
+                    provider_env(),
+                    str(hub.parent),
+                    external_paths,
+                ),
+                guard,
+            ) if guard else prepare_chat_env(
+                provider,
+                provider_env(),
+                str(hub.parent),
+                external_paths,
+            ),
             creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
         )
         if use_stdin and process.stdin is not None:
             process.stdin.write(prompt)
             process.stdin.close()
+        if jail.available:
+            jail.assign(process.pid)
         with LOCK:
             PROCESSES[chat_id] = process
 
@@ -584,8 +913,12 @@ def _run_cli(hub: Path, chat_id: str, provider: dict[str, Any], prompt: str, mod
                     chunks.append(line)
                     chat = get_chat(hub, chat_id)
                     if chat is not None:
+                        raw_output = "".join(chunks)
+                        chat["activity"] = extract_activity(
+                            raw_output, provider, project_root=str(hub.parent)
+                        )
                         chat["streaming_output"] = stream_display(
-                            "".join(chunks), provider
+                            raw_output, provider
                         )[-80_000:]
                         chat["updated_at"] = _now()
                         _save(hub, chat)
@@ -596,14 +929,24 @@ def _run_cli(hub: Path, chat_id: str, provider: dict[str, Any], prompt: str, mod
         reader.join(timeout=3)
         output = "".join(chunks)
         display = parse_output(output, provider).get("display") or output
+        activity = extract_activity(
+            output, provider, final=True, project_root=str(hub.parent)
+        )
+        if guard is not None:
+            activity.extend(_network_activity(guard))
+            guard.stop()
+            guard = None
         error = "" if process.returncode == 0 else f"CLI завершился с кодом {process.returncode}"
-        _finish(hub, chat_id, display, error)
+        _finish(hub, chat_id, display, error, activity)
     except subprocess.TimeoutExpired:
         _kill(chat_id)
         _finish(hub, chat_id, "".join(chunks), f"превышен лимит {timeout} секунд")
     except (OSError, ValueError) as exc:
         _finish(hub, chat_id, "".join(chunks), str(exc))
     finally:
+        if guard is not None:
+            guard.stop()
+        jail.close()
         with LOCK:
             PROCESSES.pop(chat_id, None)
 
@@ -657,21 +1000,54 @@ def send_message(
             return None
         if chat.get("status") == "running":
             raise RuntimeError("чат уже отвечает")
+        provider = get_provider(str(chat.get("provider_id") or ""))
         saved = save_attachments(hub, chat_id, attachments or [])
         content = text.strip()
         if not content and saved:
             content = "Посмотри вложения: " + ", ".join(
                 str(item.get("name") or "файл") for item in saved
             )
+        if provider is not None:
+            project = load_project(hub)
+            if project.local_only and _provider_is_remote(provider):
+                _append(chat, "user", content, attachments=saved)
+                _append(
+                    chat,
+                    "assistant",
+                    "Включён режим «только локальные модели». Этот провайдер отправляет "
+                    "данные в интернет, поэтому запрос не отправлен. Переключись на локальный "
+                    "API или выключи режим в Агентах.",
+                )
+                chat["status"] = "idle"
+                chat["error"] = "local-only"
+                chat["updated_at"] = _now()
+                _save(hub, chat)
+                return chat
+            if _provider_is_remote(provider) and str(provider.get("id") or "") not in project.remote_consents:
+                _append(chat, "user", content, attachments=saved)
+                _append(
+                    chat,
+                    "assistant",
+                    "Нужно подтвердить отправку данных провайдеру «"
+                    + str(provider.get("name") or provider.get("id") or "AI")
+                    + "». Это внешний провайдер: текст запроса и файлы, которые "
+                    "прочитает агент, будут отправлены ему. Подтверди отправку в интерфейсе чата.",
+                )
+                chat["status"] = "idle"
+                chat["error"] = "consent-required"
+                chat["updated_at"] = _now()
+                _save(hub, chat)
+                return chat
         _append(chat, "user", content, attachments=saved)
         chat["status"] = "running"
+        chat["run_started_at"] = _now()
+        chat["activity"] = []
         chat["error"] = ""
         chat["streaming_output"] = ""
         if chat.get("title") in {"", "Новый чат"}:
             title_source = content or (saved[0].get("name") if saved else "")
             chat["title"] = str(title_source).strip().splitlines()[0][:80] or "Новый чат"
         _save(hub, chat)
-        provider = get_provider(str(chat.get("provider_id") or ""))
         model = str(chat.get("model") or "")
         system, prompt = _prompt(hub, chat)
         media = _message_media(hub, chat)
@@ -683,15 +1059,48 @@ def send_message(
         _finish(hub, chat_id, "", "CLI или API-провайдер не настроен")
         return get_chat(hub, chat_id)
 
+    if not model:
+        model = str(provider.get("default_model") or "")
+        if not model and provider.get("models"):
+            model = str(provider["models"][0])
+        if model:
+            with LOCK:
+                current = get_chat(hub, chat_id)
+                if current is not None and not current.get("model"):
+                    current["model"] = model
+                    _save(hub, current)
+    if not model and (
+        provider.get("kind") == "api"
+        or any(
+            "{model}" in str(arg)
+            for arg in (provider.get("chat_args") or provider.get("args") or [])
+        )
+    ):
+        _finish(hub, chat_id, "", "Выбери модель для чата")
+        return get_chat(hub, chat_id)
+
     if provider.get("kind") == "api":
         target = _run_api
         args = (hub, chat_id, provider, prompt, model, system, media)
     else:
         target = _run_cli
-        args = (hub, chat_id, provider, system + chr(10) * 2 + prompt, model)
+        args = (
+            hub,
+            chat_id,
+            provider,
+            system + chr(10) * 2 + prompt,
+            model,
+            str(chat.get("effort") or "auto"),
+        )
     thread = threading.Thread(target=target, args=args, daemon=True)
     thread.start()
     return get_chat(hub, chat_id)
+
+
+def _provider_is_remote(provider: dict[str, Any]) -> bool:
+    if str(provider.get("kind") or "cli") == "api":
+        return not bool(provider.get("local_api"))
+    return True
 
 
 def _kill(chat_id: str) -> None:
@@ -725,7 +1134,7 @@ def _execute_action(hub: Path, action: dict[str, Any]) -> dict[str, Any]:
     from .domain.ledger import LedgerEvent
     from .domain.task import Criterion, Task
     from .storage.ledger import append_event
-    from .storage.projects import load_project
+    from .storage.projects import load_project, save_project
     from .storage.tasks import get_task, save_task
 
     kind = str(action.get("type") or "")
@@ -786,6 +1195,42 @@ def _execute_action(hub: Path, action: dict[str, Any]) -> dict[str, Any]:
             "status": saved.status.value,
             "previous_status": previous.value,
         }
+
+    if kind == "update_project_settings":
+        project = load_project(hub)
+        changed: dict[str, Any] = {}
+        if payload.get("isolation") in {"direct", "worktree", "sandbox"}:
+            from .domain.enums import IsolationMode
+
+            project.isolation = IsolationMode(str(payload["isolation"]))
+            changed["isolation"] = project.isolation.value
+        if payload.get("max_parallel_runs") is not None:
+            project.max_parallel_runs = max(
+                1, min(4, int(payload["max_parallel_runs"]))
+            )
+            changed["max_parallel_runs"] = project.max_parallel_runs
+        if payload.get("token_budget") is not None:
+            project.token_budget = max(0, min(100_000_000, int(payload["token_budget"])))
+            changed["token_budget"] = project.token_budget
+        if isinstance(payload.get("local_only"), bool):
+            project.local_only = bool(payload["local_only"])
+            changed["local_only"] = project.local_only
+        if isinstance(payload.get("egress_guard"), bool):
+            project.egress_guard = bool(payload["egress_guard"])
+            changed["egress_guard"] = project.egress_guard
+        if not changed:
+            raise RuntimeError("нет допустимых настроек")
+        save_project(hub, project)
+        append_event(
+            hub,
+            LedgerEvent(
+                type="project.settings.updated",
+                subject="project",
+                actor="Kova Chat",
+                data=changed,
+            ),
+        )
+        return {"settings": changed}
 
     if kind == "start_agent_run":
         from .agents import runner

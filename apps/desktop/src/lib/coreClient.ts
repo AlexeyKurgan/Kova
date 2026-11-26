@@ -5,6 +5,7 @@ import type {
   BlenderInspectResult,
   ChatSession,
   ChatSummary,
+  ModelCatalogGroup,
   BlenderStatus,
   BlenderWorkspace,
   CapsuleResponse,
@@ -20,6 +21,8 @@ import type {
   ProjectResponse,
   ProjectsResponse,
   ProjectStats,
+  TrashProject,
+  TrashProjectsResponse,
   ProviderInfo,
   ProvidersResponse,
   ReviewItem,
@@ -74,6 +77,28 @@ export async function coreHealth(): Promise<HealthResponse> {
   return response.json() as Promise<HealthResponse>;
 }
 
+export async function listProjectTrash(): Promise<TrashProjectsResponse> {
+  return request<TrashProjectsResponse>("/projects/trash");
+}
+
+export async function cleanupProjectTrash(days = 30): Promise<{ removed: number }> {
+  return request<{ removed: number }>(`/projects/trash/cleanup?days=${days}`, {
+    method: "POST",
+  });
+}
+
+export async function restoreProjectTrash(trashId: string): Promise<TrashProject> {
+  return request<TrashProject>(`/projects/trash/${encodeURIComponent(trashId)}/restore`, {
+    method: "POST",
+  });
+}
+
+export async function purgeProjectTrash(trashId: string): Promise<void> {
+  await request<void>(`/projects/trash/${encodeURIComponent(trashId)}`, {
+    method: "DELETE",
+  });
+}
+
 export async function getProject(): Promise<ProjectResponse | null> {
   const response = await fetch(`${CORE_URL}/project`, { headers: withAuth() });
   if (response.status === 404) return null;
@@ -85,8 +110,11 @@ export async function getProject(): Promise<ProjectResponse | null> {
 
 export async function updateProject(input: {
   max_parallel_runs?: number;
-  isolation?: "direct" | "worktree";
+  isolation?: "direct" | "worktree" | "sandbox";
   token_budget?: number;
+  local_only?: boolean;
+  egress_guard?: boolean;
+  remote_consents?: string[];
 }): Promise<ProjectResponse> {
   return request<ProjectResponse>("/project", {
     method: "PATCH",
@@ -279,8 +307,10 @@ export async function createChat(input: {
   title?: string;
   scope?: "project" | "task";
   task_id?: string;
+  task_ids?: string[];
   provider_id?: string;
   model?: string;
+  effort?: string;
 }): Promise<ChatSession> {
   return request<ChatSession>("/chats", {
     method: "POST",
@@ -296,6 +326,9 @@ export async function updateChat(
     model?: string;
     scope?: "project" | "task";
     task_id?: string;
+    task_ids?: string[];
+    effort?: string;
+    external_paths?: string[];
   },
 ): Promise<ChatSession> {
   return request<ChatSession>(`/chats/${encodeURIComponent(chatId)}`, {
@@ -323,6 +356,13 @@ export async function sendChatMessage(
     method: "POST",
     body: JSON.stringify({ text, attachments }),
   });
+}
+
+export async function getModelCatalog(providerId: string): Promise<ModelCatalogGroup[]> {
+  const data = await request<{ groups: ModelCatalogGroup[] }>(
+    `/providers/${encodeURIComponent(providerId)}/catalog`,
+  );
+  return data.groups ?? [];
 }
 
 export function chatAttachmentUrl(chatId: string, attachmentId: string): string {
@@ -562,6 +602,16 @@ export async function createSnapshot(reason: string): Promise<Snapshot> {
   return request<Snapshot>("/snapshots", {
     method: "POST",
     body: JSON.stringify({ reason }),
+  });
+}
+
+export async function deleteSnapshot(snapshotId: string): Promise<void> {
+  await request<void>(`/snapshots/${encodeURIComponent(snapshotId)}`, { method: "DELETE" });
+}
+
+export async function cleanupSnapshots(keep = 10, days = 30): Promise<{ removed: number }> {
+  return request<{ removed: number }>(`/snapshots/cleanup?keep=${keep}&days=${days}`, {
+    method: "POST",
   });
 }
 

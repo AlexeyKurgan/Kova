@@ -1,4 +1,5 @@
-import { Cat, Minus, Square, X } from "lucide-react";
+import { Minus, Square, X } from "lucide-react";
+import KovaLogo from "./KovaLogo";
 import {
   closeWindow,
   minimizeWindow,
@@ -9,7 +10,7 @@ export default function TitleBar() {
   return (
     <header className="titlebar" data-tauri-drag-region>
       <div className="titlebar-brand" data-tauri-drag-region>
-        <Cat size={14} strokeWidth={1.8} />
+        <KovaLogo size={15} />
         <span>Kova Hub</span>
       </div>
       <div className="window-controls">

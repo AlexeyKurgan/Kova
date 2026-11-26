@@ -68,7 +68,7 @@ export default function EditorScreen({ projectPath }: Props) {
 
   useEffect(() => {
     void refresh();
-    const timer = window.setInterval(() => void refresh(), 5000);
+    const timer = window.setInterval(() => void refresh(), 2000);
     return () => window.clearInterval(timer);
   }, [refresh, desktop]);
 
@@ -167,13 +167,13 @@ export default function EditorScreen({ projectPath }: Props) {
               <Download size={15} />
             </button>
           ) : null}
-          {desktop && status?.installed ? (
+          {desktop && status?.installed && !status?.running ? (
             <button
               type="button"
               className="icon-btn action-btn is-play"
               disabled={busy || !projectPath}
-              title={status?.running ? "Открыть окно редактора" : "Запустить редактор"}
-              aria-label={status?.running ? "Открыть окно редактора" : "Запустить редактор"}
+              title="Запустить редактор"
+              aria-label="Запустить редактор"
               onClick={() =>
                 void run(async () => {
                   await invoke("editor_open", { projectPath: projectPath ?? "" });
