@@ -12,6 +12,7 @@ import type {
   CheckResult,
   CreateProjectInput,
   CreateTaskInput,
+  DiaryResponse,
   DuplicateProjectInput,
   Engine,
   ImportAssetInput,
@@ -372,6 +373,10 @@ export async function purgeTask(taskId: string): Promise<void> {
 
 export async function listAssets(): Promise<AssetPassport[]> {
   return request<AssetPassport[]>("/assets");
+}
+
+export async function getDiary(days = 14): Promise<DiaryResponse> {
+  return request<DiaryResponse>(`/diary?days=${days}`);
 }
 
 export async function repairDoctor(): Promise<{

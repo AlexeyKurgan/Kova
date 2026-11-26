@@ -10,6 +10,7 @@ import ChatScreen from "./features/chat/ChatScreen";
 import AssetPassportScreen from "./features/assets/AssetPassportScreen";
 import AssetsScreen from "./features/assets/AssetsScreen";
 import BlenderModal from "./features/blender/BlenderModal";
+import DiaryScreen from "./features/diary/DiaryScreen";
 import DoctorScreen from "./features/doctor/DoctorScreen";
 import SettingsScreen from "./features/settings/SettingsScreen";
 import RobloxModal from "./features/roblox/RobloxModal";
@@ -188,6 +189,7 @@ export default function App() {
   const [doctor, setDoctor] = useState<CheckResult[]>([]);
   const [taskDialogOpen, setTaskDialogOpen] = useState(false);
   const [taskDialogAssetIds, setTaskDialogAssetIds] = useState<string[]>([]);
+  const [taskDialogTemplate, setTaskDialogTemplate] = useState<string | null>(null);
   const [openTaskId, setOpenTaskId] = useState<string | null>(null);
   const [skillPickerTaskId, setSkillPickerTaskId] = useState<string | null>(null);
   const [openAssetId, setOpenAssetId] = useState<string | null>(null);
@@ -1127,11 +1129,19 @@ export default function App() {
 
   const openTaskDialog = useCallback(() => {
     setTaskDialogAssetIds([]);
+    setTaskDialogTemplate(null);
+    setTaskDialogOpen(true);
+  }, []);
+
+  const openTaskWithTemplate = useCallback((templateId: string) => {
+    setTaskDialogAssetIds([]);
+    setTaskDialogTemplate(templateId);
     setTaskDialogOpen(true);
   }, []);
 
   const openTaskForAsset = useCallback((assetId: string) => {
     setTaskDialogAssetIds([assetId]);
+    setTaskDialogTemplate(null);
     setTaskDialogOpen(true);
   }, []);
   const closeTaskDialog = useCallback(() => setTaskDialogOpen(false), []);
@@ -1392,6 +1402,7 @@ export default function App() {
                 projectCover={projectCoverUrl}
                 projectName={projectName}
                 onCreateTask={openTaskDialog}
+                onUseTemplate={openTaskWithTemplate}
                 onOpenTask={setOpenTaskId}
                 onArchive={(taskId) => void handleArchiveTask(taskId)}
                 onRestore={(taskId) => void handleRestoreTask(taskId)}
@@ -1423,6 +1434,8 @@ export default function App() {
               onDelete={handleDeleteSnapshot}
               onCleanup={handleCleanupSnapshots}
             />
+          ) : active === "Дневник" ? (
+            <DiaryScreen />
           ) : active === "Настройки" ? (
             <SettingsScreen
               preferences={chatPreferences}
@@ -1510,6 +1523,7 @@ export default function App() {
         <TaskDialog
           defaultEngine={projectEngine}
           initialAssetIds={taskDialogAssetIds}
+          initialTemplateId={taskDialogTemplate}
           onClose={closeTaskDialog}
           onSubmit={handleCreateTask}
         />

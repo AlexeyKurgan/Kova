@@ -8,6 +8,7 @@ export const SECTIONS = [
   "Скиллы",
   "Снапшоты",
   "Память",
+  "Дневник",
   "Пакеты",
   "Агенты",
   "Doctor",
@@ -850,6 +851,22 @@ export type SnapshotFile = {
   path: string;
   hash: string;
   size: number;
+};
+
+export type DiaryDay = {
+  date: string;
+  events: number;
+  tasks_created: number;
+  tasks_done: number;
+  assets: number;
+  reviews: number;
+  snapshots: number;
+  highlights: string[];
+};
+
+export type DiaryResponse = {
+  days: DiaryDay[];
+  totals: Record<string, number>;
 };
 
 export type SnapshotChange = {

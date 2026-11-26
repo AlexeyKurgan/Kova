@@ -3,6 +3,7 @@ import {
   BookOpen,
   Bot,
   Box,
+  CalendarDays,
   Camera,
   ChevronDown,
   ClipboardList,
@@ -62,6 +63,7 @@ const GROUPS: NavGroup[] = [
       { label: "Review", icon: Star },
       { label: "Снапшоты", icon: Camera },
       { label: "Память", icon: BookOpen },
+      { label: "Дневник", icon: CalendarDays },
     ],
   },
   {

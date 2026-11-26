@@ -151,11 +151,11 @@ export default function TaskDetail({
   };
 
   const tabs: Array<{ id: Tab; label: string; count?: number }> = [
-    { id: "overview", label: "Обзор" },
+    { id: "overview", label: "Бриф" },
     { id: "work", label: "Работа" },
     { id: "checks", label: "Проверки", count: task.validation.length },
-    { id: "artifacts", label: "Артефакты", count: task.artifacts.length + assets.length },
-    { id: "activity", label: "Активность" },
+    { id: "artifacts", label: "Результат", count: task.artifacts.length + assets.length },
+    { id: "activity", label: "История" },
   ];
 
   return (
@@ -340,6 +340,69 @@ export default function TaskDetail({
                 Перейти к работе
               </button>
             )}
+          </article>
+
+          <article className="td2-panel td2-why">
+            <div className="td2-panel-head">
+              <h2>
+                <Sparkles size={14} />
+                Почему так вышло?
+              </h2>
+              <button type="button" className="agent-link" onClick={() => setTab("work")}>
+                К запуску →
+              </button>
+            </div>
+            <div className="td2-why-grid">
+              <div>
+                <span>Исполнитель</span>
+                <b>{latestRun?.provider_name || (task.mode === "clipboard" ? "Clipboard" : task.mode)}</b>
+                <small>{latestRun?.model || "модель не указана"}</small>
+              </div>
+              <div>
+                <span>Изменения</span>
+                <b>{latestRun ? latestRun.changes.length : 0}</b>
+                <small>
+                  {latestRun?.review_id
+                    ? "результат ждёт приёмки в Review"
+                    : latestRun
+                      ? "файлы и вывод сохранены в запуске"
+                      : "запусков ещё не было"}
+                </small>
+              </div>
+              <div>
+                <span>Проверки</span>
+                <b>{task.validation.length}</b>
+                <small>
+                  {task.validation.length > 0
+                    ? task.validation.map((item) => item.label).join(" · ")
+                    : "команды не настроены"}
+                </small>
+              </div>
+              <div>
+                <span>Страховка</span>
+                <b>{latestRun?.snapshot_id ? "Снапшот" : latestRun ? "Без снапшота" : "—"}</b>
+                <small>
+                  {latestRun?.snapshot_id
+                    ? latestRun.snapshot_id
+                    : "Kova создаёт снапшот перед применением worktree"}
+                </small>
+              </div>
+            </div>
+            <p className="td2-why-note">
+              Объяснение собрано из журнала: кто выполнял задачу, что изменилось,
+              какие проверки настроены и где сохранён результат. Это не догадка модели.
+            </p>
+            <div className="td2-why-actions">
+              <button type="button" className="btn btn-secondary btn-small" onClick={() => setTab("checks")}>
+                Проверки
+              </button>
+              <button type="button" className="btn btn-secondary btn-small" onClick={() => setTab("artifacts")}>
+                Результат
+              </button>
+              <button type="button" className="btn btn-secondary btn-small" onClick={() => setTab("activity")}>
+                История
+              </button>
+            </div>
           </article>
 
           <article className="td2-panel td2-context">

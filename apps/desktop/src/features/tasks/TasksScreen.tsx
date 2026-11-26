@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import {
   Archive,
   ArchiveRestore,
+  BookOpen,
   Box,
   ChevronLeft,
   ChevronRight,
@@ -15,9 +16,11 @@ import {
   Search,
   Sparkles,
   Trash2,
+  X,
 } from "lucide-react";
 import BrandIcon from "../../components/BrandIcon";
 import { engineBrand } from "../../lib/brands";
+import { TASK_TEMPLATES } from "../../lib/taskTemplates";
 import { formatDate } from "../../lib/format";
 import { mediaUrl } from "../../lib/coreClient";
 import {
@@ -34,6 +37,7 @@ type Props = {
   projectCover: string | null;
   projectName: string;
   onCreateTask: () => void;
+  onUseTemplate: (templateId: string) => void;
   onOpenTask: (taskId: string) => void;
   onArchive: (taskId: string) => void;
   onRestore: (taskId: string) => void;
@@ -69,6 +73,7 @@ export default function TasksScreen({
   projectCover,
   projectName,
   onCreateTask,
+  onUseTemplate,
   onOpenTask,
   onArchive,
   onRestore,
@@ -77,6 +82,7 @@ export default function TasksScreen({
   onPurge,
 }: Props) {
   const [status, setStatus] = useState<StatusFilter>("all");
+  const [libraryOpen, setLibraryOpen] = useState(false);
   const [type, setType] = useState<"all" | TaskType>("all");
   const [sort, setSort] = useState("recent");
   const [query, setQuery] = useState("");
@@ -225,10 +231,20 @@ export default function TasksScreen({
           <h1>Задачи</h1>
           <p>Цель, критерии готовности и связанные ассеты.</p>
         </div>
-        <button type="button" className="btn btn-primary" onClick={onCreateTask}>
-          <Plus size={15} />
-          Новая задача
-        </button>
+        <div className="tk-head-actions">
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={() => setLibraryOpen(true)}
+          >
+            <BookOpen size={15} />
+            Шаблоны
+          </button>
+          <button type="button" className="btn btn-primary" onClick={onCreateTask}>
+            <Plus size={15} />
+            Новая задача
+          </button>
+        </div>
       </header>
 
       <div className="tk-toolbar">
@@ -542,6 +558,65 @@ export default function TasksScreen({
           </button>
         </div>
       </footer>
+      {libraryOpen ? (
+        <div
+          className="modal-backdrop"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) setLibraryOpen(false);
+          }}
+        >
+          <div className="modal modal-wide template-library">
+            <div className="modal-header">
+              <span className="modal-title">
+                <BookOpen size={15} />
+                Библиотека задач
+              </span>
+              <button
+                type="button"
+                className="icon-btn"
+                onClick={() => setLibraryOpen(false)}
+                aria-label="Закрыть"
+              >
+                <X size={14} />
+              </button>
+            </div>
+            <div className="modal-body">
+              <p className="detail-muted">
+                Готовые брифы с целью и критериями готовности. Выбери шаблон — Kova
+                откроет задачу с заполненными полями.
+              </p>
+              <div className="template-library-grid">
+                {TASK_TEMPLATES.map((template) => (
+                  <article className="template-card" key={template.id}>
+                    <div className="template-card-head">
+                      <b>{template.label}</b>
+                      <span className="template-engine">{ENGINE_LABELS[template.engine]}</span>
+                    </div>
+                    <small className="template-type">{TASK_TYPE_LABELS[template.type]}</small>
+                    <p>{template.goal}</p>
+                    <ul>
+                      {template.criteria.slice(0, 3).map((criterion) => (
+                        <li key={criterion}>{criterion}</li>
+                      ))}
+                    </ul>
+                    <button
+                      type="button"
+                      className="btn btn-primary btn-small"
+                      onClick={() => {
+                        setLibraryOpen(false);
+                        onUseTemplate(template.id);
+                      }}
+                    >
+                      <Plus size={13} />
+                      Использовать
+                    </button>
+                  </article>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </section>
   );
 }

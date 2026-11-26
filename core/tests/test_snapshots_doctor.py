@@ -164,3 +164,32 @@ def test_doctor_repair_restores_structure(tmp_path: Path, monkeypatch) -> None:
     assert (hub / "ledger" / "events.jsonl").is_file()
     assert any("review" in action for action in payload["actions"])
     assert isinstance(payload["checks"], list)
+
+
+def test_diary_groups_events(tmp_path: Path, monkeypatch) -> None:
+    client = make_client(tmp_path, monkeypatch)
+    game = tmp_path / "game"
+    game.mkdir()
+    client.post("/project/open", json={"path": str(game)})
+    task = client.post("/tasks", json={"title": "Diary task"}).json()
+    client.post("/tasks", json={"title": "Done task"})
+    done = next(item for item in client.get("/tasks").json() if item["title"] == "Done task")
+    client.patch(f"/tasks/{done['id']}", json={"status": "done"})
+    source = tmp_path / "prop.glb"
+    source.write_bytes(b"glb")
+    client.post("/assets/import", json={"path": str(source)})
+    client.post("/snapshots", json={"reason": "diary"})
+
+    response = client.get("/diary?days=7")
+    assert response.status_code == 200, response.text
+    payload = response.json()
+    assert len(payload["days"]) == 7
+    today = payload["days"][0]
+    assert today["tasks_created"] >= 1
+    assert today["tasks_done"] >= 1
+    assert today["assets"] >= 1
+    assert today["snapshots"] >= 1
+    assert "task.created" in today["highlights"]
+    assert payload["totals"]["events"] >= 4
+    assert task["id"]
+    assert client.get("/diary?days=0").status_code == 422
