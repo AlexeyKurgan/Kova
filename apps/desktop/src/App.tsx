@@ -1367,6 +1367,11 @@ export default function App() {
             <ReviewScreen
               items={review}
               tasks={tasks}
+              assets={assets}
+              onOpenAsset={(assetId) => {
+                setActive("Ассеты");
+                void openAsset(assetId);
+              }}
               onAccept={handleAccept}
               onRework={handleRework}
             />

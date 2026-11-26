@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { Check, ChevronDown, ChevronRight, RotateCcw, Sparkles, Star, TriangleAlert } from "lucide-react";
+import { Box as BoxIcon, Check, ChevronDown, ChevronRight, RotateCcw, Sparkles, Star, TriangleAlert } from "lucide-react";
+import { coreUrl } from "../../lib/coreClient";
 import {
   applyWorktreeRun,
   getRunChangePatch,
@@ -10,16 +11,25 @@ import {
 import { useConfirm } from "../../components/ConfirmProvider";
 import { formatDate, plural } from "../../lib/format";
 import { REVIEW_STATUS_LABELS } from "../../lib/labels";
-import type { AiRun, ReviewItem, Task, ValidationResult } from "../../lib/types";
+import type { AiRun, AssetPassport, ReviewItem, Task, ValidationResult } from "../../lib/types";
 
 type Props = {
   items: ReviewItem[];
   tasks: Task[];
+  assets: AssetPassport[];
+  onOpenAsset: (assetId: string) => void;
   onAccept: (reviewId: string) => void;
   onRework: (reviewId: string) => void;
 };
 
-export default function ReviewScreen({ items, tasks, onAccept, onRework }: Props) {
+export default function ReviewScreen({
+  items,
+  tasks,
+  assets,
+  onOpenAsset,
+  onAccept,
+  onRework,
+}: Props) {
   const confirm = useConfirm();
   const [expanded, setExpanded] = useState<string | null>(null);
   const [previews, setPreviews] = useState<Record<string, string>>({});
@@ -146,6 +156,20 @@ export default function ReviewScreen({ items, tasks, onAccept, onRework }: Props
   const taskTitle = (taskId: string) =>
     tasks.find((task) => task.id === taskId)?.title ?? "Задача";
 
+  const linkedAssets = (taskId: string) =>
+    assets.filter((asset) => asset.task_ids.includes(taskId));
+
+  const assetPreview = (asset: AssetPassport) => {
+    const version =
+      asset.versions.find((item) => item.id === asset.current_version_id) ??
+      asset.versions[asset.versions.length - 1];
+    const preview = version?.preview || asset.preview;
+    if (!preview) return "";
+    return `${coreUrl(`/assets/${asset.id}/preview`)}?${
+      version ? `version_id=${encodeURIComponent(version.id)}&` : ""
+    }v=${encodeURIComponent(preview)}`;
+  };
+
   const validationSummary = (taskId: string) => {
     const task = tasks.find((item) => item.id === taskId);
     if (!task || task.validation.length === 0) return null;
@@ -261,6 +285,34 @@ export default function ReviewScreen({ items, tasks, onAccept, onRework }: Props
                 <h2>{taskTitle(item.task_id)}</h2>
                 <p className="task-meta">{formatDate(item.created_at)}</p>
                 <p className="task-goal">{item.summary}</p>
+                {linkedAssets(item.task_id).length > 0 ? (
+                  <div className="review-assets">
+                    {linkedAssets(item.task_id).slice(0, 4).map((asset) => {
+                      const preview = assetPreview(asset);
+                      return (
+                        <button
+                          type="button"
+                          className="review-asset"
+                          key={asset.id}
+                          onClick={() => onOpenAsset(asset.id)}
+                          title={`Открыть ассет ${asset.name}`}
+                        >
+                          {preview ? (
+                            <img src={preview} alt={asset.name} />
+                          ) : (
+                            <span className="review-asset-empty">
+                              <BoxIcon />
+                            </span>
+                          )}
+                          <span>
+                            <b>{asset.name}</b>
+                            <small>{asset.type}</small>
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                ) : null}
                 {summary ? (
                   <div
                     className={`review-validation${

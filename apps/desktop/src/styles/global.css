@@ -17032,3 +17032,62 @@ button.blender-chip {
   display: flex;
   gap: 6px;
 }
+
+.review-assets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 4px 0 2px;
+}
+
+.review-asset {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 260px;
+  padding: 5px 8px 5px 5px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.015);
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.review-asset:hover {
+  border-color: rgba(var(--accent-rgb), 0.3);
+}
+
+.review-asset img,
+.review-asset-empty {
+  width: 44px;
+  height: 44px;
+  flex: none;
+  border-radius: 7px;
+  object-fit: cover;
+  background: rgba(var(--accent-rgb), 0.06);
+  color: var(--accent-strong);
+}
+
+.review-asset-empty {
+  display: grid;
+  place-items: center;
+}
+
+.review-asset span:last-child {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+}
+
+.review-asset b {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 10px;
+}
+
+.review-asset small {
+  color: var(--text-muted);
+  font-size: 8.5px;
+}
