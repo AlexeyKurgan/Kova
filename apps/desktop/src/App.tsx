@@ -155,6 +155,7 @@ export default function App() {
   const [robloxOpen, setRobloxOpen] = useState(false);
   const [chatSeed, setChatSeed] = useState<{ text: string; key: number } | null>(null);
   const [onboardingOpen, setOnboardingOpen] = useState(false);
+  const [memorySeed, setMemorySeed] = useState<{ text: string; key: number } | null>(null);
   const reviewCountRef = useRef<number | null>(null);
   const reviewInitializedRef = useRef(false);
   const [project, setProject] = useState<Project | null>(null);
@@ -1195,6 +1196,10 @@ export default function App() {
             onShowInspector={() => setInspectorOpen(true)}
             onOpenReview={() => setActive("Review")}
             onOpenSettings={() => setActive("Настройки")}
+            onSearch={(query) => {
+              if (query.trim()) setMemorySeed({ text: query, key: Date.now() });
+              setActive("Память");
+            }}
           />
           {active === "Обзор" ? (
             <OverviewScreen
@@ -1383,11 +1388,32 @@ export default function App() {
               onOnboarding={() => setOnboardingOpen(true)}
             />
           ) : active === "Doctor" ? (
-            <DoctorScreen checks={doctor} onRefresh={() => void reload()} />
+            <DoctorScreen
+              checks={doctor}
+              onRefresh={() => void reload()}
+              onExport={() => {
+                const payload = {
+                  exported_at: new Date().toISOString(),
+                  project: project?.name ?? "",
+                  path: projectPath ?? "",
+                  checks: doctor,
+                };
+                const blob = new Blob([JSON.stringify(payload, null, 2)], {
+                  type: "application/json",
+                });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement("a");
+                link.href = url;
+                link.download = `kova-doctor-${new Date().toISOString().slice(0, 10)}.json`;
+                link.click();
+                URL.revokeObjectURL(url);
+              }}
+            />
           ) : active === "Пакеты" ? (
             <PackagesScreen />
           ) : active === "Память" ? (
             <MemoryScreen
+              seed={memorySeed}
               onOpenTask={(taskId) => {
                 setActive("Задачи");
                 setOpenTaskId(taskId);

@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from "react";
 import { Bell, Moon, PanelRight, Search, Settings, Sun } from "lucide-react";
 import type { CoreStatus, Section } from "../lib/types";
 
@@ -13,6 +14,7 @@ type Props = {
   onShowInspector: () => void;
   onOpenReview: () => void;
   onOpenSettings: () => void;
+  onSearch: (query: string) => void;
 };
 
 const coreLabel: Record<CoreStatus, string> = {
@@ -33,7 +35,23 @@ export default function TopBar({
   onShowInspector,
   onOpenReview,
   onOpenSettings,
+  onSearch,
 }: Props) {
+  const [query, setQuery] = useState("");
+  const inputRef = useRef<HTMLInputElement | null>(null);
+
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k") {
+        event.preventDefault();
+        inputRef.current?.focus();
+        inputRef.current?.select();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
   return (
     <header className="topbar">
       <div className="breadcrumb">
@@ -44,7 +62,20 @@ export default function TopBar({
 
       <label className="search-box">
         <Search size={14} strokeWidth={1.8} />
-        <input type="search" placeholder="Поиск по проекту" aria-label="Поиск по проекту" />
+        <input
+          ref={inputRef}
+          type="search"
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === "Enter") {
+              event.preventDefault();
+              onSearch(query);
+            }
+          }}
+          placeholder="Поиск по проекту"
+          aria-label="Поиск по проекту"
+        />
         <kbd>Ctrl+K</kbd>
       </label>
 

@@ -3,6 +3,7 @@ import {
   Box,
   Camera,
   CheckCircle2,
+  Download,
   FolderTree,
   Gamepad2,
   GitBranch,
@@ -20,6 +21,7 @@ import type { CheckResult, CheckStatus } from "../../lib/types";
 type Props = {
   checks: CheckResult[];
   onRefresh: () => void;
+  onExport: () => void;
 };
 
 const STATUS_LABELS: Record<CheckStatus, string> = {
@@ -87,7 +89,7 @@ const HINTS: Record<string, string> = {
   "Корзина проектов": "Проекты можно восстановить или очистить в разделе «Проекты».",
 };
 
-export default function DoctorScreen({ checks, onRefresh }: Props) {
+export default function DoctorScreen({ checks, onRefresh, onExport }: Props) {
   const passed = checks.filter((check) => check.status === "passed").length;
   const warnings = checks.filter((check) => check.status === "warning").length;
   const errors = checks.filter(
@@ -113,6 +115,10 @@ export default function DoctorScreen({ checks, onRefresh }: Props) {
           </p>
         </div>
         <div className="header-actions">
+          <button type="button" className="btn btn-secondary" onClick={onExport}>
+            <Download size={15} />
+            Экспорт диагностики
+          </button>
           <button type="button" className="btn btn-secondary" onClick={onRefresh}>
             <RefreshCw size={15} />
             Проверить снова

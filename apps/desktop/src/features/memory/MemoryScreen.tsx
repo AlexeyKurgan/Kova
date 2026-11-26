@@ -13,6 +13,7 @@ import { searchMemory } from "../../lib/coreClient";
 import type { MemoryResponse, MemoryResult } from "../../lib/types";
 
 type Props = {
+  seed?: { text: string; key: number } | null;
   onOpenTask: (taskId: string) => void;
   onOpenAsset: (assetId: string) => void;
 };
@@ -33,12 +34,16 @@ const KIND_ICONS: Record<MemoryResult["kind"], typeof Box> = {
   decision: Brain,
 };
 
-export default function MemoryScreen({ onOpenTask, onOpenAsset }: Props) {
+export default function MemoryScreen({ seed, onOpenTask, onOpenAsset }: Props) {
   const [query, setQuery] = useState("");
   const [data, setData] = useState<MemoryResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [version, setVersion] = useState(0);
+
+  useEffect(() => {
+    if (seed?.text) setQuery(seed.text);
+  }, [seed?.key]);
 
   useEffect(() => {
     let alive = true;
