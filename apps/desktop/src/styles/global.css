@@ -16249,3 +16249,115 @@ button.blender-chip {
   border-radius: 4px;
   background: var(--border);
 }
+
+.projects-notice {
+  margin: 0 0 10px;
+  padding: 9px 12px;
+  border: 1px solid rgba(var(--accent-rgb), 0.2);
+  border-radius: 8px;
+  background: rgba(var(--accent-rgb), 0.06);
+  color: var(--text-secondary);
+  font-size: 10px;
+}
+
+/* Roblox Studio bridge */
+.roblox-dialog {
+  width: min(640px, 94vw);
+}
+
+.roblox-status-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.roblox-status-card.is-on {
+  border-color: rgba(83, 193, 139, 0.28);
+  background: rgba(83, 193, 139, 0.05);
+}
+
+.roblox-status-icon {
+  display: grid;
+  width: 36px;
+  height: 36px;
+  flex: none;
+  place-items: center;
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-muted);
+}
+
+.roblox-status-card.is-on .roblox-status-icon {
+  color: #53c18b;
+}
+
+.roblox-status-card > div {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.roblox-status-card b {
+  font-size: 12px;
+}
+
+.roblox-status-card small {
+  color: var(--text-muted);
+  font-size: 9.5px;
+}
+
+.roblox-steps {
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr);
+  gap: 6px 8px;
+  align-items: start;
+  margin: 4px 0;
+}
+
+.roblox-steps span {
+  display: grid;
+  width: 20px;
+  height: 20px;
+  place-items: center;
+  border-radius: 50%;
+  background: rgba(var(--accent-rgb), 0.1);
+  color: var(--accent-strong);
+  font-size: 9px;
+}
+
+.roblox-steps p {
+  margin: 2px 0 0;
+  color: var(--text-secondary);
+  font-size: 10px;
+  line-height: 1.45;
+}
+
+.roblox-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: 4px;
+}
+
+.roblox-message {
+  margin: 0;
+  padding: 8px 10px;
+  border-radius: 7px;
+  background: rgba(83, 193, 139, 0.07);
+  color: #75cfa2;
+  font-size: 9.5px;
+  line-height: 1.45;
+  word-break: break-word;
+}
+
+.roblox-error {
+  margin: 0;
+  color: var(--danger-text);
+  font-size: 9.5px;
+}

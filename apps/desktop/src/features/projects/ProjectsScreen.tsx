@@ -92,7 +92,8 @@ export default function ProjectsScreen({
   const [name, setName] = useState("");
   const [engine, setEngine] = useState<Engine>("roblox");
   const [parent, setParent] = useState(defaultParent);
-  const [deleteFiles, setDeleteFiles] = useState(false);
+  const [deleteFiles, setDeleteFiles] = useState(true);
+  const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
@@ -173,7 +174,8 @@ export default function ProjectsScreen({
   };
 
   const openDelete = (project: ProjectCard) => {
-    setDeleteFiles(false);
+    setDeleteFiles(true);
+    setNotice("");
     setError(null);
     setMenuFor(null);
     setDialog({ kind: "delete", project });
@@ -215,6 +217,11 @@ export default function ProjectsScreen({
         });
       } else {
         await onDelete(dialog.project.id, deleteFiles);
+        setNotice(
+          deleteFiles
+            ? "Проект перемещён в корзину. Восстановить можно в «Проектах → Корзина»."
+            : "Проект убран из Kova. Папка осталась на диске.",
+        );
       }
       setDialog(null);
     } catch (err) {
@@ -398,6 +405,7 @@ export default function ProjectsScreen({
         </button>
       </div>
 
+      {notice ? <div className="projects-notice">{notice}</div> : null}
       {error ? <p className="modal-error resource-error">{error}</p> : null}
 
       {filtered.length === 0 ? (
@@ -565,17 +573,6 @@ export default function ProjectsScreen({
                     Что сделать с «{dialog.project.name}»?
                   </p>
                   <div className="project-delete-options">
-                    <label className={`project-delete-option${deleteFiles ? "" : " is-selected"}`}>
-                      <input
-                        type="radio"
-                        checked={!deleteFiles}
-                        onChange={() => setDeleteFiles(false)}
-                      />
-                      <span>
-                        <b>Убрать из Kova</b>
-                        <small>Папка и файлы останутся на диске.</small>
-                      </span>
-                    </label>
                     <label className={`project-delete-option${deleteFiles ? " is-selected" : ""}`}>
                       <input
                         type="radio"
@@ -583,8 +580,19 @@ export default function ProjectsScreen({
                         onChange={() => setDeleteFiles(true)}
                       />
                       <span>
-                        <b>Удалить из Kova</b>
-                        <small>Проект, .hub и ассеты будут перемещены в корзину Kova — их можно восстановить.</small>
+                        <b>Переместить в корзину</b>
+                        <small>Проект исчезнет из Kova, папку можно восстановить из корзины.</small>
+                      </span>
+                    </label>
+                    <label className={`project-delete-option${!deleteFiles ? " is-selected" : ""}`}>
+                      <input
+                        type="radio"
+                        checked={!deleteFiles}
+                        onChange={() => setDeleteFiles(false)}
+                      />
+                      <span>
+                        <b>Оставить папку на диске</b>
+                        <small>Убрать только из списка Kova. В корзину не попадёт.</small>
                       </span>
                     </label>
                   </div>
@@ -682,7 +690,7 @@ export default function ProjectsScreen({
                         ? "Дублировать"
                         : deleteFiles
                           ? "Переместить в корзину"
-                          : "Убрать из Kova"}
+                          : "Убрать из списка"}
               </button>
             </div>
           </div>

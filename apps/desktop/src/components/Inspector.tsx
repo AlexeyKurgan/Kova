@@ -14,7 +14,7 @@ import {
 import catSleeping from "../assets/cat-sleeping.svg";
 import BrandIcon from "./BrandIcon";
 import { formatDate } from "../lib/format";
-import type { BlenderStatus } from "../lib/types";
+import type { BlenderStatus, RobloxStatus } from "../lib/types";
 
 type Attention = {
   reviews: number;
@@ -33,6 +33,8 @@ type Tip = {
 type Props = {
   onClose: () => void;
   onOpenBlender: () => void;
+  onOpenRoblox: () => void;
+  roblox: RobloxStatus | null;
   onOpenReview: () => void;
   onOpenAssets: () => void;
   onOpenTasks: () => void;
@@ -48,6 +50,8 @@ type Props = {
 export default function Inspector({
   onClose,
   onOpenBlender,
+  onOpenRoblox,
+  roblox,
   onOpenReview,
   onOpenAssets,
   onOpenTasks,
@@ -78,6 +82,16 @@ export default function Inspector({
     : [blender?.path, blender?.message, "Нажми, чтобы подключить"]
         .filter(Boolean)
         .join(" · ");
+
+  const robloxConnected = Boolean(roblox?.connected);
+  const robloxLabel = !roblox
+    ? "Не проверен"
+    : robloxConnected
+      ? "Подключён"
+      : roblox.token_configured
+        ? "Плагин не запущен"
+        : "Не настроен";
+  const robloxTone = robloxConnected ? "is-on" : roblox ? "is-unknown" : "is-off";
 
   const totalAttention =
     attention.reviews + attention.problems + attention.blocked + attention.doctor;
@@ -116,14 +130,19 @@ export default function Inspector({
             {blenderLabel}
           </span>
         </button>
-        <div className="conn-row">
+        <button
+          type="button"
+          className="conn-row is-action"
+          title={robloxConnected ? "Roblox Studio подключён" : "Настроить Roblox Studio"}
+          onClick={onOpenRoblox}
+        >
           <BrandIcon name="roblox" size={15} />
           <span>Roblox Studio</span>
-          <span className="conn-state is-off">
+          <span className={`conn-state ${robloxTone}`}>
             <span className="dot" />
-            Не подключён
+            {robloxLabel}
           </span>
-        </div>
+        </button>
         <div className="conn-row" title={git?.message ?? "Проверка Git"}>
           <BrandIcon name="git" size={15} />
           <span>Git</span>

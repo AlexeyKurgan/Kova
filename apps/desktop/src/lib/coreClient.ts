@@ -26,6 +26,7 @@ import type {
   ProviderInfo,
   ProvidersResponse,
   ReviewItem,
+  RobloxStatus,
   Skill,
   SkillDetail,
   Snapshot,
@@ -96,6 +97,28 @@ export async function restoreProjectTrash(trashId: string): Promise<TrashProject
 export async function purgeProjectTrash(trashId: string): Promise<void> {
   await request<void>(`/projects/trash/${encodeURIComponent(trashId)}`, {
     method: "DELETE",
+  });
+}
+
+export async function getRobloxStatus(): Promise<RobloxStatus> {
+  return request<RobloxStatus>("/roblox/status");
+}
+
+export async function installRobloxPlugin(): Promise<{
+  ok: boolean;
+  path: string;
+  version: string;
+  message: string;
+}> {
+  return request("/roblox/install-plugin", { method: "POST" });
+}
+
+export async function executeRobloxCommand(
+  command: Record<string, unknown>,
+): Promise<{ ok: boolean; id: string; command: Record<string, unknown> }> {
+  return request("/roblox/execute", {
+    method: "POST",
+    body: JSON.stringify({ command }),
   });
 }
 

@@ -12,6 +12,7 @@ import AssetsScreen from "./features/assets/AssetsScreen";
 import BlenderModal from "./features/blender/BlenderModal";
 import DoctorScreen from "./features/doctor/DoctorScreen";
 import SettingsScreen from "./features/settings/SettingsScreen";
+import RobloxModal from "./features/roblox/RobloxModal";
 import {
   DEFAULT_CHAT_PREFERENCES,
   applyChatPreferences,
@@ -58,6 +59,7 @@ import {
   getBlenderWorkspace,
   getDoctor,
   getProject,
+  getRobloxStatus,
   getStats,
   importAsset,
   inspectAssetWithBlender,
@@ -105,6 +107,7 @@ import type {
   ProjectStats,
   ProviderInfo,
   ReviewItem,
+  RobloxStatus,
   Section,
   Snapshot,
   Task,
@@ -125,6 +128,8 @@ export default function App() {
     () => window.localStorage.getItem("kova-sidebar-collapsed") === "1",
   );
   const [core, setCore] = useState<CoreStatus>("checking");
+  const [robloxStatus, setRobloxStatus] = useState<RobloxStatus | null>(null);
+  const [robloxOpen, setRobloxOpen] = useState(false);
   const [project, setProject] = useState<Project | null>(null);
   const [projectPath, setProjectPath] = useState<string | null>(null);
   const [projects, setProjects] = useState<ProjectCard[]>([]);
@@ -255,6 +260,25 @@ export default function App() {
     document.documentElement.dataset.theme = theme;
     window.localStorage.setItem("kova-theme", theme);
   }, [theme]);
+
+  useEffect(() => {
+    let alive = true;
+    const load = () => {
+      getRobloxStatus()
+        .then((value) => {
+          if (alive) setRobloxStatus(value);
+        })
+        .catch(() => {
+          if (alive) setRobloxStatus(null);
+        });
+    };
+    load();
+    const timer = window.setInterval(load, 5000);
+    return () => {
+      alive = false;
+      window.clearInterval(timer);
+    };
+  }, []);
 
   useEffect(() => {
     applyChatPreferences(chatPreferences);
@@ -1221,6 +1245,8 @@ export default function App() {
           <Inspector
             onClose={() => setInspectorOpen(false)}
             onOpenBlender={openBlenderModal}
+            onOpenRoblox={() => setRobloxOpen(true)}
+            roblox={robloxStatus}
             onOpenReview={() => setActive("Review")}
             onOpenAssets={() => setActive("Ассеты")}
             onOpenTasks={() => setActive("Задачи")}
@@ -1294,6 +1320,12 @@ export default function App() {
           onWorkspace={() => void handleBlenderWorkspace()}
           onScreenshot={() => void handleBlenderScreenshot()}
           onOpenFolder={(path) => void handleOpenFolder(path)}
+        />
+      ) : null}
+      {robloxOpen ? (
+        <RobloxModal
+          initialStatus={robloxStatus}
+          onClose={() => setRobloxOpen(false)}
         />
       ) : null}
     </div>

@@ -13,7 +13,7 @@ MAX_WRITE = 1_000_000
 MAX_OUTPUT = 20_000
 
 
-DANGEROUS = {"write_file", "delete_file", "run_command"}
+DANGEROUS = {"write_file", "delete_file", "run_command", "roblox_command"}
 
 
 def needs_approval(name: str) -> bool:
@@ -25,8 +25,29 @@ def permitted(name: str, policy: str) -> bool:
         return True
     if name in {"write_file", "delete_file"}:
         return policy in {"workspace", "auto"}
+    if name == "roblox_status":
+        from ..integrations.roblox.bridge import BRIDGE
+
+        return {"ok": True, **BRIDGE.status()}
+
+    if name == "roblox_command":
+        from ..integrations.roblox.bridge import BRIDGE
+
+        command = args.get("command") if isinstance(args.get("command"), dict) else args
+        if not isinstance(command, dict) or not command.get("type"):
+            return {"ok": False, "error": "нужен command.type"}
+        try:
+            result = BRIDGE.enqueue(command)
+        except ValueError as exc:
+            return {"ok": False, "error": str(exc)}
+        return {"ok": True, **result}
+
     if name == "run_command":
         return policy == "auto"
+    if name == "roblox_status":
+        return True
+    if name == "roblox_command":
+        return policy in {"workspace", "auto"}
     return False
 
 
@@ -39,12 +60,16 @@ def tool_specs(policy: str) -> str:
         "Доступные инструменты:",
         '- list_dir: {"path": "."} — список файлов и папок.',
         '- read_file: {"path": "src/app.ts"} — прочитать текстовый файл.',
+        '- roblox_status: {} — статус подключения Roblox Studio bridge.',
     ]
     if policy in {"workspace", "auto"}:
         lines.append(
             '- write_file: {"path": "src/app.ts", "content": "..."} — создать или перезаписать файл.'
         )
         lines.append('- delete_file: {"path": "old.ts"} — удалить файл.')
+        lines.append(
+            '- roblox_command: {"command": {"type": "create_script", "service": "ServerScriptService", "name": "KovaBootstrap", "source": "..."}} — выполнить команду в подключённом Roblox Studio.'
+        )
     if policy == "auto":
         lines.append(
             '- run_command: {"command": "npm test", "timeout": 120} — выполнить команду в папке проекта.'

@@ -601,6 +601,15 @@ export type BlenderScene = {
   file: string;
 };
 
+export type RobloxStatus = {
+  connected: boolean;
+  last_seen_seconds: number | null;
+  plugin_version: string;
+  pending: number;
+  last_error: string;
+  token_configured: boolean;
+};
+
 export type BlenderStatus = {
   installed: boolean;
   path: string;

@@ -470,6 +470,8 @@ def _approval_summary(name: str, args: dict[str, Any]) -> dict[str, Any]:
         summary["path"] = str(args.get("path"))[:300]
     if args.get("command"):
         summary["command"] = str(args.get("command"))[:600]
+    if name == "roblox_command":
+        summary["command"] = json.dumps(args, ensure_ascii=False)[:600]
     if isinstance(args.get("content"), str):
         content = args["content"]
         summary["bytes"] = len(content.encode("utf-8"))
