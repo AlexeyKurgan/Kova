@@ -32,6 +32,12 @@
     .kova-win-controls button:hover {
       background: var(--vscode-toolbar-hoverBackground, rgba(128, 128, 128, 0.18));
     }
+    .kova-win-controls button.kova-hub {
+      width: auto;
+      padding: 0 12px;
+      font: 600 10px/1 var(--vscode-font-family, sans-serif);
+      letter-spacing: 0.04em;
+    }
     .kova-win-controls button.kova-close:hover {
       background: #c42b1c;
       color: #ffffff;
@@ -62,6 +68,7 @@
     const box = document.createElement("div");
     box.className = "kova-win-controls";
     box.innerHTML = `
+      <button type="button" data-kova="hub" class="kova-hub" title="Отправить файл и строку в Kova">В Kova</button>
       <button type="button" data-kova="min" aria-label="Свернуть" title="Свернуть">${icons.min}</button>
       <button type="button" data-kova="max" aria-label="Развернуть" title="Развернуть">${icons.max}</button>
       <button type="button" data-kova="close" class="kova-close" aria-label="Закрыть" title="Закрыть">${icons.close}</button>
@@ -78,6 +85,19 @@
       } catch (error) {}
     };
 
+    box.querySelector('[data-kova="hub"]').addEventListener("click", () => {
+      const tab = document.querySelector(".tab.active");
+      const rawLabel =
+        tab?.getAttribute("aria-label") || tab?.textContent || "";
+      const file = rawLabel.replace(/,\s*tab$/i, "").trim();
+      const statusLabel =
+        document
+          .querySelector('[aria-label^="Line "]')
+          ?.getAttribute("aria-label") || "";
+      const match = statusLabel.match(/Line\s+(\d+)/i);
+      const line = match ? Number(match[1]) : 0;
+      void invoke("open_editor_context", { file, line });
+    });
     box.querySelector('[data-kova="min"]').addEventListener("click", () => {
       void invoke("plugin:window|minimize", { label });
     });

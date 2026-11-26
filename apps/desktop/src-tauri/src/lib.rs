@@ -5,7 +5,7 @@ use std::path::PathBuf;
 use std::sync::Mutex;
 use std::time::Duration;
 
-use tauri::Manager;
+use tauri::{Emitter, Manager};
 use tauri_plugin_shell::process::CommandChild;
 use tauri_plugin_shell::ShellExt;
 
@@ -52,6 +52,20 @@ fn load_or_create_token() -> String {
 }
 
 #[tauri::command]
+fn open_editor_context(app: tauri::AppHandle, file: String, line: u32) -> Result<(), String> {
+    if let Some(window) = app.get_webview_window("main") {
+        let _ = window.show();
+        let _ = window.unminimize();
+        let _ = window.set_focus();
+    }
+    app.emit(
+        "editor-context",
+        serde_json::json!({ "file": file, "line": line }),
+    )
+    .map_err(|error| error.to_string())
+}
+
+#[tauri::command]
 fn core_token() -> Result<String, String> {
     Ok(load_or_create_token())
 }
@@ -93,6 +107,7 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_notification::init())
         .manage(editor::EditorState::default())
         .manage(CoreState::default())
         .setup(|app| {
@@ -107,7 +122,8 @@ pub fn run() {
             editor::editor_open,
             editor::editor_close,
             editor::open_project_folder,
-            core_token
+            core_token,
+            open_editor_context
         ])
         .build(tauri::generate_context!())
         .expect("error while building Kova Hub")

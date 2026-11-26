@@ -407,6 +407,7 @@ type Props = {
   onGrantConsent: (providerId: string) => Promise<void>;
   onProjectChanged: () => void;
   chatPreferences: ChatPreferences;
+  seed?: { text: string; key: number } | null;
   onOpenTask: (taskId: string) => void;
   onTasksChanged: () => void;
 };
@@ -421,6 +422,7 @@ export default function ChatScreen({
   onGrantConsent,
   onProjectChanged,
   chatPreferences,
+  seed,
   onOpenTask,
   onTasksChanged,
 }: Props) {
@@ -459,6 +461,14 @@ export default function ChatScreen({
   const threadRef = useRef<HTMLDivElement | null>(null);
   const fileRef = useRef<HTMLInputElement | null>(null);
   const composerRef = useRef<HTMLTextAreaElement | null>(null);
+
+  useEffect(() => {
+    if (!seed) return;
+    setText((current) => (current.trim() ? `${current}
+${seed.text}` : seed.text));
+    composerRef.current?.focus();
+  }, [seed?.key]);
+
 
   const task = tasks.find((item) => item.id === chat?.task_id) ?? null;
 

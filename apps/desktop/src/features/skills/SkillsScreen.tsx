@@ -14,6 +14,7 @@ import {
   ChevronRight,
   Code2,
   Copy,
+  Download,
   ExternalLink,
   FileText,
   Gamepad2,
@@ -25,6 +26,7 @@ import {
   Search,
   Sparkles,
   Trash2,
+  Upload,
   Wrench,
   X,
 } from "lucide-react";
@@ -122,6 +124,7 @@ export default function SkillsScreen({ skills, tasks, onChanged }: Props) {
     return Number.isFinite(stored) && stored >= 300 ? stored : 440;
   });
   const workspaceRef = useRef<HTMLDivElement | null>(null);
+  const importRef = useRef<HTMLInputElement | null>(null);
 
   const counts = useMemo(() => {
     const map = new Map<string, number>();
@@ -390,6 +393,82 @@ export default function SkillsScreen({ skills, tasks, onChanged }: Props) {
     }
   };
 
+  const exportSkills = async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      const rows = [];
+      for (const skill of skills) {
+        const detail = await getSkill(skill.id);
+        rows.push({
+          name: detail.name,
+          description: detail.description,
+          category: detail.category,
+          content: detail.content,
+          locked: false,
+        });
+      }
+      const payload = {
+        version: 1,
+        exported_at: new Date().toISOString(),
+        skills: rows,
+      };
+      const blob = new Blob([JSON.stringify(payload, null, 2)], {
+        type: "application/json",
+      });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `kova-skills-${new Date().toISOString().slice(0, 10)}.json`;
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Не удалось экспортировать скиллы");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const importSkills = async (file: File) => {
+    setBusy(true);
+    setError(null);
+    try {
+      const parsed = JSON.parse(await file.text()) as
+        | { skills?: unknown }
+        | unknown[];
+      const rows = Array.isArray(parsed)
+        ? parsed
+        : Array.isArray((parsed as { skills?: unknown }).skills)
+          ? ((parsed as { skills?: unknown[] }).skills ?? [])
+          : [];
+      let imported = 0;
+      for (const row of rows) {
+        if (!row || typeof row !== "object") continue;
+        const item = row as Record<string, unknown>;
+        const name = String(item.name ?? "").trim();
+        if (!name) continue;
+        const category = String(item.category ?? "general") as SkillCategory;
+        await createSkill({
+          name,
+          description: String(item.description ?? ""),
+          category: CATEGORY_ORDER.includes(category) ? category : "general",
+          content: String(item.content ?? ""),
+          locked: false,
+        });
+        imported += 1;
+      }
+      if (imported === 0) {
+        setError("В файле не найдено скиллов");
+      } else {
+        onChanged();
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Не удалось импортировать скиллы");
+    } finally {
+      setBusy(false);
+    }
+  };
+
   return (
     <section className="skills-page">
       <header className="sk-head">
@@ -403,17 +482,48 @@ export default function SkillsScreen({ skills, tasks, onChanged }: Props) {
             остальные не тратят контекст.
           </p>
         </div>
-        <button
-          type="button"
-          className="btn btn-primary"
-          onClick={() => {
-            setCreating(true);
-            setError(null);
-          }}
-        >
-          <Plus size={15} />
-          Новый скилл
-        </button>
+        <div className="sk-head-actions">
+          <button
+            type="button"
+            className="btn btn-secondary"
+            disabled={busy || skills.length === 0}
+            onClick={() => void exportSkills()}
+          >
+            <Download size={15} />
+            Экспорт
+          </button>
+          <button
+            type="button"
+            className="btn btn-secondary"
+            disabled={busy}
+            onClick={() => importRef.current?.click()}
+          >
+            <Upload size={15} />
+            Импорт
+          </button>
+          <button
+            type="button"
+            className="btn btn-primary"
+            onClick={() => {
+              setCreating(true);
+              setError(null);
+            }}
+          >
+            <Plus size={15} />
+            Новый скилл
+          </button>
+          <input
+            ref={importRef}
+            type="file"
+            accept="application/json,.json"
+            hidden
+            onChange={(event) => {
+              const file = event.target.files?.[0];
+              event.target.value = "";
+              if (file) void importSkills(file);
+            }}
+          />
+        </div>
       </header>
 
       <div className="sk-categories">

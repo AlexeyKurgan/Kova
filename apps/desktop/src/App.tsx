@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Inspector from "./components/Inspector";
 import Sidebar from "./components/Sidebar";
 import TitleBar from "./components/TitleBar";
@@ -90,6 +90,26 @@ import {
   updateTask,
 } from "./lib/coreClient";
 import { pickFile } from "./lib/dialogs";
+async function notifyReview(count: number): Promise<void> {
+  if (!("__TAURI_INTERNALS__" in window)) return;
+  try {
+    const { isPermissionGranted, requestPermission, sendNotification } =
+      await import("@tauri-apps/plugin-notification");
+    let granted = await isPermissionGranted();
+    if (!granted) granted = (await requestPermission()) === "granted";
+    if (!granted) return;
+    sendNotification({
+      title: "Kova: есть результат",
+      body:
+        count === 1
+          ? "Агент закончил — проверь Review."
+          : `Новых результатов: ${count}. Проверь Review.`,
+    });
+  } catch {
+    // Notifications are optional.
+  }
+}
+
 import type {
   AssetPassport,
   BlenderSkill,
@@ -130,6 +150,8 @@ export default function App() {
   const [core, setCore] = useState<CoreStatus>("checking");
   const [robloxStatus, setRobloxStatus] = useState<RobloxStatus | null>(null);
   const [robloxOpen, setRobloxOpen] = useState(false);
+  const [chatSeed, setChatSeed] = useState<{ text: string; key: number } | null>(null);
+  const reviewCountRef = useRef<number | null>(null);
   const [project, setProject] = useState<Project | null>(null);
   const [projectPath, setProjectPath] = useState<string | null>(null);
   const [projects, setProjects] = useState<ProjectCard[]>([]);
@@ -255,6 +277,42 @@ export default function App() {
       .then(setBlenderSkills)
       .catch(() => setBlenderSkills([]));
   }, []);
+
+  useEffect(() => {
+    if (!("__TAURI_INTERNALS__" in window)) return;
+    let cancelled = false;
+    let unlisten: (() => void) | undefined;
+    void import("@tauri-apps/api/event")
+      .then(({ listen }) =>
+        listen<{ file: string; line: number }>("editor-context", (event) => {
+          const file = event.payload.file || "файл";
+          const line = event.payload.line ? `:${event.payload.line}` : "";
+          setChatSeed({
+            text: `Контекст из редактора: ${file}${line}
+`,
+            key: Date.now(),
+          });
+          setActive("Чат");
+          setToast({ text: `Из редактора: ${file}${line}`, tone: "warning" });
+        }),
+      )
+      .then((stop) => {
+        if (cancelled) stop();
+        else unlisten = stop;
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+      unlisten?.();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (reviewCountRef.current !== null && review.length > reviewCountRef.current) {
+      void notifyReview(review.length - reviewCountRef.current);
+    }
+    reviewCountRef.current = review.length;
+  }, [review.length]);
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
@@ -1214,6 +1272,7 @@ export default function App() {
               onGrantConsent={grantRemoteConsent}
               onProjectChanged={() => void loadProjectData()}
               chatPreferences={chatPreferences}
+              seed={chatSeed}
               onOpenTask={(taskId) => {
                 setActive("Задачи");
                 setOpenTaskId(taskId);

@@ -16382,3 +16382,11 @@ button.blender-chip {
   padding: 4px 10px;
   font-size: 10px;
 }
+
+.sk-head-actions {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
