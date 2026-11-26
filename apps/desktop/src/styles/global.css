@@ -17091,3 +17091,51 @@ button.blender-chip {
   color: var(--text-muted);
   font-size: 8.5px;
 }
+
+.task-template-block {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: rgba(var(--accent-rgb), 0.025);
+}
+
+.task-template-block > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--accent-strong);
+  font-size: 9.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.task-template-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.task-template-chip {
+  padding: 5px 9px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 9.5px;
+  cursor: pointer;
+}
+
+.task-template-chip:hover {
+  border-color: rgba(var(--accent-rgb), 0.3);
+  color: var(--text-primary);
+}
+
+.task-template-chip.is-active {
+  border-color: rgba(var(--accent-rgb), 0.4);
+  background: rgba(var(--accent-rgb), 0.1);
+  color: var(--accent-strong);
+}

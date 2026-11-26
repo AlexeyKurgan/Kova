@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { FormEvent } from "react";
-import { SquareCheckBig, X } from "lucide-react";
+import { Sparkles, SquareCheckBig, X } from "lucide-react";
 import type { CreateTaskInput, Engine, TaskType } from "../../lib/types";
 
 type Props = {
@@ -18,6 +18,91 @@ const TYPE_OPTIONS: { value: TaskType; label: string }[] = [
   { value: "code", label: "Код" },
   { value: "level", label: "Уровень" },
   { value: "export", label: "Экспорт" },
+];
+
+type Template = {
+  id: string;
+  label: string;
+  title: string;
+  type: TaskType;
+  engine: Engine;
+  goal: string;
+  criteria: string[];
+};
+
+const TEMPLATES: Template[] = [
+  {
+    id: "roblox-prop",
+    label: "Модель для Roblox",
+    title: "Модель для Roblox",
+    type: "model",
+    engine: "roblox",
+    goal: "Создать low-poly модель для Roblox с чистым силуэтом и игровым масштабом.",
+    criteria: ["≤ 20 000 треугольников", "UV и один материал", "Пивот в игровой точке", "Экспорт FBX/GLB"],
+  },
+  {
+    id: "sword",
+    label: "Меч",
+    type: "model",
+    engine: "roblox",
+    title: "Стилизованный меч",
+    goal: "Сделать стилизованный меч для Roblox: клинок, гарда, рукоять и навершие.",
+    criteria: ["≤ 5 000 треугольников", "Один материал или атлас", "Пивот у рукояти", "Готов к импорту в Studio"],
+  },
+  {
+    id: "animation-hit",
+    label: "Анимация удара",
+    title: "Анимация удара",
+    type: "animation",
+    engine: "roblox",
+    goal: "Создать игровую анимацию удара с читаемым замахом и возвратом в стойку.",
+    criteria: ["Длительность 0.6–1.2 с", "Loop/return pose", "Root motion проверен", "Экспорт в движок"],
+  },
+  {
+    id: "uv-fix",
+    label: "UV fix",
+    title: "Исправить UV",
+    type: "texture",
+    engine: "blender",
+    goal: "Исправить UV-развёртку и перекрытия, сохранить текстуры.",
+    criteria: ["Нет UV вне 0..1", "Нет пересечений островов", "Текстура не растянута", "QA пройден"],
+  },
+  {
+    id: "lod",
+    label: "LOD",
+    title: "Сделать LOD",
+    type: "model",
+    engine: "blender",
+    goal: "Подготовить LOD-цепочку для игрового ассета.",
+    criteria: ["LOD0/LOD1/LOD2", "Силуэт сохраняется", "Бюджеты треугольников", "Экспорт проверен"],
+  },
+  {
+    id: "vfx",
+    label: "VFX",
+    title: "Эффект для игры",
+    type: "effect",
+    engine: "roblox",
+    goal: "Создать читаемый игровой эффект с бюджетом частиц.",
+    criteria: ["Бюджет частиц", "Длительность и loop", "Цвет и слои", "Playtest без ошибок"],
+  },
+  {
+    id: "roblox-export",
+    label: "Экспорт в Roblox",
+    title: "Экспорт ассета в Roblox",
+    type: "export",
+    engine: "roblox",
+    goal: "Подготовить принятый ассет к импорту в Roblox Studio.",
+    criteria: ["Масштаб и оси", "Материалы/текстуры", "FBX/GLB", "Импорт и Asset ID"],
+  },
+  {
+    id: "code-feature",
+    label: "Кодовая фича",
+    title: "Новая кодовая фича",
+    type: "code",
+    engine: "generic",
+    goal: "Реализовать небольшую фичу с тестами и без регрессий.",
+    criteria: ["Код собирается", "Тесты проходят", "Нет лишних файлов", "Есть отчёт"],
+  },
 ];
 
 const ENGINE_OPTIONS: { value: Engine; label: string }[] = [
@@ -42,6 +127,7 @@ export default function TaskDialog({
   const [criteria, setCriteria] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [templateId, setTemplateId] = useState("");
   const titleRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -52,6 +138,16 @@ export default function TaskDialog({
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [onClose]);
+
+  const applyTemplate = (template: Template) => {
+    setTemplateId(template.id);
+    setTitle(template.title);
+    setType(template.type);
+    setEngine(template.engine);
+    setGoal(template.goal);
+    setCriteria(template.criteria.join("\n"));
+    titleRef.current?.focus();
+  };
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -97,6 +193,25 @@ export default function TaskDialog({
         </div>
 
         <div className="modal-body">
+          <div className="task-template-block">
+            <span>
+              <Sparkles size={14} />
+              Шаблон
+            </span>
+            <div className="task-template-grid">
+              {TEMPLATES.map((template) => (
+                <button
+                  type="button"
+                  key={template.id}
+                  className={`task-template-chip${templateId === template.id ? " is-active" : ""}`}
+                  onClick={() => applyTemplate(template)}
+                >
+                  {template.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
           <div className="field">
             <label htmlFor="task-title">Название</label>
             <input
