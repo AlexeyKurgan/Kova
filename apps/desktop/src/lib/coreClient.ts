@@ -151,6 +151,13 @@ export async function getPackage(packageId: string): Promise<KovaPackage> {
   return request<KovaPackage>(`/packages/${encodeURIComponent(packageId)}`);
 }
 
+export async function importPackage(path: string): Promise<KovaPackage> {
+  return request<KovaPackage>("/packages/import", {
+    method: "POST",
+    body: JSON.stringify({ path }),
+  });
+}
+
 export async function installPackage(packageId: string): Promise<KovaPackage> {
   return request<KovaPackage>(`/packages/${encodeURIComponent(packageId)}/install`, {
     method: "POST",

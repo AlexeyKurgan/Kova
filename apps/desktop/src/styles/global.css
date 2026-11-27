@@ -20876,3 +20876,13 @@ html[data-mode="beginner"] .advanced-only {
   color: var(--text-secondary);
   font-weight: 500;
 }
+
+.pkg-hero-actions {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-left: auto;
+  flex: none;
+}

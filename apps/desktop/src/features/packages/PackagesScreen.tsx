@@ -13,9 +13,11 @@ import {
   ShieldCheck,
   Sparkles,
   Trash2,
+  Upload,
   Wrench,
 } from "lucide-react";
 import {
+  importPackage,
   installPackage,
   listLedger,
   listPackages,
@@ -23,6 +25,7 @@ import {
   uninstallPackage,
 } from "../../lib/coreClient";
 import { formatDate } from "../../lib/format";
+import { pickFile } from "../../lib/dialogs";
 import { ENGINE_LABELS } from "../../lib/labels";
 import type { Engine, KovaPackage, LedgerEvent } from "../../lib/types";
 
@@ -99,6 +102,7 @@ export default function PackagesScreen() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
+  const [importing, setImporting] = useState(false);
   const [view, setView] = useState<View>("installed");
   const [engine, setEngine] = useState("all");
   const [query, setQuery] = useState("");
@@ -190,6 +194,22 @@ export default function PackagesScreen() {
       .slice(0, 40);
   }, [ledger, range]);
 
+  const importFromFile = async () => {
+    if (importing) return;
+    setError("");
+    const path = await pickFile("Пакет Kova (.zip)", ["zip"]);
+    if (!path) return;
+    setImporting(true);
+    try {
+      await importPackage(path);
+      await refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Не удалось импортировать пакет");
+    } finally {
+      setImporting(false);
+    }
+  };
+
   const run = async (id: string, action: () => Promise<unknown>) => {
     setBusy(id);
     setError(null);
@@ -232,10 +252,21 @@ export default function PackagesScreen() {
             <span>{updates} обновлений</span>
           </div>
         </div>
-        <button type="button" className="btn btn-secondary pkg-refresh" onClick={() => void refresh()}>
-          <RefreshCw size={15} />
-          Проверить обновления
-        </button>
+        <div className="pkg-hero-actions">
+          <button
+            type="button"
+            className="btn btn-secondary"
+            disabled={importing}
+            onClick={() => void importFromFile()}
+          >
+            <Upload size={15} />
+            {importing ? "Импорт…" : "Импорт пакета"}
+          </button>
+          <button type="button" className="btn btn-secondary" onClick={() => void refresh()}>
+            <RefreshCw size={15} />
+            Проверить обновления
+          </button>
+        </div>
       </div>
 
       <div className="pkg-analytics">

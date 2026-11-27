@@ -9,6 +9,7 @@ from ..domain.ledger import LedgerEvent
 from ..domain.enums import Engine
 from ..storage.ledger import append_event
 from .catalog import CATALOG, get_catalog_entry
+from .custom import get_custom_package, import_custom_package, list_custom_packages
 from ..integrations.engines import detect_engine
 
 STATE_FILE = "installed.json"
@@ -87,20 +88,26 @@ def _row(hub: Path, item: dict[str, Any], state: dict[str, Any]) -> dict[str, An
     return row
 
 
+def _all_items(hub: Path) -> list[dict[str, Any]]:
+    rows = [dict(item) for item in CATALOG]
+    rows.extend(list_custom_packages(hub))
+    return rows
+
+
 def list_packages(hub: Path) -> list[dict[str, Any]]:
     state = _read(hub)
-    return [_row(hub, dict(item), state) for item in CATALOG]
+    return [_row(hub, dict(item), state) for item in _all_items(hub)]
 
 
 def get_package(hub: Path, package_id: str) -> dict[str, Any] | None:
-    item = get_catalog_entry(package_id)
+    item = get_catalog_entry(package_id) or get_custom_package(hub, package_id)
     if item is None:
         return None
     return _row(hub, item, _read(hub))
 
 
 def install_package(hub: Path, package_id: str) -> dict[str, Any]:
-    item = get_catalog_entry(package_id)
+    item = get_catalog_entry(package_id) or get_custom_package(hub, package_id)
     if item is None:
         raise KeyError(package_id)
     if not item.get("available", True):
@@ -123,7 +130,7 @@ def install_package(hub: Path, package_id: str) -> dict[str, Any]:
 
 
 def uninstall_package(hub: Path, package_id: str) -> bool:
-    item = get_catalog_entry(package_id)
+    item = get_catalog_entry(package_id) or get_custom_package(hub, package_id)
     if item is None:
         return False
     if package_id == CORE_PACKAGE:
@@ -147,7 +154,7 @@ def uninstall_package(hub: Path, package_id: str) -> bool:
 
 
 def set_package_enabled(hub: Path, package_id: str, enabled: bool) -> dict[str, Any]:
-    item = get_catalog_entry(package_id)
+    item = get_catalog_entry(package_id) or get_custom_package(hub, package_id)
     if item is None:
         raise KeyError(package_id)
     state = _read(hub)
