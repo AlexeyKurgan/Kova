@@ -861,7 +861,7 @@ def test_routing_rules_and_roles(tmp_path: Path, monkeypatch) -> None:
             "command": sys.executable,
             "args": [
                 "-c",
-                "import sys, pathlib; pathlib.Path('role.txt').write_text(sys.argv[1])",
+                "import sys, pathlib; pathlib.Path('role.txt').write_text(sys.argv[1], encoding='utf-8')",
                 "{prompt}",
             ],
         },
