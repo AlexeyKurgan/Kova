@@ -85,3 +85,24 @@ def test_memory_empty_query_returns_recent(client: TestClient) -> None:
     payload = client.get("/memory/search").json()
     assert payload["total"] >= 0
     assert payload["groups"]["tasks"]
+
+
+def test_memory_uses_sqlite_index(client: TestClient, tmp_path: Path) -> None:
+    import sqlite3
+
+    game = tmp_path / "game"
+    client.post("/tasks", json={"title": "Indexed memory task", "goal": "fts body"})
+    first = client.get("/memory/search", params={"q": "indexed"}).json()
+    assert first["total"] >= 1
+    index = game / ".hub" / ".local" / "search.sqlite3"
+    assert index.is_file()
+    with sqlite3.connect(index) as connection:
+        before = connection.execute("SELECT COUNT(*) FROM docs").fetchone()[0]
+    assert before >= 1
+
+    client.post("/tasks", json={"title": "Second indexed task", "goal": "more fts"})
+    second = client.get("/memory/search", params={"q": "second"}).json()
+    assert second["total"] >= 1
+    with sqlite3.connect(index) as connection:
+        after = connection.execute("SELECT COUNT(*) FROM docs").fetchone()[0]
+    assert after > before

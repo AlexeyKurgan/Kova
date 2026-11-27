@@ -113,6 +113,7 @@ def _task_results(tasks: list[Any], query: str, limit: int) -> list[dict[str, An
                 "meta": f"{task.status.value} · {task.type.value} · {task.updated_at.isoformat(timespec='minutes')}",
                 "link": task.id,
                 "updated_at": task.updated_at.isoformat(),
+                "body": haystack,
             }
         )
     rows.sort(key=lambda row: (row.get("score", 0), row["updated_at"]), reverse=True)
@@ -145,6 +146,7 @@ def _asset_results(assets: list[Any], query: str, limit: int) -> list[dict[str, 
                 "meta": f"{asset.type.value} · {asset.engine.value} · {asset.updated_at.isoformat(timespec='minutes')}",
                 "link": asset.id,
                 "updated_at": asset.updated_at.isoformat(),
+                "body": haystack,
             }
         )
     rows.sort(key=lambda row: (row.get("score", 0), row["updated_at"]), reverse=True)
@@ -168,6 +170,7 @@ def _chat_results(chats: list[dict[str, Any]], query: str, limit: int) -> list[d
                 "meta": f"{chat.get('message_count') or 0} сообщений · {chat.get('updated_at') or ''}",
                 "link": "",
                 "updated_at": str(chat.get("updated_at") or ""),
+                "body": haystack,
             }
         )
     rows.sort(key=lambda row: (row.get("score", 0), row["updated_at"]), reverse=True)
@@ -201,6 +204,7 @@ def _event_results(rows: list[dict[str, Any]], query: str, limit: int) -> list[d
                 "meta": str(event.get("at") or ""),
                 "link": link,
                 "updated_at": str(event.get("at") or ""),
+                "body": haystack,
             }
         )
     return result[:limit]
@@ -223,6 +227,7 @@ def _decision_results(rows: list[dict[str, Any]], query: str, limit: int) -> lis
                 "meta": str(row.get("at") or row.get("created_at") or ""),
                 "link": "",
                 "updated_at": str(row.get("at") or row.get("created_at") or ""),
+                "body": text.lower(),
             }
         )
     return result[:limit]
@@ -263,44 +268,11 @@ def _month_start(value: datetime, months_back: int = 0) -> datetime:
     )
 
 
-def memory_timeline(
-    hub: Path,
+def _timeline_from_items(
+    items: list[tuple[datetime, str]],
     granularity: str = "day",
-    tasks: list[Any] | None = None,
-    assets: list[Any] | None = None,
-    chats: list[dict[str, Any]] | None = None,
-    events: list[dict[str, Any]] | None = None,
-    decisions: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     granularity = granularity if granularity in {"hour", "day", "month", "year"} else "day"
-    tasks = tasks if tasks is not None else list_tasks(hub)
-    assets = assets if assets is not None else list_assets(hub)
-    chats = chats if chats is not None else list_chats(hub)
-    events = events if events is not None else _read_jsonl(hub / "ledger" / "events.jsonl")
-    decisions = decisions if decisions is not None else _read_jsonl(hub / "decisions" / "decisions.jsonl")
-
-    items: list[tuple[datetime, str]] = []
-    for task in tasks:
-        parsed = _parse_dt(task.updated_at)
-        if parsed:
-            items.append((parsed, "task"))
-    for asset in assets:
-        parsed = _parse_dt(asset.updated_at)
-        if parsed:
-            items.append((parsed, "asset"))
-    for chat in chats:
-        parsed = _parse_dt(chat.get("updated_at"))
-        if parsed:
-            items.append((parsed, "chat"))
-    for event in events:
-        parsed = _parse_dt(event.get("at"))
-        if parsed:
-            items.append((parsed, "event"))
-    for decision in decisions:
-        parsed = _parse_dt(decision.get("at") or decision.get("created_at"))
-        if parsed:
-            items.append((parsed, "decision"))
-
     now = datetime.now().astimezone()
     starts: list[datetime] = []
     labels: list[str] = []
@@ -356,40 +328,118 @@ def memory_timeline(
     }
 
 
+def memory_timeline(
+    hub: Path,
+    granularity: str = "day",
+    tasks: list[Any] | None = None,
+    assets: list[Any] | None = None,
+    chats: list[dict[str, Any]] | None = None,
+    events: list[dict[str, Any]] | None = None,
+    decisions: list[dict[str, Any]] | None = None,
+) -> dict[str, Any]:
+    tasks = tasks if tasks is not None else list_tasks(hub)
+    assets = assets if assets is not None else list_assets(hub)
+    chats = chats if chats is not None else list_chats(hub)
+    events = events if events is not None else _read_jsonl(hub / "ledger" / "events.jsonl")
+    decisions = decisions if decisions is not None else _read_jsonl(hub / "decisions" / "decisions.jsonl")
+
+    items: list[tuple[datetime, str]] = []
+    for task in tasks:
+        parsed = _parse_dt(task.updated_at)
+        if parsed:
+            items.append((parsed, "task"))
+    for asset in assets:
+        parsed = _parse_dt(asset.updated_at)
+        if parsed:
+            items.append((parsed, "asset"))
+    for chat in chats:
+        parsed = _parse_dt(chat.get("updated_at"))
+        if parsed:
+            items.append((parsed, "chat"))
+    for event in events:
+        parsed = _parse_dt(event.get("at"))
+        if parsed:
+            items.append((parsed, "event"))
+    for decision in decisions:
+        parsed = _parse_dt(decision.get("at") or decision.get("created_at"))
+        if parsed:
+            items.append((parsed, "decision"))
+    return _timeline_from_items(items, granularity)
+
+
+def timeline_from_activity(
+    activity: list[dict[str, str]],
+    granularity: str = "day",
+) -> dict[str, Any]:
+    items: list[tuple[datetime, str]] = []
+    for row in activity:
+        parsed = _parse_dt(row.get("updated_at"))
+        kind = str(row.get("kind") or "")
+        if parsed and kind:
+            items.append((parsed, kind))
+    return _timeline_from_items(items, granularity)
+
+
 def search_memory(
     hub: Path,
     query: str = "",
     limit: int = 50,
     granularity: str = "day",
 ) -> dict[str, Any]:
+    from . import search_index
+
     normalized = query.strip().lower()
     per_group = max(3, min(20, limit // 4 or 8))
-    tasks = list_tasks(hub)
-    assets = list_assets(hub)
-    chats = list_chats(hub)
-    events = _read_jsonl(hub / "ledger" / "events.jsonl")
-    decisions = _read_jsonl(hub / "decisions" / "decisions.jsonl")
+    index = search_index.sync_index(hub)
+    docs = index["docs"]
+    candidates = search_index.candidate_uids(hub, normalized)
+    if candidates is not None and candidates:
+        docs = [
+            row
+            for row in docs
+            if f"{row.get('kind')}|{row.get('id')}" in candidates
+        ]
+    # When FTS returns no candidates, keep the full set: tokenization can miss
+    # exact substrings, and the synonym scorer is the source of truth.
 
-    groups = {
-        "tasks": _task_results(tasks, normalized, per_group),
-        "assets": _asset_results(assets, normalized, per_group),
-        "chats": _chat_results(chats, normalized, max(3, per_group // 2)),
-        "events": _event_results(events, normalized, per_group),
-        "decisions": _decision_results(decisions, normalized, per_group),
+    limits = {
+        "task": per_group,
+        "asset": per_group,
+        "chat": max(3, per_group // 2),
+        "event": per_group,
+        "decision": per_group,
     }
+    keys = {
+        "task": "tasks",
+        "asset": "assets",
+        "chat": "chats",
+        "event": "events",
+        "decision": "decisions",
+    }
+    groups: dict[str, list[dict[str, Any]]] = {value: [] for value in keys.values()}
+    for row in docs:
+        kind = str(row.get("kind") or "")
+        if kind not in keys:
+            continue
+        matched, score = _match(str(row.get("body") or ""), normalized)
+        if not matched:
+            continue
+        item = {key: value for key, value in row.items() if key != "body"}
+        item["score"] = score
+        groups[keys[kind]].append(item)
+
+    for key, rows in groups.items():
+        rows.sort(
+            key=lambda item: (item.get("score", 0), str(item.get("updated_at") or "")),
+            reverse=True,
+        )
+        groups[key] = rows[: limits[{"tasks": "task", "assets": "asset", "chats": "chat", "events": "event", "decisions": "decision"}[key]]]
+
     total = sum(len(items) for items in groups.values())
     return {
         "query": query,
         "total": total,
         "groups": groups,
-        "timeline": memory_timeline(
-            hub, granularity, tasks=tasks, assets=assets, chats=chats, events=events, decisions=decisions
-        ),
-        "counts": {
-            "tasks": len(tasks),
-            "assets": len(assets),
-            "chats": len(chats),
-            "events": len(events),
-            "decisions": len(decisions),
-        },
+        "timeline": timeline_from_activity(index["activity"], granularity),
+        "counts": index["counts"],
     }

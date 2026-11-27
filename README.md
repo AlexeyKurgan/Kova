@@ -120,7 +120,7 @@ For free browser AIs:
 
 ### Project memory
 
-- File-based semantic-ish search across tasks, assets, chats, decisions and ledger events, with Russian/English asset synonyms and relevance scoring.
+- SQLite FTS index with mtime fingerprints and Russian/English synonyms across tasks, assets, chats, decisions and ledger events.
 - Activity timeline with hours/days/months/years and type filters.
 - Project diary with 7/14/30-day summaries and a calendar of active days.
 - Ledger of every important action.
