@@ -91,7 +91,7 @@ const EN: Record<string, string> = {
   "Язык интерфейса": "Interface language",
   Интерфейс: "Interface",
   "Английский: бета — основные экраны":
-    "English beta: navigation, overview, tasks, assets, review and settings. Other tools remain in Russian.",
+    "English beta: overview, projects, tasks, assets, review, task/asset details and settings. Other tools remain in Russian.",
   "Русский": "Russian",
   "English (beta)": "English (beta)",
   Доступность: "Accessibility",
