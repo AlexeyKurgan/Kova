@@ -39,18 +39,6 @@ $password = $env:KOVA_SIGN_PFX_PASSWORD
 $thumbprint = $env:KOVA_SIGN_THUMBPRINT
 
 if (-not $pfx -and -not $thumbprint) {
-  $localPfx = Join-Path $env:APPDATA "KovaHub\signing\kova-local.pfx"
-  $localPassword = Join-Path $env:APPDATA "KovaHub\signing\password.txt"
-  if (Test-Path $localPfx) {
-    $pfx = $localPfx
-    if (Test-Path $localPassword) {
-      $password = (Get-Content $localPassword -Raw).Trim()
-    }
-    Write-Host "using local self-signed certificate: $localPfx"
-  }
-}
-
-if (-not $pfx -and -not $thumbprint) {
   Write-Host "KOVA_SIGN_PFX / KOVA_SIGN_THUMBPRINT is not set - skipping code signing"
   return
 }
