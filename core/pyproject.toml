@@ -1,11 +1,12 @@
 [project]
 name = "kova-core"
-version = "0.1.1"
+version = "0.1.2"
 description = "Local engine for Kova Hub: tasks, capsules, checks, snapshots, ledger"
 requires-python = ">=3.11"
 dependencies = [
   "fastapi>=0.115",
   "uvicorn[standard]>=0.30",
+  "Pillow>=10",
 ]
 
 [project.optional-dependencies]

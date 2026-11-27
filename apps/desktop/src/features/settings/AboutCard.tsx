@@ -90,7 +90,7 @@ export default function AboutCard() {
       </div>
       <div className="about-grid">
         <div><span>Приложение</span><b>Kova Hub</b></div>
-        <div><span>Версия</span><b>{result?.current ?? "0.1.1"}</b></div>
+        <div><span>Версия</span><b>{result?.current ?? "0.1.2"}</b></div>
         <div><span>Платформа</span><b>Windows x64</b></div>
         <div><span>Канал</span><b>GitHub Releases</b></div>
       </div>
