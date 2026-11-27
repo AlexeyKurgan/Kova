@@ -1616,6 +1616,7 @@ const EN: Record<string, string> = {
   Да: "Yes",
   Нет: "No",
   "Нет, только текст": "No, text only",
+  "нет": "no",
 
   "Например: DeepSeek API": "For example: DeepSeek API",
   "Например: DeepSeek CLI": "For example: DeepSeek CLI",
