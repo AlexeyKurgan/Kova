@@ -22,8 +22,6 @@ foreach ($pattern in @("msi\*.msi", "nsis\*.exe")) {
 }
 if ($files.Count -eq 0) { throw "no installer artifacts found" }
 
-& (Join-Path $PSScriptRoot "sign-release.ps1") -Paths ($files | ForEach-Object { $_.FullName })
-
 New-Item -ItemType Directory -Force -Path $release | Out-Null
 $manifestFiles = foreach ($file in $files) {
   $hash = Get-FileHash -Algorithm SHA256 -Path $file.FullName
@@ -34,12 +32,9 @@ $manifestFiles = foreach ($file in $files) {
   }
 }
 
-$signed = (-not [string]::IsNullOrEmpty($env:KOVA_SIGN_PFX)) `
-  -or (-not [string]::IsNullOrEmpty($env:KOVA_SIGN_THUMBPRINT))
 $manifest = [ordered]@{
   version = $Version
   generated_at = (Get-Date).ToUniversalTime().ToString("o")
-  signed = $signed
   files = @($manifestFiles)
 }
 $target = Join-Path $release "manifest.json"

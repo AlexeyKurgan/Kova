@@ -105,13 +105,25 @@ Optional:
 - One or more AI CLIs for agent runs.
 - Internet access for the built-in editor and extensions.
 
-## Install on a clean Windows machine
+## Install
 
-> There is no standalone one-click installer yet. The MSI/NSIS currently contains only the desktop shell; the Python core must be installed from the source checkout. See [Packaging status](#packaging-status).
+### One command
 
-### 1. Install the prerequisites
+Windows 10/11, PowerShell:
 
-Open PowerShell as Administrator and install the toolchain with `winget`:
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -Command "irm https://raw.githubusercontent.com/AlexeyKurgan/Kova/main/install.ps1 | iex"
+```
+
+The script downloads the latest GitHub release, verifies SHA256 against
+`manifest.json`, installs silently and launches Kova Hub. No Python, Node or
+developer tools are needed.
+
+Manual installers: [GitHub Releases](https://github.com/AlexeyKurgan/Kova/releases/latest).
+
+### Build from source
+
+Install the toolchain with `winget`:
 
 ```powershell
 winget install --id Git.Git -e
@@ -120,17 +132,10 @@ winget install --id Python.Python.3.12 -e
 winget install --id Microsoft.VisualStudio.2022.BuildTools -e --override "--wait --quiet --add Microsoft.VisualStudio.Workload.VCTools --includeRecommended"
 winget install --id Rustlang.Rustup -e
 winget install --id Microsoft.EdgeWebView2Runtime -e
-```
-
-Then make sure Rust uses the MSVC toolchain:
-
-```powershell
 rustup default stable-msvc
 ```
 
-Restart the terminal so `node`, `python`, and `cargo` are on `PATH`.
-
-### 2. Clone and install
+Restart the terminal, then:
 
 ```powershell
 git clone <repository-url> KovaHub
@@ -138,33 +143,18 @@ cd KovaHub
 powershell -ExecutionPolicy Bypass -File scripts\setup.ps1
 ```
 
-`setup.ps1` checks the versions, runs `npm install`, and installs the Python core in editable mode. It prints the exact `winget` commands if something is missing.
-
-Manual equivalent:
-
-```powershell
-npm install
-npm run core:install
-```
-
-### 3. Run
-
-Development (Vite + Tauri, hot reload):
+Development:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File scripts\dev.ps1
 ```
 
-The script starts the core on `http://127.0.0.1:8765` and launches `tauri dev`. The first Rust build can take several minutes.
-
 Production build:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File scripts\build.ps1
-powershell -ExecutionPolicy Bypass -File scripts\run-app.ps1
+powershell -ExecutionPolicy Bypass -File scriptsuild.ps1
+powershell -ExecutionPolicy Bypass -File scriptsun-app.ps1
 ```
-
-`build.ps1` produces the desktop shell and installers in `apps/desktop/src-tauri/target/release/bundle/`. `run-app.ps1` starts the core and the built executable.
 
 ### Packaging status
 
