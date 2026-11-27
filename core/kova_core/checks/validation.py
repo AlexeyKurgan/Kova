@@ -1,6 +1,8 @@
 import json
 import os
+import platform
 import re
+import shutil
 import subprocess
 import time
 from datetime import datetime, timezone
@@ -37,6 +39,31 @@ def _save_results(hub: Path, task_id: str, rows: list[dict[str, Any]]) -> None:
         json.dumps(rows[-100:], ensure_ascii=False, indent=2) + "\n",
         encoding="utf-8",
     )
+
+
+def _environment(hub: Path) -> dict[str, str]:
+    environment = {
+        "os": platform.platform(),
+        "python": platform.python_version(),
+    }
+    git = shutil.which("git")
+    if git:
+        try:
+            result = subprocess.run(
+                [git, "rev-parse", "--short", "HEAD"],
+                cwd=str(hub.parent),
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+                timeout=10,
+                creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
+            )
+            if result.returncode == 0:
+                environment["git_commit"] = (result.stdout or "").strip()
+        except (OSError, subprocess.SubprocessError):
+            pass
+    return environment
 
 
 def _agent_run(hub: Path, task_id: str, run_id: str | None) -> dict[str, Any] | None:
@@ -131,6 +158,7 @@ def run_validation(
             "agent_run_id": str(agent_run.get("id") or "") if agent_run else "",
             "agent_session_id": str(agent_run.get("session_id") or "") if agent_run else "",
             "agent_run_status": str(agent_run.get("status") or "") if agent_run else "",
+            "environment": _environment(hub),
         }
         results.append(result)
         append_event(

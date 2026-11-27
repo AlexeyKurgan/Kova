@@ -809,6 +809,25 @@ export async function listValidationResults(taskId: string): Promise<ValidationR
   );
 }
 
+export async function replayTaskValidation(
+  taskId: string,
+  resultId: string,
+): Promise<{
+  previous: ValidationResult;
+  current: ValidationResult;
+  same_status: boolean;
+  output_changed: boolean;
+}> {
+  return request<{
+    previous: ValidationResult;
+    current: ValidationResult;
+    same_status: boolean;
+    output_changed: boolean;
+  }>(`/tasks/${encodeURIComponent(taskId)}/validation/replay/${encodeURIComponent(resultId)}`, {
+    method: "POST",
+  });
+}
+
 export async function runTaskValidation(
   taskId: string,
   commandId?: string,

@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
-import { ChevronDown, ChevronRight, Play, Plus, Trash2, X } from "lucide-react";
+import { ChevronDown, ChevronRight, Play, Plus, RotateCcw, Trash2, X } from "lucide-react";
 import {
   addValidationCommand,
   deleteValidationCommand,
   getValidationSuggestions,
   listValidationResults,
+  replayTaskValidation,
   runTaskValidation,
   updateTask,
 } from "../../lib/coreClient";
@@ -61,6 +62,13 @@ export default function TaskValidationPanel({
   const [command, setCommand] = useState("");
   const [timeout, setTimeoutValue] = useState(300);
   const [saving, setSaving] = useState(false);
+  const [replayBusy, setReplayBusy] = useState<string | null>(null);
+  const [replays, setReplays] = useState<
+    Record<
+      string,
+      { previous: ValidationResult; current: ValidationResult; same_status: boolean; output_changed: boolean }
+    >
+  >({});
 
   useEffect(() => {
     let alive = true;
@@ -111,6 +119,29 @@ export default function TaskValidationPanel({
     } finally {
       setBusy(null);
       setRunningAll(false);
+    }
+  };
+
+  const replay = async (result: ValidationResult) => {
+    if (replayBusy) return;
+    setReplayBusy(result.id);
+    setError(null);
+    try {
+      const data = await replayTaskValidation(task.id, result.id);
+      setResults((current) => [...current, data.current]);
+      setReplays((current) => ({ ...current, [result.command_id]: data }));
+      setExpanded(data.current.id);
+      onTaskChanged();
+      onNotify(
+        data.same_status
+          ? `Повтор: статус не изменился (${STATUS_LABELS[data.current.status]})`
+          : `Повтор: ${STATUS_LABELS[data.previous.status]} → ${STATUS_LABELS[data.current.status]}`,
+        data.current.status === "passed" ? undefined : "warning",
+      );
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Не удалось повторить проверку");
+    } finally {
+      setReplayBusy(null);
     }
   };
 
@@ -296,6 +327,18 @@ export default function TaskValidationPanel({
                       <Play size={11} />
                       {isBusy ? "…" : "Запустить"}
                     </button>
+                    {result ? (
+                      <button
+                        type="button"
+                        className="agent-link"
+                        disabled={replayBusy === result.id}
+                        title="Повторить с текущим окружением и сравнить"
+                        onClick={() => void replay(result)}
+                      >
+                        <RotateCcw size={11} />
+                        {replayBusy === result.id ? "…" : "Повтор"}
+                      </button>
+                    ) : null}
                     <button
                       type="button"
                       className="agent-link is-danger"
@@ -320,6 +363,34 @@ export default function TaskValidationPanel({
                 </div>
                 {open && result ? (
                   <div className="task-validation-output">
+                    {replays[result.command_id] ? (
+                      <div
+                        className={`validation-replay${
+                          replays[result.command_id].same_status ? "" : " is-changed"
+                        }`}
+                      >
+                        <b>Повтор проверки</b>
+                        <span>
+                          {STATUS_LABELS[replays[result.command_id].previous.status]}
+                          {" → "}
+                          {STATUS_LABELS[replays[result.command_id].current.status]}
+                        </span>
+                        <small>
+                          {replays[result.command_id].output_changed
+                            ? "вывод изменился"
+                            : "вывод не изменился"}
+                        </small>
+                      </div>
+                    ) : null}
+                    {Object.keys(result.environment || {}).length > 0 ? (
+                      <div className="validation-environment">
+                        {Object.entries(result.environment).map(([key, value]) => (
+                          <span key={key}>
+                            {key}: {value}
+                          </span>
+                        ))}
+                      </div>
+                    ) : null}
                     {result.error ? (
                       <div className="task-validation-error">{result.error}</div>
                     ) : null}

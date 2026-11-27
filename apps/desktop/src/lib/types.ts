@@ -215,6 +215,7 @@ export type ValidationResult = {
   agent_run_id: string;
   agent_session_id: string;
   agent_run_status: string;
+  environment: Record<string, string>;
 };
 
 export type Task = {

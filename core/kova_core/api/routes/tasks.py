@@ -106,6 +106,7 @@ class ValidationResult(BaseModel):
     agent_run_id: str = ""
     agent_session_id: str = ""
     agent_run_status: str = ""
+    environment: dict[str, str] = Field(default_factory=dict)
 
 
 class CapsuleResponse(BaseModel):
@@ -383,6 +384,51 @@ def get_validation_results(
     if get_task(hub, task_id) is None:
         raise HTTPException(status_code=404, detail="task not found")
     return [ValidationResult(**row) for row in list_validation_results(hub, task_id)]
+
+
+@router.post("/{task_id}/validation/replay/{result_id}")
+def replay_validation_route(
+    task_id: str,
+    result_id: str,
+    hub: Path = Depends(require_hub),
+) -> dict[str, object]:
+    task = get_task(hub, task_id)
+    if task is None:
+        raise HTTPException(status_code=404, detail="task not found")
+    previous = next(
+        (row for row in list_validation_results(hub, task_id) if row.get("id") == result_id),
+        None,
+    )
+    if previous is None:
+        raise HTTPException(status_code=404, detail="validation result not found")
+    command_id = str(previous.get("command_id") or "")
+    try:
+        results = run_validation(hub, task, command_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    current = results[-1] if results else None
+    if current is None:
+        raise HTTPException(status_code=400, detail="validation did not run")
+    append_event(
+        hub,
+        LedgerEvent(
+            type="task.validation.replay",
+            subject=task.id,
+            actor="human",
+            data={
+                "previous_id": result_id,
+                "current_id": current["id"],
+                "previous_status": previous.get("status"),
+                "current_status": current.get("status"),
+            },
+        ),
+    )
+    return {
+        "previous": previous,
+        "current": current,
+        "same_status": previous.get("status") == current.get("status"),
+        "output_changed": previous.get("output") != current.get("output"),
+    }
 
 
 @router.post("/{task_id}/validation/run", response_model=list[ValidationResult])

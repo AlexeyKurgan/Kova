@@ -154,3 +154,41 @@ def test_validation_attaches_latest_agent_run(tmp_path: Path, monkeypatch) -> No
         json={"run_id": "run_missing"},
     )
     assert invalid.status_code == 400
+
+
+def test_validation_replay_environment(tmp_path: Path, monkeypatch) -> None:
+    client = make_client(tmp_path, monkeypatch)
+    game = tmp_path / "game"
+    game.mkdir()
+    client.post("/project/open", json={"path": str(game)})
+    task = client.post("/tasks", json={"title": "Replay task"}).json()
+    command = (
+        f'"{sys.executable}" -c "import pathlib,sys; '
+        "sys.exit(0 if pathlib.Path('flag.txt').exists() else 1)\""
+    )
+    added = client.post(
+        f"/tasks/{task['id']}/validation",
+        json={"label": "Replay check", "command": command, "timeout": 120},
+    ).json()
+    command_id = added["validation"][0]["id"]
+    first = client.post(
+        f"/tasks/{task['id']}/validation/run",
+        json={"command_id": command_id},
+    ).json()[0]
+    assert first["status"] == "failed"
+    assert first["environment"]["python"]
+
+    (game / "flag.txt").write_text("ok", encoding="utf-8")
+    replay = client.post(f"/tasks/{task['id']}/validation/replay/{first['id']}")
+    assert replay.status_code == 200, replay.text
+    payload = replay.json()
+    assert payload["previous"]["status"] == "failed"
+    assert payload["current"]["status"] == "passed"
+    assert payload["same_status"] is False
+    assert client.post("/tasks/task_missing/validation/replay/x").status_code == 404
+    assert (
+        client.post(
+            f"/tasks/{task['id']}/validation/replay/valrun_missing"
+        ).status_code
+        == 404
+    )
