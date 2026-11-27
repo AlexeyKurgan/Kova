@@ -95,6 +95,7 @@ game project:
 - Per-project run queue and git worktree/sandbox-copy isolation.
 - Live output, cancellation, resume, handoff preview and interrupted-run recovery.
 - Token budget based only on real provider-reported usage.
+- Per-provider token budgets, usage breakdown and 80% warning.
 - Routing rules by task tag and reusable agent roles.
 
 ### Clipboard mode
