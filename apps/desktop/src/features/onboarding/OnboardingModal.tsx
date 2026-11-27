@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { t } from "../../lib/i18n";
 import {
   AlertTriangle,
   ArrowRight,
@@ -96,11 +97,11 @@ export default function OnboardingModal({
               <span
                 key={label}
                 className={index <= step ? "is-active" : ""}
-                title={label}
+                title={t(label)}
               />
             ))}
           </div>
-          <button type="button" className="icon-btn" onClick={onClose} aria-label="Закрыть">
+          <button type="button" className="icon-btn" onClick={onClose} aria-label={t("Закрыть")}>
             <X size={14} />
           </button>
         </div>
@@ -111,15 +112,14 @@ export default function OnboardingModal({
               <div className="onb-logo">
                 <Sparkles size={34} />
               </div>
-              <h1>Твой проект. Твои инструменты. Твой AI.</h1>
+              <h1>{t("Твой проект. Твои инструменты. Твой AI.")}</h1>
               <p>
-                Kova Hub — мастерская, где AI не теряет контекст, Blender и движок
-                показывают результат, а ты принимаешь работу. Начнём с простого.
+                {t("Kova Hub — мастерская, где AI не теряет контекст, Blender и движок показывают результат, а ты принимаешь работу. Начнём с простого.")}
               </p>
               <div className="onb-pills">
-                <span>Локально</span>
-                <span>Без облака</span>
-                <span>С откатом</span>
+                <span>{t("Локально")}</span>
+                <span>{t("Без облака")}</span>
+                <span>{t("С откатом")}</span>
               </div>
             </div>
           ) : null}
@@ -129,31 +129,30 @@ export default function OnboardingModal({
               <div className="onb-section-head">
                 <FolderOpen size={22} />
                 <div>
-                  <h2>Проект</h2>
-                  <p>Одна папка — один проект. Память живёт в `.hub`.</p>
+                  <h2>{t("Проект")}</h2>
+                  <p>{t("Одна папка — один проект. Память живёт в `.hub`.")}</p>
                 </div>
               </div>
               <div className="onb-card">
                 <div className="onb-card-row">
-                  <span>Активный проект</span>
-                  <b>{activeProject?.name ?? "Пока нет"}</b>
+                  <span>{t("Активный проект")}</span>
+                  <b>{activeProject?.name ?? t("Пока нет")}</b>
                 </div>
                 <div className="onb-card-row">
-                  <span>Всего проектов</span>
+                  <span>{t("Всего проектов")}</span>
                   <b>{projects.length}</b>
                 </div>
                 <div className="onb-card-row">
-                  <span>Память</span>
-                  <b>{activeProject ? ".hub на месте" : "создастся при первом проекте"}</b>
+                  <span>{t("Память")}</span>
+                  <b>{activeProject ? t(".hub на месте") : t("создастся при первом проекте")}</b>
                 </div>
               </div>
               <button type="button" className="btn btn-primary" onClick={onOpenProjects}>
                 <FolderOpen size={15} />
-                Открыть «Проекты»
+                {t("Открыть «Проекты»")}
               </button>
               <p className="onb-hint">
-                Создай новый проект или открой существующую папку — Kova сама создаст
-                `.hub`, задачи и паспорта.
+                {t("Создай новый проект или открой существующую папку — Kova сама создаст `.hub`, задачи и паспорта.")}
               </p>
             </div>
           ) : null}
@@ -163,8 +162,8 @@ export default function OnboardingModal({
               <div className="onb-section-head">
                 <Stethoscope size={22} />
                 <div>
-                  <h2>Окружение</h2>
-                  <p>Проверим, что есть на машине. Это можно пропустить.</p>
+                  <h2>{t("Окружение")}</h2>
+                  <p>{t("Проверим, что есть на машине. Это можно пропустить.")}</p>
                 </div>
               </div>
               <div className="onb-checks">
@@ -174,9 +173,9 @@ export default function OnboardingModal({
                   <small>
                     {blender?.installed
                       ? blender.connected
-                        ? "подключён"
-                        : "установлен"
-                      : "не найден"}
+                        ? t("подключён")
+                        : t("установлен")
+                      : t("не найден")}
                   </small>
                   <StatusIcon ok={Boolean(blender?.installed)} warn={!blender?.connected} />
                 </div>
@@ -186,46 +185,45 @@ export default function OnboardingModal({
                   <small>
                     {roblox?.studio_installed
                       ? roblox.connected
-                        ? "мост подключён"
+                        ? t("мост подключён")
                         : roblox.plugin_installed
-                          ? "плагин установлен"
-                          : "нужен плагин"
-                      : "не найден"}
+                          ? t("плагин установлен")
+                          : t("нужен плагин")
+                      : t("не найден")}
                   </small>
                   <StatusIcon ok={Boolean(roblox?.connected)} warn={Boolean(roblox?.studio_installed)} />
                 </div>
                 <div className="onb-check">
                   <ShieldCheck size={15} />
                   <span>Git</span>
-                  <small>{git?.message ?? "проверка"}</small>
+                  <small>{git?.message ?? t("проверка")}</small>
                   <StatusIcon ok={git?.status === "passed"} warn={git?.status === "warning"} />
                 </div>
                 <div className="onb-check">
                   <ShieldCheck size={15} />
                   <span>Owner token</span>
-                  <small>{token?.status === "passed" ? "включён" : "проверь Doctor"}</small>
+                  <small>{token?.status === "passed" ? t("включён") : t("проверь Doctor")}</small>
                   <StatusIcon ok={token?.status === "passed"} warn={token?.status === "warning"} />
                 </div>
                 <div className="onb-check">
                   <ShieldCheck size={15} />
                   <span>OS sandbox</span>
-                  <small>{sandbox?.status === "warning" ? "недоступен, есть fallback" : "готов"}</small>
+                  <small>{sandbox?.status === "warning" ? t("недоступен, есть fallback") : t("готов")}</small>
                   <StatusIcon ok={sandbox?.status === "passed"} warn={sandbox?.status === "warning"} />
                 </div>
               </div>
               <div className="onb-actions">
                 <button type="button" className="btn btn-secondary" onClick={onOpenDoctor}>
-                  Открыть Doctor
+                  {t("Открыть Doctor")}
                 </button>
                 {roblox?.studio_installed ? (
                   <button type="button" className="btn btn-secondary" onClick={onOpenRoblox}>
-                    Настроить Roblox
+                    {t("Настроить Roblox")}
                   </button>
                 ) : null}
               </div>
               <p className="onb-hint">
-                Если чего-то нет — не страшно. Clipboard-режим и базовые задачи работают
-                без Blender и движка.
+                {t("Если чего-то нет — не страшно. Clipboard-режим и базовые задачи работают без Blender и движка.")}
               </p>
             </div>
           ) : null}
@@ -236,30 +234,29 @@ export default function OnboardingModal({
                 <Bot size={22} />
                 <div>
                   <h2>AI</h2>
-                  <p>Один провайдер — уже достаточно. Остальные добавишь позже.</p>
+                  <p>{t("Один провайдер — уже достаточно. Остальные добавишь позже.")}</p>
                 </div>
               </div>
               <div className="onb-card">
                 <div className="onb-card-row">
-                  <span>Подключено</span>
-                  <b>{installedProviders.length} провайдеров</b>
+                  <span>{t("Подключено")}</span>
+                  <b>{t("{count} провайдеров", { count: installedProviders.length })}</b>
                 </div>
                 <div className="onb-card-row">
-                  <span>По умолчанию</span>
-                  <b>{defaultProvider?.name ?? "не выбран"}</b>
+                  <span>{t("По умолчанию")}</span>
+                  <b>{defaultProvider?.name ?? t("не выбран")}</b>
                 </div>
                 <div className="onb-card-row">
-                  <span>Режим</span>
-                  <b>локальный / CLI / API</b>
+                  <span>{t("Режим")}</span>
+                  <b>{t("локальный / CLI / API")}</b>
                 </div>
               </div>
               <button type="button" className="btn btn-primary" onClick={onOpenAgents}>
                 <Bot size={15} />
-                Открыть «Агенты»
+                {t("Открыть «Агенты»")}
               </button>
               <p className="onb-hint">
-                Нет ключа? Начни с Clipboard: Kova подготовит капсулу, ты вставишь её
-                в любой браузерный AI и вернёшь ответ.
+                {t("Нет ключа? Начни с Clipboard: Kova подготовит капсулу, ты вставишь её в любой браузерный AI и вернёшь ответ.")}
               </p>
             </div>
           ) : null}
@@ -269,27 +266,27 @@ export default function OnboardingModal({
               <div className="onb-section-head">
                 <ShieldCheck size={22} />
                 <div>
-                  <h2>Готово</h2>
-                  <p>Три правила, которые сохранят проект.</p>
+                  <h2>{t("Готово")}</h2>
+                  <p>{t("Три правила, которые сохранят проект.")}</p>
                 </div>
               </div>
               <div className="onb-rules">
                 <div>
-                  <b>1. Сначала Review</b>
-                  <span>AI предлагает — ты принимаешь. Запись только после проверки.</span>
+                  <b>{t("1. Сначала Review")}</b>
+                  <span>{t("AI предлагает — ты принимаешь. Запись только после проверки.")}</span>
                 </div>
                 <div>
-                  <b>2. Снапшот перед изменением</b>
-                  <span>Любой результат можно сравнить и откатить.</span>
+                  <b>{t("2. Снапшот перед изменением")}</b>
+                  <span>{t("Любой результат можно сравнить и откатить.")}</span>
                 </div>
                 <div>
-                  <b>3. Память в `.hub`</b>
-                  <span>Задачи, решения и ассеты остаются в проекте, а не в чате.</span>
+                  <b>{t("3. Память в `.hub`")}</b>
+                  <span>{t("Задачи, решения и ассеты остаются в проекте, а не в чате.")}</span>
                 </div>
               </div>
               <button type="button" className="btn btn-primary" onClick={onClose}>
                 <ArrowRight size={15} />
-                Начать работу
+                {t("Начать работу")}
               </button>
             </div>
           ) : null}
@@ -297,10 +294,13 @@ export default function OnboardingModal({
 
         <div className="onb-footer">
           <button type="button" className="btn btn-secondary btn-small" onClick={onClose}>
-            Пропустить
+            {t("Пропустить")}
           </button>
           <span className="onb-step-label">
-            Шаг {step + 1} из {STEPS.length}
+            {t("Шаг {step} из {total}", {
+              step: step + 1,
+              total: STEPS.length,
+            })}
           </span>
           <div className="onb-footer-actions">
             <button
@@ -309,7 +309,7 @@ export default function OnboardingModal({
               disabled={step === 0}
               onClick={() => go(step - 1)}
             >
-              Назад
+              {t("Назад")}
             </button>
             <button
               type="button"
@@ -317,7 +317,7 @@ export default function OnboardingModal({
               disabled={step === STEPS.length - 1}
               onClick={() => go(step + 1)}
             >
-              Дальше
+              {t("Дальше")}
             </button>
           </div>
         </div>

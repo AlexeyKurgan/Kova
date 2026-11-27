@@ -16,7 +16,8 @@ import {
   stopNightShift,
   updateNightShift,
 } from "../../lib/coreClient";
-import { formatDate, plural } from "../../lib/format";
+import { formatDate } from "../../lib/format";
+import { t, tp } from "../../lib/i18n";
 import { TASK_STATUS_LABELS } from "../../lib/labels";
 import type { NightShiftState, ProviderInfo, Task } from "../../lib/types";
 
@@ -74,7 +75,7 @@ export default function NightShiftScreen({ tasks, providers, onOpenTask }: Props
         if (alive) applyConfig(value);
       })
       .catch((err) => {
-        if (alive) setError(err instanceof Error ? err.message : "Не удалось загрузить смену");
+        if (alive) setError(err instanceof Error ? err.message : t("Не удалось загрузить смену"));
       })
       .finally(() => undefined);
     const timer = window.setInterval(() => {
@@ -125,9 +126,9 @@ export default function NightShiftScreen({ tasks, providers, onOpenTask }: Props
         stop_on_error: stopOnError,
       });
       applyConfig(value);
-      setNote("Расписание сохранено");
+      setNote(t("Расписание сохранено"));
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Не удалось сохранить расписание");
+      setError(err instanceof Error ? err.message : t("Не удалось сохранить расписание"));
     } finally {
       setBusy(false);
     }
@@ -143,9 +144,9 @@ export default function NightShiftScreen({ tasks, providers, onOpenTask }: Props
         task_ids: selected,
       });
       setState(value);
-      setNote("Смена запущена");
+      setNote(t("Смена запущена"));
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Не удалось запустить смену");
+      setError(err instanceof Error ? err.message : t("Не удалось запустить смену"));
     } finally {
       setBusy(false);
     }
@@ -156,9 +157,9 @@ export default function NightShiftScreen({ tasks, providers, onOpenTask }: Props
     setError("");
     try {
       setState(await stopNightShift());
-      setNote("Останавливаю смену…");
+      setNote(t("Останавливаю смену…"));
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Не удалось остановить смену");
+      setError(err instanceof Error ? err.message : t("Не удалось остановить смену"));
     } finally {
       setBusy(false);
     }
@@ -170,17 +171,16 @@ export default function NightShiftScreen({ tasks, providers, onOpenTask }: Props
         <div className="night-hero-copy">
           <span className="night-kicker">
             <Moon size={13} />
-            автономная очередь
+            {t("автономная очередь")}
           </span>
-          <h1>Ночная смена</h1>
+          <h1>{t("Ночная смена")}</h1>
           <p>
-            Поставь задачи в очередь и дай агенту поработать, пока Kova открыта.
-            Утром проверь отчёт и Review — без авто-применения изменений.
+            {t("Поставь задачи в очередь и дай агенту поработать, пока Kova открыта. Утром проверь отчёт и Review — без авто-применения изменений.")}
           </p>
         </div>
         <div className={`night-status ${running ? "is-running" : ""}`}>
           <span />
-          {running ? "Смена идёт" : "Ожидает запуска"}
+          {running ? t("Смена идёт") : t("Ожидает запуска")}
         </div>
       </div>
 
@@ -190,19 +190,19 @@ export default function NightShiftScreen({ tasks, providers, onOpenTask }: Props
       <div className="night-layout">
         <article className="night-card">
           <div className="night-card-head">
-            <h2><Clock3 size={14} /> Расписание</h2>
+            <h2><Clock3 size={14} /> {t("Расписание")}</h2>
             <label className="night-switch">
               <input
                 type="checkbox"
                 checked={enabled}
                 onChange={(event) => setEnabled(event.target.checked)}
               />
-              Включена
+              {t("Включена")}
             </label>
           </div>
           <div className="night-form">
             <label>
-              <span>Время старта</span>
+              <span>{t("Время старта")}</span>
               <input
                 type="time"
                 value={startAt}
@@ -210,12 +210,12 @@ export default function NightShiftScreen({ tasks, providers, onOpenTask }: Props
               />
             </label>
             <label>
-              <span>Провайдер</span>
+              <span>{t("Провайдер")}</span>
               <select
                 value={providerId}
                 onChange={(event) => setProviderId(event.target.value)}
               >
-                <option value="">По умолчанию</option>
+                <option value="">{t("По умолчанию")}</option>
                 {installedProviders.map((provider) => (
                   <option key={provider.id} value={provider.id}>
                     {provider.name}
@@ -224,7 +224,7 @@ export default function NightShiftScreen({ tasks, providers, onOpenTask }: Props
               </select>
             </label>
             <label>
-              <span>Максимум задач</span>
+              <span>{t("Максимум задач")}</span>
               <input
                 type="number"
                 min={1}
@@ -239,44 +239,43 @@ export default function NightShiftScreen({ tasks, providers, onOpenTask }: Props
                 checked={stopOnError}
                 onChange={(event) => setStopOnError(event.target.checked)}
               />
-              Останавливаться при ошибке
+              {t("Останавливаться при ошибке")}
             </label>
           </div>
           {installedProviders.length === 0 ? (
             <p className="night-empty">
-              <TriangleAlert size={12} /> Нужен установленный AI-провайдер в разделе «Агенты».
+              <TriangleAlert size={12} /> {t("Нужен установленный AI-провайдер в разделе «Агенты».")}
             </p>
           ) : null}
           <div className="night-actions">
             <button type="button" className="btn btn-secondary btn-small" disabled={busy} onClick={() => void save()}>
-              Сохранить расписание
+              {t("Сохранить расписание")}
             </button>
             <button type="button" className="btn btn-primary btn-small" disabled={!canStart} onClick={() => void start()}>
               <Play size={13} />
-              Запустить сейчас
+              {t("Запустить сейчас")}
             </button>
             {running ? (
               <button type="button" className="btn btn-danger btn-small" disabled={busy} onClick={() => void stop()}>
                 <Square size={12} />
-                Остановить
+                {t("Остановить")}
               </button>
             ) : null}
           </div>
           {enabled ? (
             <p className="night-hint">
-              Автозапуск сработает, пока Kova открыта. Если приложение закрыто, смена
-              останется в очереди.
+              {t("Автозапуск сработает, пока Kova открыта. Если приложение закрыто, смена останется в очереди.")}
             </p>
           ) : null}
         </article>
 
         <article className="night-card">
           <div className="night-card-head">
-            <h2><ListChecks size={14} /> Очередь</h2>
-            <span>{selected.length} выбрано</span>
+            <h2><ListChecks size={14} /> {t("Очередь")}</h2>
+            <span>{selected.length} {t("выбрано")}</span>
           </div>
           {selectableTasks.length === 0 ? (
-            <p className="night-empty">Нет активных задач. Создай задачу в разделе «Задачи».</p>
+            <p className="night-empty">{t("Нет активных задач. Создай задачу в разделе «Задачи».")}</p>
           ) : (
             <div className="night-task-list">
               {selectableTasks.map((task) => (
@@ -295,34 +294,34 @@ export default function NightShiftScreen({ tasks, providers, onOpenTask }: Props
             </div>
           )}
           <p className="night-hint">
-            Kova выполнит задачи по одной, создаст снапшот перед запуском и оставит
-            результат в Review. Авто-применение выключено.
+            {t("Kova выполнит задачи по одной, создаст снапшот перед запуском и оставит результат в Review. Авто-применение выключено.")}
           </p>
         </article>
       </div>
 
       <article className="night-card night-report">
         <div className="night-card-head">
-          <h2><RefreshCw size={14} /> Отчёт смены</h2>
+          <h2><RefreshCw size={14} /> {t("Отчёт смены")}</h2>
           {run ? (
             <span className={`task-status ${statusTone(run.status)}`}>
-              {STATUS_LABELS[run.status] ?? run.status}
+              {t(STATUS_LABELS[run.status] ?? run.status)}
             </span>
           ) : (
-            <span>Запусков ещё не было</span>
+            <span>{t("Запусков ещё не было")}</span>
           )}
         </div>
         {!run ? (
           <p className="night-empty">
-            Выбери задачи и нажми «Запустить сейчас» или задай время — отчёт появится здесь.
+            {t("Выбери задачи и нажми «Запустить сейчас» или задай время — отчёт появится здесь.")}
           </p>
         ) : (
           <>
             <div className="night-run-meta">
-              <span>Старт: {run.started_at ? formatDate(run.started_at) : "—"}</span>
-              <span>Финиш: {run.finished_at ? formatDate(run.finished_at) : "в процессе"}</span>
+              <span>{t("Старт: {date}", { date: run.started_at ? formatDate(run.started_at) : "—" })}</span>
+              <span>{t("Финиш: {date}", { date: run.finished_at ? formatDate(run.finished_at) : t("в процессе") })}</span>
               <span>
-                {run.entries.length} {plural(run.entries.length, ["задача", "задачи", "задач"])}
+                {run.entries.length}{" "}
+                {tp(run.entries.length, ["задача", "задачи", "задач"], "task", "tasks")}
               </span>
             </div>
             <div className="night-entries">
@@ -340,7 +339,7 @@ export default function NightShiftScreen({ tasks, providers, onOpenTask }: Props
                   <div>
                     <b>{entry.task_title}</b>
                     <small>
-                      {STATUS_LABELS[entry.status] ?? entry.status}
+                      {t(STATUS_LABELS[entry.status] ?? entry.status)}
                       {entry.message ? ` · ${entry.message}` : ""}
                     </small>
                   </div>
@@ -349,7 +348,7 @@ export default function NightShiftScreen({ tasks, providers, onOpenTask }: Props
                     className="agent-link"
                     onClick={() => onOpenTask(entry.task_id)}
                   >
-                    Открыть
+                    {t("Открыть")}
                   </button>
                 </div>
               ))}

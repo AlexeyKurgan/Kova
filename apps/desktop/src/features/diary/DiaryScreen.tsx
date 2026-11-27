@@ -10,7 +10,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { DayPicker } from "react-day-picker";
-import { ru } from "date-fns/locale";
+import { enUS, ru } from "date-fns/locale";
 import { format, parseISO } from "date-fns";
 import {
   Bar,
@@ -23,7 +23,7 @@ import {
 } from "recharts";
 import "react-day-picker/style.css";
 import { getDiary } from "../../lib/coreClient";
-import { plural } from "../../lib/format";
+import { getLanguage, t, tp } from "../../lib/i18n";
 import { LEDGER_TYPE_LABELS } from "../../lib/labels";
 import type { DiaryDay, DiaryResponse } from "../../lib/types";
 
@@ -55,6 +55,7 @@ export default function DiaryScreen() {
   const [data, setData] = useState<DiaryResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const locale = getLanguage() === "en" ? enUS : ru;
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
 
   const load = (next: number) => {
@@ -76,7 +77,7 @@ export default function DiaryScreen() {
     () =>
       [...(data?.days ?? [])].reverse().map((day) => ({
         date: day.date,
-        label: format(parseISO(day.date), "d MMM", { locale: ru }),
+        label: format(parseISO(day.date), "d MMM", { locale }),
         tasks: day.tasks_created + day.tasks_done,
         assets: day.assets,
         reviews: day.reviews,
@@ -118,12 +119,11 @@ export default function DiaryScreen() {
         <div className="diary-hero-copy">
           <span className="diary-kicker">
             <CalendarDays size={13} />
-            история проекта
+            {t("история проекта")}
           </span>
-          <h1>Дневник проекта</h1>
+          <h1>{t("Дневник проекта")}</h1>
           <p>
-            Что происходило в проекте по дням: задачи, ассеты, проверки и снапшоты.
-            Сводка строится из журнала <code>.hub</code>.
+            {t("Что происходило в проекте по дням: задачи, ассеты, проверки и снапшоты. Сводка строится из журнала `.hub`.")}
           </p>
         </div>
         <button
@@ -133,7 +133,7 @@ export default function DiaryScreen() {
           onClick={() => load(range)}
         >
           <RefreshCw size={15} />
-          {loading ? "Обновление…" : "Обновить"}
+          {loading ? t("Обновление…") : t("Обновить")}
         </button>
       </div>
 
@@ -149,14 +149,16 @@ export default function DiaryScreen() {
                 setSelectedDate(null);
               }}
             >
-              {value} дней
+              {value} {tp(value, ["день", "дня", "дней"], "days", "days")}
             </button>
           ))}
         </div>
         <span className="diary-controls-note">
           {selectedDate
-            ? `Выбран день: ${format(selectedDate, "d MMMM yyyy", { locale: ru })}`
-            : `Сводка за последние ${range} дней`}
+            ? t("Выбран день: {date}", {
+                date: format(selectedDate, "d MMMM yyyy", { locale }),
+              })
+            : t("Сводка за последние {count} дней", { count: range })}
         </span>
         <button
           type="button"
@@ -164,7 +166,7 @@ export default function DiaryScreen() {
           disabled={!selectedDate}
           onClick={() => setSelectedDate(null)}
         >
-          Все дни
+          {t("Все дни")}
         </button>
       </div>
 
@@ -180,7 +182,7 @@ export default function DiaryScreen() {
               </span>
               <div>
                 <b>{item.value}</b>
-                <span>{item.label}</span>
+                <span>{t(item.label)}</span>
               </div>
             </article>
           );
@@ -191,8 +193,8 @@ export default function DiaryScreen() {
         <article className="diary-chart-card">
           <div className="diary-card-head">
             <div>
-              <span className="diary-card-kicker">Активность по дням</span>
-              <b>{range} дней проекта</b>
+              <span className="diary-card-kicker">{t("Активность по дням")}</span>
+              <b>{t("{count} дней проекта", { count: range })}</b>
             </div>
             <div className="diary-legend">
               {SERIES.map((item) => (
@@ -205,7 +207,7 @@ export default function DiaryScreen() {
           </div>
           <div className="diary-chart">
             {chartData.length === 0 ? (
-              <p className="ad3-empty">Данных пока нет.</p>
+              <p className="ad3-empty">{t("Данных пока нет.")}</p>
             ) : (
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={chartData} margin={{ top: 8, right: 6, left: -18, bottom: 0 }}>
@@ -258,11 +260,12 @@ export default function DiaryScreen() {
         <article className="diary-calendar-card">
           <div className="diary-card-head">
             <div>
-              <span className="diary-card-kicker">Календарь</span>
-              <b>Дни с событиями</b>
+              <span className="diary-card-kicker">{t("Календарь")}</span>
+              <b>{t("Дни с событиями")}</b>
             </div>
             <span className="diary-calendar-count">
-              {activeDates.length} {plural(activeDates.length, ["день", "дня", "дней"])}
+              {activeDates.length}{" "}
+              {tp(activeDates.length, ["день", "дня", "дней"], "day", "days")}
             </span>
           </div>
           <div className="diary-calendar">
@@ -270,7 +273,7 @@ export default function DiaryScreen() {
               mode="single"
               selected={selectedDate ?? undefined}
               onSelect={(date) => setSelectedDate(date ?? null)}
-              locale={ru}
+              locale={locale}
               showOutsideDays
               fixedWeeks
               modifiers={{ hasEvents: activeDates }}
@@ -279,10 +282,10 @@ export default function DiaryScreen() {
           </div>
           <div className="diary-calendar-legend">
             <span>
-              <i className="is-event" /> есть события
+              <i className="is-event" /> {t("есть события")}
             </span>
             <span>
-              <i className="is-empty" /> без событий
+              <i className="is-empty" /> {t("без событий")}
             </span>
           </div>
         </article>
@@ -292,32 +295,33 @@ export default function DiaryScreen() {
         <div className="diary-feed-head">
           <h2>
             <BookOpen size={14} />
-            Лента проекта
+            {t("Лента проекта")}
           </h2>
           <span>
-            {visibleDays.length} {plural(visibleDays.length, ["день", "дня", "дней"])}
+            {visibleDays.length}{" "}
+            {tp(visibleDays.length, ["день", "дня", "дней"], "day", "days")}
           </span>
         </div>
 
         {loading && !data ? (
           <div className="diary-feed-empty">
             <CalendarDays size={28} />
-            <b>Собираю дневник…</b>
+            <b>{t("Собираю дневник…")}</b>
           </div>
         ) : visibleDays.length === 0 ? (
           <div className="diary-feed-empty">
             <BookOpen size={28} />
             <b>
-              {selectedDate ? "В этот день событий нет" : "Пока ничего не произошло"}
+              {selectedDate ? t("В этот день событий нет") : t("Пока ничего не произошло")}
             </b>
             <span>
               {selectedDate
-                ? "Выбери другой день в календаре."
-                : "Создай задачу или импортируй ассет — записи появятся здесь."}
+                ? t("Выбери другой день в календаре.")
+                : t("Создай задачу или импортируй ассет — записи появятся здесь.")}
             </span>
             {selectedDate ? (
               <button type="button" className="btn btn-secondary btn-small" onClick={() => setSelectedDate(null)}>
-                Показать все дни
+                {t("Показать все дни")}
               </button>
             ) : null}
           </div>
@@ -333,40 +337,42 @@ export default function DiaryScreen() {
                 >
                   <div className="diary-entry-date">
                     <b>{format(date, "d")}</b>
-                    <span>{format(date, "MMM", { locale: ru })}</span>
-                    <small>{format(date, "EEE", { locale: ru })}</small>
+                    <span>{format(date, "MMM", { locale })}</span>
+                    <small>{format(date, "EEE", { locale })}</small>
                   </div>
                   <div className="diary-entry-main">
                     <header className="diary-entry-head">
                       <div>
-                        <b>{isToday(day.date) ? "Сегодня" : format(date, "d MMMM yyyy", { locale: ru })}</b>
+                        <b>{isToday(day.date) ? t("Сегодня") : format(date, "d MMMM yyyy", { locale })}</b>
                         <span className="diary-entry-count">
-                          {day.events} {plural(day.events, ["событие", "события", "событий"])}
+                          {day.events}{" "}
+                          {tp(day.events, ["событие", "события", "событий"], "event", "events")}
                         </span>
                       </div>
-                      {isToday(day.date) ? <span className="diary-today-badge">Сегодня</span> : null}
+                      {isToday(day.date) ? <span className="diary-today-badge">{t("Сегодня")}</span> : null}
                     </header>
                     <div className="diary-entry-stats">
                       {day.tasks_created > 0 ? (
                         <span>
                           +{day.tasks_created}{" "}
-                          {plural(day.tasks_created, ["задача", "задачи", "задач"])}
+                          {tp(day.tasks_created, ["задача", "задачи", "задач"], "task", "tasks")}
                         </span>
                       ) : null}
-                      {day.tasks_done > 0 ? <span className="is-ok">✓ {day.tasks_done} закрыто</span> : null}
+                      {day.tasks_done > 0 ? <span className="is-ok">✓ {day.tasks_done} {t("закрыто")}</span> : null}
                       {day.assets > 0 ? (
                         <span>
-                          +{day.assets} {plural(day.assets, ["ассет", "ассета", "ассетов"])}
+                          +{day.assets}{" "}
+                          {tp(day.assets, ["ассет", "ассета", "ассетов"], "asset", "assets")}
                         </span>
                       ) : null}
-                      {day.reviews > 0 ? <span className="is-ok">✓ {day.reviews} принято</span> : null}
+                      {day.reviews > 0 ? <span className="is-ok">✓ {day.reviews} {t("принято")}</span> : null}
                       {day.snapshots > 0 ? (
                         <span>
                           {day.snapshots}{" "}
-                          {plural(day.snapshots, ["снапшот", "снапшота", "снапшотов"])}
+                          {tp(day.snapshots, ["снапшот", "снапшота", "снапшотов"], "snapshot", "snapshots")}
                         </span>
                       ) : null}
-                      {count === 0 ? <span className="is-muted">без изменений</span> : null}
+                      {count === 0 ? <span className="is-muted">{t("без изменений")}</span> : null}
                     </div>
                     {day.highlights.length > 0 ? (
                       <div className="diary-highlights">

@@ -22,6 +22,7 @@ import {
   XCircle,
 } from "lucide-react";
 import type { CheckResult, CheckStatus } from "../../lib/types";
+import { t } from "../../lib/i18n";
 
 type Props = {
   checks: CheckResult[];
@@ -134,7 +135,7 @@ export default function DoctorScreen({ checks, onRefresh, onExport, onRepair }: 
         <div className="assets-heading-copy">
           <h1>Doctor</h1>
           <p className="subtitle">
-            Проверки окружения и безопасности. Жёлтое — рекомендация, красное — проблема.
+            {t("Проверки окружения и безопасности. Жёлтое — рекомендация, красное — проблема.")}
           </p>
         </div>
         <div className="header-actions">
@@ -148,29 +149,29 @@ export default function DoctorScreen({ checks, onRefresh, onExport, onRepair }: 
                 .then((actions) => setRepairNote(actions))
                 .catch((err) =>
                   setRepairNote([
-                    err instanceof Error ? err.message : "Не удалось выполнить починку",
+                    err instanceof Error ? err.message : t("Не удалось выполнить починку"),
                   ]),
                 )
                 .finally(() => setRepairing(false));
             }}
           >
             <Wrench size={15} />
-            {repairing ? "Починка…" : "Починить"}
+            {repairing ? t("Починка…") : t("Починить")}
           </button>
           <button type="button" className="btn btn-secondary" onClick={onExport}>
             <Download size={15} />
-            Экспорт диагностики
+            {t("Экспорт диагностики")}
           </button>
           <button type="button" className="btn btn-secondary" onClick={onRefresh}>
             <RefreshCw size={15} />
-            Проверить снова
+            {t("Проверить снова")}
           </button>
         </div>
       </div>
 
       {repairNote.length > 0 ? (
         <div className="doctor-repair-note">
-          <b>Что сделал Doctor</b>
+          <b>{t("Что сделал Doctor")}</b>
           <ul>
             {repairNote.map((line, index) => (
               <li key={`${index}-${line}`}>{line}</li>
@@ -179,7 +180,7 @@ export default function DoctorScreen({ checks, onRefresh, onExport, onRepair }: 
           <button
             type="button"
             className="icon-btn"
-            aria-label="Скрыть"
+            aria-label={t("Скрыть")}
             onClick={() => setRepairNote([])}
           >
             <XCircle size={14} />
@@ -189,19 +190,19 @@ export default function DoctorScreen({ checks, onRefresh, onExport, onRepair }: 
 
       <div className="doctor-summary">
         <div className="doctor-summary-card">
-          <span>Всего</span>
+          <span>{t("Всего")}</span>
           <b>{checks.length}</b>
         </div>
         <div className="doctor-summary-card is-ok">
-          <span>Норма</span>
+          <span>{t("Норма")}</span>
           <b>{passed}</b>
         </div>
         <div className="doctor-summary-card is-warn">
-          <span>Внимание</span>
+          <span>{t("Внимание")}</span>
           <b>{warnings}</b>
         </div>
         <div className="doctor-summary-card is-bad">
-          <span>Ошибки</span>
+          <span>{t("Ошибки")}</span>
           <b>{errors}</b>
         </div>
       </div>
@@ -209,7 +210,7 @@ export default function DoctorScreen({ checks, onRefresh, onExport, onRepair }: 
       {groups.map((group) => (
         <div className="doctor-group" key={group.title}>
           <div className="doctor-group-head">
-            <h2>{group.title}</h2>
+            <h2>{t(group.title)}</h2>
             <span>{group.checks.length}</span>
           </div>
           <div className="doctor-grid">
@@ -231,12 +232,12 @@ export default function DoctorScreen({ checks, onRefresh, onExport, onRepair }: 
                       ) : check.status === "failed" || check.status === "error" ? (
                         <XCircle size={11} />
                       ) : null}
-                      {STATUS_LABELS[check.status]}
+                      {t(STATUS_LABELS[check.status])}
                     </span>
                   </div>
-                  <b>{check.name}</b>
-                  <p>{check.message}</p>
-                  {hint ? <small>{hint}</small> : null}
+                  <b>{t(check.name)}</b>
+                  <p>{t(check.message)}</p>
+                  {hint ? <small>{t(hint)}</small> : null}
                 </article>
               );
             })}
@@ -249,8 +250,8 @@ export default function DoctorScreen({ checks, onRefresh, onExport, onRepair }: 
           <div className="empty-art">
             <Stethoscope size={26} />
           </div>
-          <h2 className="empty-title">Проверок пока нет</h2>
-          <p className="empty-text">Нажми «Проверить снова».</p>
+          <h2 className="empty-title">{t("Проверок пока нет")}</h2>
+          <p className="empty-text">{t("Нажми «Проверить снова».")}</p>
         </div>
       ) : null}
     </section>

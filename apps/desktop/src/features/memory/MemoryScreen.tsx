@@ -13,6 +13,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { searchMemory } from "../../lib/coreClient";
+import { t, tp } from "../../lib/i18n";
 import type { MemoryResponse, MemoryResult } from "../../lib/types";
 
 type Props = {
@@ -94,7 +95,7 @@ export default function MemoryScreen({ seed, onOpenTask, onOpenAsset }: Props) {
             if (alive) setData(value);
           })
           .catch((err) => {
-            if (alive) setError(err instanceof Error ? err.message : "Поиск не сработал");
+            if (alive) setError(err instanceof Error ? err.message : t("Поиск не сработал"));
           })
           .finally(() => {
             if (alive) setLoading(false);
@@ -166,12 +167,11 @@ export default function MemoryScreen({ seed, onOpenTask, onOpenAsset }: Props) {
         <div className="memory-hero-copy">
           <span className="memory-kicker">
             <Brain size={13} />
-            Память проекта
+            {t("Память проекта")}
           </span>
-          <h1>Всё, что Kova знает о проекте</h1>
+          <h1>{t("Всё, что Kova знает о проекте")}</h1>
           <p>
-            Задачи, ассеты, решения, чаты и журнал. Ищи по смыслу, смотри активность
-            и возвращайся к контексту без перечитывания чатов.
+            {t("Задачи, ассеты, решения, чаты и журнал. Ищи по смыслу, смотри активность и возвращайся к контексту без перечитывания чатов.")}
           </p>
         </div>
         <button
@@ -180,7 +180,7 @@ export default function MemoryScreen({ seed, onOpenTask, onOpenAsset }: Props) {
           onClick={() => setVersion((value) => value + 1)}
         >
           <RefreshCw size={15} />
-          Обновить
+          {t("Обновить")}
         </button>
       </div>
 
@@ -189,10 +189,10 @@ export default function MemoryScreen({ seed, onOpenTask, onOpenAsset }: Props) {
         <input
           value={query}
           onChange={(event) => setQuery(event.target.value)}
-          placeholder="Найти задачу, ассет, решение, событие…"
+          placeholder={t("Найти задачу, ассет, решение, событие…")}
           autoFocus
         />
-        {loading ? <span className="memory-spinner">Ищу…</span> : <kbd>Enter</kbd>}
+        {loading ? <span className="memory-spinner">{t("Ищу…")}</span> : <kbd>Enter</kbd>}
       </div>
 
       <div className="memory-dashboard">
@@ -201,9 +201,9 @@ export default function MemoryScreen({ seed, onOpenTask, onOpenAsset }: Props) {
             <div>
               <span className="memory-card-kicker">
                 <Activity size={12} />
-                Активность памяти
+                {t("Активность памяти")}
               </span>
-              <b>{timeline?.total ?? 0} записей за период</b>
+              <b>{t("{count} записей за период", { count: timeline?.total ?? 0 })}</b>
             </div>
             <div className="memory-segmented">
               {GRANULARITIES.map(([value, label]) => (
@@ -213,7 +213,7 @@ export default function MemoryScreen({ seed, onOpenTask, onOpenAsset }: Props) {
                   className={granularity === value ? "is-active" : ""}
                   onClick={() => setGranularity(value)}
                 >
-                  {label}
+                  {t(label)}
                 </button>
               ))}
             </div>
@@ -260,18 +260,18 @@ export default function MemoryScreen({ seed, onOpenTask, onOpenAsset }: Props) {
           </div>
 
           <div className="memory-legend">
-            <span><i className="is-task" /> Задачи</span>
-            <span><i className="is-asset" /> Ассеты</span>
-            <span><i className="is-chat" /> Чаты</span>
-            <span><i className="is-decision" /> Решения</span>
-            <span><i className="is-event" /> События</span>
+            <span><i className="is-task" /> {t("Задачи")}</span>
+            <span><i className="is-asset" /> {t("Ассеты")}</span>
+            <span><i className="is-chat" /> {t("Чаты")}</span>
+            <span><i className="is-decision" /> {t("Решения")}</span>
+            <span><i className="is-event" /> {t("События")}</span>
           </div>
         </article>
 
         <article className="memory-donut-card">
           <div className="memory-card-kicker">
             <Clock3 size={12} />
-            Состав памяти
+            {t("Состав памяти")}
           </div>
           <div className="memory-donut-row">
             <div
@@ -280,14 +280,14 @@ export default function MemoryScreen({ seed, onOpenTask, onOpenAsset }: Props) {
             >
               <div>
                 <b>{kindSum}</b>
-                <small>записей</small>
+                <small>{t("записей")}</small>
               </div>
             </div>
             <div className="memory-donut-legend">
               {GROUPS.map((group, index) => (
                 <span key={group.key}>
                   <i style={{ background: DONUT_COLORS[index] }} />
-                  {group.label}
+                  {t(group.label)}
                   <b>{kindTotal[index]}</b>
                 </span>
               ))}
@@ -305,7 +305,7 @@ export default function MemoryScreen({ seed, onOpenTask, onOpenAsset }: Props) {
               className={kind === value ? "is-active" : ""}
               onClick={() => setKind(value)}
             >
-              {label}
+              {t(label)}
             </button>
           ))}
         </div>
@@ -315,7 +315,7 @@ export default function MemoryScreen({ seed, onOpenTask, onOpenAsset }: Props) {
             <select value={range} onChange={(event) => setRange(event.target.value as RangeFilter)}>
               {RANGES.map(([value, label]) => (
                 <option key={value} value={value}>
-                  {label}
+                  {t(label)}
                 </option>
               ))}
             </select>
@@ -324,10 +324,10 @@ export default function MemoryScreen({ seed, onOpenTask, onOpenAsset }: Props) {
             type="button"
             className="memory-sort"
             onClick={() => setSort((value) => (value === "new" ? "old" : "new"))}
-            title={sort === "new" ? "Сначала новые" : "Сначала старые"}
+            title={sort === "new" ? t("Сначала новые") : t("Сначала старые")}
           >
             <ArrowDownUp size={13} />
-            {sort === "new" ? "Новые" : "Старые"}
+            {sort === "new" ? t("Новые") : t("Старые")}
           </button>
         </div>
       </div>
@@ -340,12 +340,12 @@ export default function MemoryScreen({ seed, onOpenTask, onOpenAsset }: Props) {
             <Brain size={42} />
           </div>
           <h2 className="empty-title">
-            {query.trim() ? "В памяти проекта этого нет" : "Память пока пуста"}
+            {query.trim() ? t("В памяти проекта этого нет") : t("Память пока пуста")}
           </h2>
           <p className="empty-text">
             {query.trim()
-              ? "Попробуй другое слово или открой задачи и ассеты напрямую."
-              : "Создай задачу или импортируй ассет — записи появятся здесь."}
+              ? t("Попробуй другое слово или открой задачи и ассеты напрямую.")
+              : t("Создай задачу или импортируй ассет — записи появятся здесь.")}
           </p>
         </div>
       ) : null}
@@ -355,8 +355,8 @@ export default function MemoryScreen({ seed, onOpenTask, onOpenAsset }: Props) {
           <div className="empty-art">
             <Search size={34} />
           </div>
-          <h2 className="empty-title">Ничего не попало в фильтр</h2>
-          <p className="empty-text">Сбрось тип или диапазон времени.</p>
+          <h2 className="empty-title">{t("Ничего не попало в фильтр")}</h2>
+          <p className="empty-text">{t("Сбрось тип или диапазон времени.")}</p>
         </div>
       ) : null}
 
@@ -372,9 +372,11 @@ export default function MemoryScreen({ seed, onOpenTask, onOpenAsset }: Props) {
                   <Icon size={15} />
                 </span>
                 <div>
-                  <h2>{group.label}</h2>
+                  <h2>{t(group.label)}</h2>
                   <small>
-                    {rows.length} {rows.length === 1 ? "запись" : "записей"} в выборке
+                    {rows.length}{" "}
+                    {tp(rows.length, ["запись", "записи", "записей"], "record", "records")}{" "}
+                    {t("в выборке")}
                   </small>
                 </div>
                 <b>{data?.groups[group.key]?.length ?? rows.length}</b>

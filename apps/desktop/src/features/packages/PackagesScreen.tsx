@@ -30,6 +30,7 @@ import {
   uninstallPackage,
 } from "../../lib/coreClient";
 import { formatDate } from "../../lib/format";
+import { t, tp } from "../../lib/i18n";
 import { pickFile } from "../../lib/dialogs";
 import { ENGINE_LABELS } from "../../lib/labels";
 import type {
@@ -143,7 +144,7 @@ export default function PackagesScreen() {
       setPackages(rows);
       setLedger(events);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Не удалось загрузить пакеты");
+      setError(err instanceof Error ? err.message : t("Не удалось загрузить пакеты"));
     } finally {
       setLoading(false);
     }
@@ -165,7 +166,7 @@ export default function PackagesScreen() {
     } catch (err) {
       setMarket(null);
       setMarketError(
-        err instanceof Error ? err.message : "Не удалось загрузить индекс пакетов",
+        err instanceof Error ? err.message : t("Не удалось загрузить индекс пакетов"),
       );
     } finally {
       setMarketLoading(false);
@@ -199,7 +200,7 @@ export default function PackagesScreen() {
       await loadMarket(market?.index_url ?? marketUrl);
     } catch (err) {
       setMarketError(
-        err instanceof Error ? err.message : "Не удалось установить пакет",
+        err instanceof Error ? err.message : t("Не удалось установить пакет"),
       );
     } finally {
       setRemoteBusy(null);
@@ -282,14 +283,14 @@ export default function PackagesScreen() {
   const importFromFile = async () => {
     if (importing) return;
     setError("");
-    const path = await pickFile("Пакет Kova (.zip)", ["zip"]);
+    const path = await pickFile(t("Пакет Kova (.zip)"), ["zip"]);
     if (!path) return;
     setImporting(true);
     try {
       await importPackage(path);
       await refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Не удалось импортировать пакет");
+      setError(err instanceof Error ? err.message : t("Не удалось импортировать пакет"));
     } finally {
       setImporting(false);
     }
@@ -302,7 +303,7 @@ export default function PackagesScreen() {
       await action();
       await refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Действие не выполнено");
+      setError(err instanceof Error ? err.message : t("Действие не выполнено"));
     } finally {
       setBusy(null);
     }
@@ -311,11 +312,11 @@ export default function PackagesScreen() {
   const sections: Array<[string, KovaPackage[]]> =
     view === "all"
       ? [
-          ["Установленные", installed.filter((item) => filtered.includes(item))],
-          ["Доступные", available.filter((item) => filtered.includes(item))],
-          ["Скоро", coming.filter((item) => filtered.includes(item))],
+          [t("Установленные"), installed.filter((item) => filtered.includes(item))],
+          [t("Доступные"), available.filter((item) => filtered.includes(item))],
+          [t("Скоро"), coming.filter((item) => filtered.includes(item))],
         ]
-      : [[view === "installed" ? "Установленные" : "Доступные", filtered]];
+      : [[view === "installed" ? t("Установленные") : t("Доступные"), filtered]];
 
   return (
     <section className="packages-screen pkg-v2">
@@ -323,18 +324,17 @@ export default function PackagesScreen() {
         <div className="pkg-hero-copy">
           <span className="pkg-kicker">
             <Package size={13} />
-            Пакеты проекта
+            {t("Пакеты проекта")}
           </span>
-          <h1>Инструменты под твой пайплайн</h1>
+          <h1>{t("Инструменты под твой пайплайн")}</h1>
           <p>
-            Blender, Roblox и ядро уже включены. Остальные движки и расширения
-            подключай по мере роста проекта — без лишних экранов.
+            {t("Blender, Roblox и ядро уже включены. Остальные движки и расширения подключай по мере роста проекта — без лишних экранов.")}
           </p>
           <div className="pkg-hero-pills">
-            <span>{installed.length} установлено</span>
-            <span>{available.length} доступно</span>
-            <span>{coming.length} скоро</span>
-            <span>{updates} обновлений</span>
+            <span>{installed.length} {t("установлено")}</span>
+            <span>{available.length} {t("доступно")}</span>
+            <span>{coming.length} {t("скоро")}</span>
+            <span>{updates} {t("обновлений")}</span>
           </div>
         </div>
         <div className="pkg-hero-actions">
@@ -345,29 +345,29 @@ export default function PackagesScreen() {
             onClick={() => void importFromFile()}
           >
             <Upload size={15} />
-            {importing ? "Импорт…" : "Импорт пакета"}
+            {importing ? t("Импорт…") : t("Импорт пакета")}
           </button>
           <button type="button" className="btn btn-secondary" onClick={() => void refresh()}>
             <RefreshCw size={15} />
-            Проверить обновления
+            {t("Проверить обновления")}
           </button>
         </div>
       </div>
 
       <div className="pkg-analytics">
         <article className="pkg-analytics-card pkg-donut-card">
-          <div className="pkg-card-kicker">Состав пакетов</div>
+          <div className="pkg-card-kicker">{t("Состав пакетов")}</div>
           <div className="pkg-donut-row">
             <div className="pkg-donut" style={{ background: donut }}>
               <div>
                 <b>{packages.length}</b>
-                <small>пакетов</small>
+                <small>{t("пакетов")}</small>
               </div>
             </div>
             <div className="pkg-donut-legend">
-              <span><i style={{ background: DONUT_COLORS.installed }} />Установлено <b>{installed.length}</b></span>
-              <span><i style={{ background: DONUT_COLORS.available }} />Доступно <b>{available.length}</b></span>
-              <span><i style={{ background: DONUT_COLORS.coming }} />Скоро <b>{coming.length}</b></span>
+              <span><i style={{ background: DONUT_COLORS.installed }} />{t("Установлено")} <b>{installed.length}</b></span>
+              <span><i style={{ background: DONUT_COLORS.available }} />{t("Доступно")} <b>{available.length}</b></span>
+              <span><i style={{ background: DONUT_COLORS.coming }} />{t("Скоро")} <b>{coming.length}</b></span>
             </div>
           </div>
         </article>
@@ -375,11 +375,11 @@ export default function PackagesScreen() {
         <article className="pkg-analytics-card">
           <div className="pkg-card-kicker">
             <Gamepad2 size={12} />
-            Покрытие движков
+            {t("Покрытие движков")}
           </div>
           <div className="pkg-coverage">
             {coverage.length === 0 ? (
-              <p className="pkg-empty-inline">Пока нет установленных engine-пакетов.</p>
+              <p className="pkg-empty-inline">{t("Пока нет установленных engine-пакетов.")}</p>
             ) : (
               coverage.map((item) => (
                 <div className="pkg-coverage-row" key={item.engine}>
@@ -397,11 +397,11 @@ export default function PackagesScreen() {
         <article className="pkg-analytics-card">
           <div className="pkg-card-kicker">
             <Activity size={12} />
-            Активность пакетов
+            {t("Активность пакетов")}
           </div>
           <div className="pkg-activity-summary">
             <b>{packageEvents.length}</b>
-            <span>событий за период</span>
+            <span>{t("событий за период")}</span>
           </div>
           <div className="pkg-range-chips">
             {RANGES.map(([value, label]) => (
@@ -411,12 +411,12 @@ export default function PackagesScreen() {
                 className={range === value ? "is-active" : ""}
                 onClick={() => setRange(value)}
               >
-                {label}
+                {t(label)}
               </button>
             ))}
           </div>
           <button type="button" className="agent-link pkg-events-link" onClick={() => setEventsOpen((value) => !value)}>
-            {eventsOpen ? "Скрыть журнал" : "Открыть журнал"}
+            {eventsOpen ? t("Скрыть журнал") : t("Открыть журнал")}
           </button>
         </article>
       </div>
@@ -425,10 +425,10 @@ export default function PackagesScreen() {
         <div className="pkg-tabs">
           {(
             [
-              ["installed", "Установленные"],
-              ["available", "Доступные"],
-              ["all", "Все"],
-              ["market", "Маркетплейс"],
+              ["installed", t("Установленные")],
+              ["available", t("Доступные")],
+              ["all", t("Все")],
+              ["market", t("Маркетплейс")],
             ] as Array<[View, string]>
           ).map(([value, label]) => (
             <button
@@ -446,16 +446,16 @@ export default function PackagesScreen() {
           <input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Найти пакет…"
+            placeholder={t("Найти пакет…")}
           />
         </label>
         <select
           className="filter-select"
           value={engine}
           onChange={(event) => setEngine(event.target.value)}
-          aria-label="Движок пакета"
+          aria-label={t("Движок пакета")}
         >
-          <option value="all">Все движки</option>
+          <option value="all">{t("Все движки")}</option>
           {engines.map((value) => (
             <option key={value} value={value}>
               {ENGINE_LABELS[value as Engine] ?? value}
@@ -467,27 +467,29 @@ export default function PackagesScreen() {
             className="filter-select"
             value={sort}
             onChange={(event) => setSort(event.target.value as Sort)}
-            aria-label="Сортировка пакетов"
+            aria-label={t("Сортировка пакетов")}
           >
-            <option value="status">По статусу</option>
-            <option value="name">По имени</option>
-            <option value="tools">По инструментам</option>
-            <option value="checks">По проверкам</option>
+            <option value="status">{t("По статусу")}</option>
+            <option value="name">{t("По имени")}</option>
+            <option value="tools">{t("По инструментам")}</option>
+            <option value="checks">{t("По проверкам")}</option>
           </select>
         ) : null}
       </div>
 
       {error ? <p className="modal-error resource-error">{error}</p> : null}
-      {loading && packages.length === 0 ? <p className="pkg-loading">Загружаю пакеты…</p> : null}
+      {loading && packages.length === 0 ? (
+        <p className="pkg-loading">{t("Загружаю пакеты…")}</p>
+      ) : null}
 
       {eventsOpen ? (
         <div className="pkg-events">
           <div className="pkg-events-head">
-            <span>Журнал пакетов</span>
+            <span>{t("Журнал пакетов")}</span>
             <b>{packageEvents.length}</b>
           </div>
           {packageEvents.length === 0 ? (
-            <p className="pkg-empty-inline">Пока нет действий с пакетами за этот период.</p>
+            <p className="pkg-empty-inline">{t("Пока нет действий с пакетами за этот период.")}</p>
           ) : (
             <div className="pkg-events-list">
               {packageEvents.map((event) => (
@@ -495,7 +497,7 @@ export default function PackagesScreen() {
                   <span className="pkg-event-dot" />
                   <div>
                     <b>{String((event.data as { name?: string }).name || event.subject)}</b>
-                    <small>{EVENT_LABELS[event.type] ?? event.type}</small>
+                    <small>{t(EVENT_LABELS[event.type] ?? event.type)}</small>
                   </div>
                   <span>{formatDate(event.at)}</span>
                 </div>
@@ -510,12 +512,15 @@ export default function PackagesScreen() {
           <div className="pkg-section-head">
             <div>
               <h2>
-                <Store size={13} /> Маркетплейс
+                <Store size={13} /> {t("Маркетплейс")}
               </h2>
               <small>
                 {market
-                  ? `${market.name} · ${marketRows.length} из ${market.packages.length} пакетов`
-                  : "Индекс сообщества по HTTPS"}
+                  ? `${market.name} · ${t("{count} из {total} пакетов", {
+                      count: marketRows.length,
+                      total: market.packages.length,
+                    })}`
+                  : t("Индекс сообщества по HTTPS")}
               </small>
             </div>
             <span>{market?.packages.length ?? 0}</span>
@@ -531,7 +536,7 @@ export default function PackagesScreen() {
                 onKeyDown={(event) => {
                   if (event.key === "Enter") applyIndex();
                 }}
-                aria-label="Адрес индекса пакетов"
+                aria-label={t("Адрес индекса пакетов")}
               />
             </label>
             <button
@@ -541,24 +546,22 @@ export default function PackagesScreen() {
               onClick={applyIndex}
             >
               <RefreshCw size={13} />
-              {marketLoading ? "Загрузка…" : "Обновить индекс"}
+              {marketLoading ? t("Загрузка…") : t("Обновить индекс")}
             </button>
           </div>
 
           <p className="pkg-market-note">
-            Пакеты скачиваются только по HTTPS и проверяются по SHA256. Код
-            пакетов не исполняется: манифест проходит ту же проверку, что и
-            локальный импорт.
+            {t("Пакеты скачиваются только по HTTPS и проверяются по SHA256. Код пакетов не исполняется: манифест проходит ту же проверку, что и локальный импорт.")}
           </p>
 
           {marketError ? (
             <p className="modal-error resource-error">{marketError}</p>
           ) : null}
           {marketLoading && !market ? (
-            <p className="pkg-loading">Загружаю индекс…</p>
+            <p className="pkg-loading">{t("Загружаю индекс…")}</p>
           ) : null}
           {market && marketRows.length === 0 ? (
-            <p className="pkg-empty-inline">В индексе пока нет подходящих пакетов.</p>
+            <p className="pkg-empty-inline">{t("В индексе пока нет подходящих пакетов.")}</p>
           ) : null}
 
           {marketRows.length > 0 ? (
@@ -580,7 +583,7 @@ export default function PackagesScreen() {
                       </div>
                       <span className="pkg-trust">
                         <Globe2 size={10} />
-                        {item.builtin ? "встроенный" : "внешний"}
+                        {item.builtin ? t("встроенный") : t("внешний")}
                       </span>
                     </div>
 
@@ -594,30 +597,30 @@ export default function PackagesScreen() {
 
                     <div className="pkg-permissions">
                       {item.permissions.slice(0, 5).map((value) => (
-                        <span key={value}>{PERMISSION_LABELS[value] ?? value}</span>
+                        <span key={value}>{t(PERMISSION_LABELS[value] ?? value)}</span>
                       ))}
                     </div>
 
                     <div className="pkg-metrics">
                       <span>
-                        <Wrench size={11} /> {item.tools.length} инструментов
+                        <Wrench size={11} /> {item.tools.length} {t("инструментов")}
                       </span>
                       <span>
-                        <ShieldCheck size={11} /> {item.checks.length} проверок
+                        <ShieldCheck size={11} /> {item.checks.length} {t("проверок")}
                       </span>
                       <span>
-                        <Box size={11} /> {item.templates.length} шаблонов
+                        <Box size={11} /> {item.templates.length} {t("шаблонов")}
                       </span>
                     </div>
 
                     <div className="pkg-market-meta">
-                      <span>SHA256 проверен</span>
+                      <span>{t("SHA256 проверен")}</span>
                       {item.size ? (
-                        <span>{(item.size / 1024).toFixed(1)} КБ</span>
+                        <span>{(item.size / 1024).toFixed(1)} {t("КБ")}</span>
                       ) : null}
                       {item.homepage ? (
                         <a href={item.homepage} target="_blank" rel="noreferrer">
-                          <ExternalLink size={11} /> страница
+                          <ExternalLink size={11} /> {t("страница")}
                         </a>
                       ) : null}
                     </div>
@@ -630,7 +633,7 @@ export default function PackagesScreen() {
                           disabled
                         >
                           <CheckCircle2 size={13} />
-                          Уже в Kova
+                          {t("Уже в Kova")}
                         </button>
                       ) : item.installed && !item.update_available ? (
                         <button
@@ -639,7 +642,7 @@ export default function PackagesScreen() {
                           disabled
                         >
                           <CheckCircle2 size={13} />
-                          Установлен {item.installed_version}
+                          {t("Установлен {version}", { version: item.installed_version })}
                         </button>
                       ) : (
                         <button
@@ -650,10 +653,10 @@ export default function PackagesScreen() {
                         >
                           <Download size={13} />
                           {remoteBusy === item.id
-                            ? "Установка…"
+                            ? t("Установка…")
                             : item.update_available
-                              ? `Обновить до ${item.version}`
-                              : "Установить"}
+                              ? t("Обновить до {version}", { version: item.version })
+                              : t("Установить")}
                         </button>
                       )}
                     </div>
@@ -669,15 +672,16 @@ export default function PackagesScreen() {
         <section className="pkg-section" key={String(title)}>
           <div className="pkg-section-head">
             <div>
-              <h2>{title}</h2>
+              <h2>{t(title)}</h2>
               <small>
-                {rows.length} {rows.length === 1 ? "пакет" : "пакетов"}
+                {rows.length}{" "}
+                {tp(rows.length, ["пакет", "пакета", "пакетов"], "package", "packages")}
               </small>
             </div>
             <span>{rows.length}</span>
           </div>
           {rows.length === 0 ? (
-            <p className="pkg-empty-inline">Здесь пока пусто.</p>
+            <p className="pkg-empty-inline">{t("Здесь пока пусто.")}</p>
           ) : (
             <div className="pkg-grid">
               {rows.map((item) => {
@@ -693,18 +697,18 @@ export default function PackagesScreen() {
                       <div className="pkg-title">
                         <b>{item.name}</b>
                         <small>
-                          {TYPE_LABELS[item.type] ?? item.type} · {item.author || "Kova"} · {item.version}
+                          {t(TYPE_LABELS[item.type] ?? item.type)} · {item.author || "Kova"} · {item.version}
                           {item.trust === "remote"
-                            ? " · внешний"
+                            ? ` · ${t("внешний")}`
                             : item.custom
-                              ? " · локальный"
+                              ? ` · ${t("локальный")}`
                               : ""}
                         </small>
                       </div>
                       <span className={`pkg-status is-${item.status}`}>
                         {item.status === "installed" ? <CheckCircle2 size={11} /> : null}
                         {item.status === "coming_soon" ? <Clock3 size={11} /> : null}
-                        {STATUS_LABELS[item.status]}
+                        {t(STATUS_LABELS[item.status])}
                       </span>
                     </div>
 
@@ -718,14 +722,14 @@ export default function PackagesScreen() {
 
                     <div className="pkg-permissions">
                       {item.permissions.slice(0, 5).map((value) => (
-                        <span key={value}>{PERMISSION_LABELS[value] ?? value}</span>
+                        <span key={value}>{t(PERMISSION_LABELS[value] ?? value)}</span>
                       ))}
                     </div>
 
                     <div className="pkg-metrics">
-                      <span><Wrench size={11} /> {item.tools.length} инструментов</span>
-                      <span><ShieldCheck size={11} /> {item.checks.length} проверок</span>
-                      <span><Box size={11} /> {item.templates.length} шаблонов</span>
+                      <span><Wrench size={11} /> {item.tools.length} {t("инструментов")}</span>
+                      <span><ShieldCheck size={11} /> {item.checks.length} {t("проверок")}</span>
+                      <span><Box size={11} /> {item.templates.length} {t("шаблонов")}</span>
                     </div>
 
                     {item.engine_info ? (
@@ -742,13 +746,13 @@ export default function PackagesScreen() {
                         <i />
                         <b>
                           {item.engine_info.installed
-                            ? item.engine_info.version || "Движок найден"
-                            : "Движок не найден"}
+                            ? item.engine_info.version || t("Движок найден")
+                            : t("Движок не найден")}
                         </b>
                         <small>
                           {item.engine_info.project_detected
-                            ? "проект найден"
-                            : "проект не найден"}
+                            ? t("проект найден")
+                            : t("проект не найден")}
                         </small>
                       </div>
                     ) : null}
@@ -757,7 +761,7 @@ export default function PackagesScreen() {
                       {coming ? (
                         <button type="button" className="btn btn-secondary btn-small" disabled>
                           <Clock3 size={13} />
-                          Скоро
+                          {t("Скоро")}
                         </button>
                       ) : !installedItem ? (
                         <button
@@ -767,7 +771,7 @@ export default function PackagesScreen() {
                           onClick={() => void run(item.id, () => installPackage(item.id))}
                         >
                           <Download size={13} />
-                          {busy === item.id ? "Установка…" : "Установить"}
+                          {busy === item.id ? t("Установка…") : t("Установить")}
                         </button>
                       ) : (
                         <>
@@ -778,7 +782,7 @@ export default function PackagesScreen() {
                             onClick={() => void run(item.id, () => setPackageEnabled(item.id, !item.enabled))}
                           >
                             <Power size={13} />
-                            {item.enabled ? "Выключить" : "Включить"}
+                            {item.enabled ? t("Выключить") : t("Включить")}
                           </button>
                           {item.id !== "kova-core" ? (
                             <button
@@ -788,7 +792,7 @@ export default function PackagesScreen() {
                               onClick={() => void run(item.id, () => uninstallPackage(item.id))}
                             >
                               <Trash2 size={13} />
-                              Удалить
+                              {t("Удалить")}
                             </button>
                           ) : null}
                         </>

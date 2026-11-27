@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { t } from "../../lib/i18n";
 import {
   Code2,
   Download,
@@ -42,9 +43,9 @@ async function invoke<T>(command: string, args?: Record<string, unknown>): Promi
 function editorStatusText(
   status: EditorStatus | null,
 ): { label: string; tone: string } {
-  if (status?.running) return { label: "Редактор запущен", tone: "is-on" };
-  if (status?.installed) return { label: "Редактор установлен", tone: "is-ready" };
-  return { label: "Редактор не установлен", tone: "is-off" };
+  if (status?.running) return { label: t("Редактор запущен"), tone: "is-on" };
+  if (status?.installed) return { label: t("Редактор установлен"), tone: "is-ready" };
+  return { label: t("Редактор не установлен"), tone: "is-off" };
 }
 
 export default function EditorScreen({ projectPath }: Props) {
@@ -95,7 +96,7 @@ export default function EditorScreen({ projectPath }: Props) {
     ids: string[],
   ) => {
     if (!desktop) {
-      setError("Доступно в десктоп-приложении");
+      setError(t("Доступно в десктоп-приложении"));
       return;
     }
     setBusyKey(key);
@@ -139,7 +140,7 @@ export default function EditorScreen({ projectPath }: Props) {
         <Code2 size={38} strokeWidth={1.15} className="assets-heading-icon" />
         <div className="assets-heading-copy">
           <div className="editor-title-line">
-            <h1>Редактор</h1>
+            <h1>{t("Редактор")}</h1>
             <span
               className={`editor-status-dot ${state.tone}`}
               title={state.label}
@@ -147,7 +148,7 @@ export default function EditorScreen({ projectPath }: Props) {
             />
           </div>
           <p className="subtitle">
-            Kova Editor с задачами и чатом — проект открывается сразу.
+            {t("Kova Editor с задачами и чатом — проект открывается сразу.")}
           </p>
         </div>
         <div className="header-actions">
@@ -156,8 +157,8 @@ export default function EditorScreen({ projectPath }: Props) {
               type="button"
               className="icon-btn action-btn is-install"
               disabled={busy || status?.installing}
-              title={status?.installing ? "Скачивание…" : "Скачать редактор"}
-              aria-label="Скачать редактор"
+              title={status?.installing ? t("Скачивание…") : t("Скачать редактор")}
+              aria-label={t("Скачать редактор")}
               onClick={() =>
                 void run(async () => {
                   await invoke("editor_install");
@@ -172,8 +173,8 @@ export default function EditorScreen({ projectPath }: Props) {
               type="button"
               className="icon-btn action-btn is-play"
               disabled={busy || !projectPath}
-              title="Запустить редактор"
-              aria-label="Запустить редактор"
+              title={t("Запустить редактор")}
+              aria-label={t("Запустить редактор")}
               onClick={() =>
                 void run(async () => {
                   await invoke("editor_open", { projectPath: projectPath ?? "" });
@@ -188,8 +189,8 @@ export default function EditorScreen({ projectPath }: Props) {
               type="button"
               className="icon-btn action-btn is-danger"
               disabled={busy}
-              title="Остановить редактор"
-              aria-label="Остановить редактор"
+              title={t("Остановить редактор")}
+              aria-label={t("Остановить редактор")}
               onClick={() =>
                 void run(async () => {
                   await invoke("editor_close");
@@ -203,8 +204,8 @@ export default function EditorScreen({ projectPath }: Props) {
             type="button"
             className="icon-btn action-btn"
             disabled={!desktop || busy || !projectPath}
-            title="Открыть папку проекта"
-            aria-label="Открыть папку проекта"
+            title={t("Открыть папку проекта")}
+            aria-label={t("Открыть папку проекта")}
             onClick={() =>
               void run(async () => {
                 await invoke("open_project_folder", { path: projectPath ?? "" });
@@ -225,7 +226,7 @@ export default function EditorScreen({ projectPath }: Props) {
             className={tab === "extensions" ? "editor-tab is-active" : "editor-tab"}
             onClick={() => setTab("extensions")}
           >
-            Расширения
+            {t("Расширения")}
             <span>{EDITOR_EXTENSIONS.length}</span>
           </button>
           <button
@@ -233,7 +234,7 @@ export default function EditorScreen({ projectPath }: Props) {
             className={tab === "packs" ? "editor-tab is-active" : "editor-tab"}
             onClick={() => setTab("packs")}
           >
-            Наборы
+            {t("Наборы")}
             <span>{EXTENSION_PACKS.length}</span>
           </button>
         </div>
@@ -246,17 +247,17 @@ export default function EditorScreen({ projectPath }: Props) {
                 type="search"
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
-                placeholder="Поиск по названию, описанию, издателю"
-                aria-label="Поиск расширений"
+                placeholder={t("Поиск по названию, описанию, издателю")}
+                aria-label={t("Поиск расширений")}
               />
             </label>
             <select
               className="ext-select"
               value={category}
               onChange={(event) => setCategory(event.target.value)}
-              aria-label="Категория"
+              aria-label={t("Категория")}
             >
-              <option value="all">Все категории</option>
+              <option value="all">{t("Все категории")}</option>
               {EXTENSION_CATEGORIES.filter((item) => item.id !== "all").map((item) => (
                 <option key={item.id} value={item.id}>
                   {item.label}
@@ -286,7 +287,7 @@ export default function EditorScreen({ projectPath }: Props) {
               />
             ))}
             {filtered.length === 0 ? (
-              <p className="ext-empty">Ничего не найдено</p>
+              <p className="ext-empty">{t("Ничего не найдено")}</p>
             ) : null}
           </div>
         </>
@@ -313,7 +314,7 @@ export default function EditorScreen({ projectPath }: Props) {
                     disabled={!desktop || busyKey !== null}
                     onClick={() => void changeExtensions(`pack-${pack.id}`, "uninstall", ids)}
                   >
-                    Удалить набор
+                    {t("Удалить набор")}
                   </button>
                 ) : (
                   <button
@@ -322,7 +323,7 @@ export default function EditorScreen({ projectPath }: Props) {
                     disabled={!desktop || !status?.installed || busyKey !== null}
                     onClick={() => void changeExtensions(`pack-${pack.id}`, "install", ids)}
                   >
-                    {busyKey === `pack-${pack.id}` ? "Установка…" : "Установить набор"}
+                    {busyKey === `pack-${pack.id}` ? t("Установка…") : t("Установить набор")}
                   </button>
                 )}
               </article>
@@ -385,7 +386,7 @@ function ExtensionCard({
             disabled={disabled || busy}
             onClick={onRemove}
           >
-            {busy ? "Удаление…" : "Удалить"}
+            {busy ? t("Удаление…") : t("Удалить")}
           </button>
         ) : (
           <button
@@ -394,7 +395,7 @@ function ExtensionCard({
             disabled={disabled || busy}
             onClick={onInstall}
           >
-            {busy ? "Установка…" : "Установить"}
+            {busy ? t("Установка…") : t("Установить")}
           </button>
         )}
       </div>
