@@ -1,8 +1,8 @@
 # Kova Hub
 
-**A local-first desktop workspace for AI-assisted game development.**
+**Local-first desktop workspace for AI-assisted game development.**
 
-Kova Hub connects the messy parts of a game project — briefs, assets, checks, Blender, AI agents, and an editor — around one project folder and one local ledger. It is built for people who want AI help without giving up ownership of the files, context, or pipeline.
+Kova Hub keeps the brief, the assets, the checks, the Blender scene, the AI run and the review decision in one project folder. AI can work with the project, but it cannot silently overwrite it.
 
 ![Kova Hub overview](media/screenshots/overview.png)
 
@@ -12,118 +12,244 @@ Kova Hub connects the messy parts of a game project — briefs, assets, checks, 
   <img alt="Status: early preview" src="https://img.shields.io/badge/status-early%20preview-orange">
 </p>
 
-> Kova Hub is an early preview. The data model and UI can still change. Windows is the supported platform today.
-
-## Why Kova Hub
-
-Most AI game-dev workflows lose context between chats, files, and engine editors. Kova keeps that context in the project itself:
-
-- **Projects** are real folders with covers, engines, and local metadata.
-- **Tasks** are briefs with goals, criteria, constraints, skills, and linked assets.
-- **Assets** are passports: versions, hashes, previews, Blender metrics, checks, and usage.
-- **Checks** are stored per asset version, so switching versions never shows stale results.
-- **Snapshots and review** capture what changed and what needs another pass.
-- **Everything is local** by default. The core listens on `127.0.0.1` and data stays in the project or `%APPDATA%\KovaHub`.
-
-## Highlights
-
-- Project dashboard with continue-work, quick access, activity, and review.
-- Task board with rich cards, filters, archive, trash, restore, and permanent purge.
-- Asset library with real previews, 3D viewer, versions, per-version checks, and usage links.
-- Blender bridge: auto-installed add-on, live status, QA checks, model metrics, renders, and viewport screenshots.
-- Skills library: 28 bundled Blender skills plus code, Roblox, Unity, Godot, Unreal, and general skills. Create, edit, delete, and lock skills from AI changes.
-- CLI AI providers: Codex CLI, Claude Code, Gemini CLI, OpenCode, or your own command.
-- OpenAI-compatible API providers with keys encrypted by Windows DPAPI.
-- Execution sessions with live output, cancellation, handoff preview, and recovery after a core restart.
-- Run queue per project, optional git worktree isolation, and a read-only mode with user-defined flags.
-- Task validation commands, a review gate for failed or stale checks, and file diffs with unified patches.
-- Linear workflow steps that stop after each step, plus a token budget based only on real usage.
-- Built-in editor based on [code-server](https://github.com/coder/code-server), plus “open in VS Code” support.
-- Local ledger, snapshots, Doctor, and a dark/light UI.
-
-## Screenshots
-
-The current interface ships in Russian. Screenshots use demo project data.
-
-| Projects | Tasks |
-| --- | --- |
-| ![Projects](media/screenshots/projects.png) | ![Tasks](media/screenshots/tasks.png) |
-| **Assets** | **Skills** |
-| ![Assets](media/screenshots/assets.png) | ![Skills](media/screenshots/skills.png) |
-
-### Asset passport with versions and a live 3D viewer
-
-![Asset detail](media/screenshots/asset-detail.png)
-
-Each version has its own file, hash, size, preview, Blender metrics, and checks. The 3D viewer opens `.glb`/`.gltf` directly and converts `.blend`/`.fbx`/`.obj` through Blender when available.
-
-## How it works
-
-```mermaid
-flowchart LR
-  UI["Tauri + React UI"] -->|HTTP on 127.0.0.1| Core["Python core (FastAPI)"]
-  Core --> Hub[".hub: tasks, assets, checks, snapshots, ledger"]
-  Core --> Blender["Blender bridge (127.0.0.1:47832)"]
-  Core --> Agents["AI CLIs"]
-  Core --> Editor["code-server (127.0.0.1:48620)"]
-```
-
-A project folder looks like this:
-
-```text
-MyGame/
-  assets/                 # imported asset files
-  .hub/
-    project.json
-    tasks/{active,done,archive,trash}/
-    assets/               # asset passports
-    checks/assets/        # version-scoped check results
-    agents/               # sessions, runs, handoffs, diffs
-    checks/tasks/         # task validation results
-    artifacts/            # previews and renders
-    snapshots/
-    ledger/
-    cover.*
-```
-
-The desktop shell is Tauri + React. The core is a separate Python process that owns project state. Blender, AI CLIs, and the editor are optional integrations.
-
-## Requirements
-
-### To run a source checkout
-
-- Windows 10 or 11 (x64)
-- [WebView2 Runtime](https://developer.microsoft.com/microsoft-edge/webview2/) (preinstalled on Windows 11)
-- Python 3.11+
-- Node.js 20+ (build time)
-- Rust 1.77.2+ with the MSVC toolchain (build time only)
-- Git
-
-Optional:
-
-- Blender 4.2+ (tested with 5.2 LTS) for QA, renders, and `.blend`/`.fbx`/`.obj` 3D previews.
-- One or more AI CLIs for agent runs.
-- Internet access for the built-in editor and extensions.
+> Early preview. Windows 10/11 x64 is the supported platform today. The data model and UI can still change.
 
 ## Install
 
 ### One command
 
-Windows 10/11, PowerShell:
+Open PowerShell on Windows 10/11:
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -Command "irm https://raw.githubusercontent.com/AlexeyKurgan/Kova/main/install.ps1 | iex"
 ```
 
-The script downloads the latest GitHub release, verifies SHA256 against
-`manifest.json`, installs silently and launches Kova Hub. No Python, Node or
-developer tools are needed.
+The script:
+
+1. takes the latest GitHub Release;
+2. downloads the NSIS installer;
+3. verifies SHA256 against `manifest.json`;
+4. removes Mark-of-the-Web;
+5. installs silently;
+6. launches Kova Hub.
+
+No Python, Node, Rust, Visual Studio or code-signing certificate is required.
 
 Manual installers: [GitHub Releases](https://github.com/AlexeyKurgan/Kova/releases/latest).
 
-### Build from source
+The installer is not code-signed yet. Windows SmartScreen may ask you to confirm
+an unsigned app; the SHA256 is checked by the install script.
 
-Install the toolchain with `winget`:
+## What Kova is
+
+Kova is not a chat wrapper and not a cloud IDE. It is a local control room for a
+game project:
+
+- **Projects** are real folders. Kova does not hide project files in a database.
+- **Tasks** are briefs with goals, criteria, constraints, skills and linked assets.
+- **Assets** are passports: versions, hashes, previews, metrics, checks and usage.
+- **AI runs** are isolated, snapshotted and reviewed before changes are applied.
+- **Memory** lives in the project, in a readable `.hub/` folder and ledger.
+- **Everything important is reversible**: snapshots, Review, archive and trash.
+
+## Feature tour
+
+### Projects and tasks
+
+- Project cards with covers, engines, task counts and recent activity.
+- Trash, restore and permanent purge.
+- Tasks with goals, acceptance criteria, constraints, skills, templates and linked assets.
+- Eight built-in task templates: Roblox prop, sword, hit animation, UV fix, LOD, VFX, Roblox export and code feature.
+- Workflow steps that stop after each step until you approve the next one.
+- Task tabs: Brief, Work, Checks, Result, History.
+- “Why did this happen?” panel built from the ledger, not from AI guesses.
+
+### Assets
+
+- Asset library with previews, search, filters, list/grid views and pagination.
+- Passport with versions, hashes, usage, provenance and export profiles.
+- Per-version checks, Blender metrics and `.glb`/`.gltf` 3D viewer; Blender converts `.blend`/`.fbx`/`.obj`.
+- Object-level scene diff between versions: added/removed objects, transforms, materials and triangle counts.
+- Engine contracts for Blender, Roblox, Godot, Unity, Unreal, RPG Maker and Web.
+- Engine importers and native project reimport for Godot and Unity.
+- Dependency map with manual links between assets.
+
+### Review
+
+- Review Inbox and archive.
+- Add/modify/delete file diffs with unified patches.
+- Checks and stale-check detection.
+- Image pins and comments tied to an asset version.
+- Version comparison slider (A/B).
+- “Second opinion” prompt for an independent critic.
+- Accept, rework or archive; accepting with failed checks requires explicit confirmation.
+
+### AI providers
+
+- CLI providers: Codex CLI, Claude Code, Gemini CLI, OpenCode, or a custom command.
+- OpenAI-compatible API providers; keys are encrypted with Windows DPAPI.
+- Local connectors: Ollama, LM Studio and other localhost endpoints.
+- Model catalog, manual models, default model per provider.
+- Read-only, workspace and auto tool policies.
+- Per-project run queue and git worktree/sandbox-copy isolation.
+- Live output, cancellation, resume, handoff preview and interrupted-run recovery.
+- Token budget based only on real provider-reported usage.
+- Routing rules by task tag and reusable agent roles.
+
+### Clipboard mode
+
+For free browser AIs:
+
+- Kova prepares a task capsule and copies it to the clipboard.
+- You paste it into any chat and bring the answer back with “Paste answer”.
+- The response becomes an artefact and goes to Review.
+- Nothing is applied without a snapshot and explicit approval.
+
+### Blender
+
+- Auto-installed `kova_bridge` add-on and live status.
+- Headless inspection, QA, metrics, preview renders and viewport screenshots.
+- 28 bundled Blender skills.
+- Asset preview and glTF conversion through Blender.
+- Custom `KOVA_BLENDER` path when auto-detection fails.
+
+### Project memory
+
+- File-based search across tasks, assets, chats, decisions and ledger events.
+- Activity timeline with hours/days/months/years and type filters.
+- Project diary with 7/14/30-day summaries and a calendar of active days.
+- Ledger of every important action.
+
+### Packages and engines
+
+- Package catalog with permissions, tools, checks and engine coverage.
+- Install, enable, disable and uninstall packages.
+- Godot, Unity, Unreal, RPG Maker and Web packages detect the engine and project.
+- Import assets into the right engine folder:
+  - Godot: `assets/kova/`
+  - Unity: `Assets/Kova/`
+  - Unreal: `Content/Kova/Source/`
+  - RPG Maker: `img/pictures/` or `audio/se/`
+  - Web: `public/assets/`
+- Godot/Unity native reimport runs the editor in batch/headless mode when available.
+
+### Style Guard
+
+- Project Style Bible in `.hub/style/bible.json`.
+- Triangle, vertex, material, texture and bone budgets.
+- License requirement and asset-name regex.
+- Style warnings in the asset passport and Review.
+- Palette is stored as guidance; pixel-level visual matching is not automated yet.
+
+### Night Shift
+
+- Queue of tasks for unattended runs.
+- Start time, provider, task limit and stop-on-error.
+- Sequential runs through the existing AI runner.
+- Snapshot before each run; results go to Review, never auto-applied.
+- Morning report with per-task status and links.
+- The scheduler runs while Kova is open.
+
+### Doctor and notifications
+
+- Environment checks: `.hub`, Git, Blender, engine, isolation, network guard, token, snapshots, disk.
+- Safe “Fix” for `.hub` structure and journal files.
+- JSON diagnostics export.
+- Notification center with ranges and type filters.
+- About screen with update check.
+
+## Quick start
+
+1. Install Kova and open it.
+2. Create a project or open an existing folder.
+3. Choose the engine (Roblox, Godot, Unity, Unreal, Blender, RPG Maker, Web or generic).
+4. Add an AI provider in **Agents** — CLI, API or Clipboard.
+5. Create a task, or start from a template.
+6. Link assets to the task.
+7. Run checks or a Blender inspection.
+8. Prepare a capsule, run the agent, or paste a response.
+9. Review the diff, pins and checks.
+10. Apply worktree changes, accept the result, or send it back for rework.
+
+A good first task is a small model with a clear budget, for example a Roblox prop
+under 8,000 triangles with one material and a base pivot.
+
+## AI provider notes
+
+Open **Agents** in the sidebar. Presets exist for Codex, Claude Code, Gemini CLI
+and OpenCode. Install and authenticate the CLI yourself; Kova never receives
+your CLI login.
+
+API providers support OpenAI-compatible, Anthropic Messages and Google Gemini
+request formats. API keys are encrypted in `%APPDATA%\KovaHub\secrets.json` with
+Windows DPAPI and are never returned by the local API.
+
+Cloud-specific adapters:
+
+- **Azure OpenAI** — resource URL, deployment, `api-key`.
+- **Google Vertex AI** — project + region, token from `GOOGLE_ACCESS_TOKEN` or `gcloud`.
+- **AWS Bedrock** — region + model, SigV4 from AWS environment variables.
+
+Execution policies:
+
+- **Read only** — list/read files.
+- **Workspace** — read/write/delete inside the project.
+- **Auto** — also run commands inside the project.
+
+Writes and commands pause for approval. Worktree changes are applied only by an
+explicit click, after a snapshot.
+
+## Security and privacy
+
+- The core listens only on `127.0.0.1:8765`.
+- Owner token protects the local API; Roblox bridge endpoints use a separate bridge token.
+- Blender bridge listens on `127.0.0.1:47832`.
+- Provider secrets use Windows DPAPI.
+- No telemetry is sent by Kova.
+- OS sandbox backends (Docker/WSL/Windows Sandbox) are detected in Settings.
+  When none is available, Kova reports the fallback: a sandbox project copy plus
+  Windows Job Object containment.
+- Kova does not intercept commands a CLI runs inside itself; read the provider’s
+  own permission model.
+- The editor port `48620` has authentication disabled by code-server. Do not expose it.
+
+## Where data lives
+
+| Path | Contents |
+| --- | --- |
+| `<project>/` | Source files and imported assets |
+| `<project>/.hub/` | Project metadata, tasks, assets, checks, review, snapshots, ledger, previews, packages, style |
+| `%APPDATA%\KovaHub\projects.json` | Project registry |
+| `%APPDATA%\KovaHub\providers.json` | AI provider configuration |
+| `%APPDATA%\KovaHub\secrets.json` | API keys encrypted with DPAPI |
+| `%APPDATA%\KovaHub\core-token.json` | Local owner token |
+| `%APPDATA%\KovaHub\worktrees\` | Temporary git worktrees |
+| `%LOCALAPPDATA%\KovaHub\editor\` | code-server and extensions |
+| `%LOCALAPPDATA%\KovaHub\blender\bridge.json` | Blender bridge discovery |
+
+Back up `.hub/` and `assets/` together. `.hub/` is intentionally readable JSON/Markdown.
+
+## Requirements
+
+**To use the installed app**
+
+- Windows 10/11 x64
+- WebView2 Runtime (preinstalled on Windows 11)
+- Optional: Blender 4.2+ (tested with 5.2 LTS)
+- Optional: an AI CLI or API provider
+
+**To build from source**
+
+- Node.js 20+
+- Python 3.11+
+- Rust 1.77.2+ with MSVC toolchain
+- Visual Studio Build Tools C++ workload
+- Git
+- PyInstaller for the core sidecar
+
+## Build from source
+
+Install prerequisites with `winget`:
 
 ```powershell
 winget install --id Git.Git -e
@@ -135,203 +261,59 @@ winget install --id Microsoft.EdgeWebView2Runtime -e
 rustup default stable-msvc
 ```
 
-Restart the terminal, then:
+Clone and set up:
 
 ```powershell
-git clone <repository-url> KovaHub
-cd KovaHub
-powershell -ExecutionPolicy Bypass -File scripts\setup.ps1
+git clone https://github.com/AlexeyKurgan/Kova.git
+cd Kova
+powershell -ExecutionPolicy Bypass -File scripts/setup.ps1
 ```
 
 Development:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File scripts\dev.ps1
+powershell -ExecutionPolicy Bypass -File scripts/dev.ps1
 ```
 
 Production build:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File scriptsuild.ps1
-powershell -ExecutionPolicy Bypass -File scriptsun-app.ps1
+powershell -ExecutionPolicy Bypass -File scripts/build.ps1
+powershell -ExecutionPolicy Bypass -File scripts/run-app.ps1
 ```
 
-### Packaging status
+The build creates a self-contained core sidecar, the Tauri app and MSI/NSIS
+installers in `apps/desktop/src-tauri/target/release/bundle/`.
 
-The MSI/NSIS installers are now **self-contained**: `scriptsuild.ps1` builds the Python core with PyInstaller (`scriptsuild-core.ps1`), and Tauri bundles it as a sidecar. The installed app starts the core on `127.0.0.1:8765` automatically and stops it on exit.
-
-- An existing core on port `8765` is reused, so source-checkout development still works.
-- A clean install no longer needs Python, a virtualenv, or a separate core process.
-- Set `KOVA_SKIP_CORE_BUILD=1` to rebuild only the shell when the sidecar is already current.
-- Building from source still needs Python 3.11+, `pip install -e ./core`, and `pyinstaller`.
-
-## Core commands
-
-```powershell
-npm run core:install     # pip install -e ./core
-npm run core:dev         # start the core on 127.0.0.1:8765
-npm run dev              # Vite dev server only
-npm run build            # typecheck + frontend build
-npm run typecheck        # tsc --noEmit
-npm run tauri            # Tauri CLI
-```
-
-Useful scripts:
+Useful commands:
 
 | Script | Purpose |
 | --- | --- |
-| `scripts\setup.ps1` | Check prerequisites, install npm/Python dependencies |
-| `scripts\dev.ps1` | Start the core and `tauri dev` |
-| `scripts\build.ps1` | Build the desktop app and installers |
-| `scripts\run-core.ps1` | Start only the Python core |
-| `scripts\run-app.ps1` | Start the core and the built app |
+| `scripts/setup.ps1` | Check prerequisites and install dependencies |
+| `scripts/dev.ps1` | Start core + `tauri dev` |
+| `scripts/build.ps1` | Build core, app, MSI and NSIS |
+| `scripts/run-core.ps1` | Start only the Python core |
+| `scripts/run-app.ps1` | Start core + built app |
+| `scripts/release.ps1` | Build, hash and write `release/manifest.json` |
 
-## First project
-
-1. Launch Kova Hub and create a project (or open an existing folder).
-2. Add a task with a goal, criteria, constraints, and optional skills.
-3. Import assets — files are copied into `<project>/assets`.
-4. Link assets to tasks. One asset can serve many tasks; a task can use many assets.
-5. Run basic checks, then a Blender check for real metrics and a preview.
-6. Use the AI panel to send a task capsule to a configured CLI and review the result.
-7. Save snapshots before risky changes; use Review and the ledger to see what happened.
-
-## Blender integration
-
-- Install Blender 4.2 or newer and open it once.
-- Kova installs and updates its `kova_bridge` add-on automatically.
-- The bridge listens locally on port `47832`; the Blender sidebar has a **Kova** panel.
-- Set `KOVA_BLENDER` to a custom `blender.exe` path if auto-detection fails.
-- Models can be inspected, QA-checked, rendered, and screenshotted from Kova.
-- `.blend`, `.fbx`, and `.obj` previews are converted to a temporary GLB through Blender and cached in `.hub/artifacts/viewer`.
-- The add-on is licensed **GPL-3.0-or-later** because it runs inside Blender. Blender itself is not bundled.
-
-## AI providers
-
-Open **Agents** in the sidebar, add a provider, and point it at a CLI command. Presets exist for:
-
-- `codex` — OpenAI Codex CLI
-- `claude` — Claude Code
-- `gemini` — Gemini CLI
-- `opencode` — OpenCode CLI
-
-Install and authenticate each CLI yourself. Provider configuration is stored in `%APPDATA%\KovaHub\providers.json`. Kova never stores CLI logins.
-
-The Agents page has three add modes: **CLI**, **API provider**, and **local connector** (Ollama / LM Studio on localhost, no key). **From catalog** connects OpenAI, Anthropic, Google AI Studio, OpenRouter, DeepSeek, xAI, and Z.AI with a key; models are discovered automatically after saving.
-
-Cloud adapters are separate because auth differs:
-
-- **Azure OpenAI** — resource URL with deployment, `api-key`, manual deployment name.
-- **Google Vertex AI** — project + region, access token from `GOOGLE_ACCESS_TOKEN` or `gcloud auth print-access-token`.
-- **AWS Bedrock** — region + model ID, SigV4 from `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY`. The adapter supports Anthropic Claude models; other model families need their own request format.
-
-Models for these clouds are entered manually; Kova does not invent a model list.
-
-API keys are encrypted with Windows DPAPI in `%APPDATA%\KovaHub\secrets.json` and are never returned by the local API.
-
-Native providers can use tools in a bounded loop: list files, read, write, delete, and optionally run commands. The scope is chosen before the run:
-
-- **Read only** — only `list_dir` and `read_file`.
-- **Workspace** (default) — plus `write_file` and `delete_file` inside the project.
-- **Auto** — plus `run_command` in the project folder.
-
-The policy limits which tools are available, and every `write_file`, `delete_file`, or `run_command` pauses the run for explicit approval. You can allow once, allow all for that run, or deny; deny cancels the run. Tool calls are shown in the run details, and file changes go through the normal snapshot/diff/Review flow.
-
-Request formats are explicit, not guessed: **OpenAI-compatible**, **Anthropic Messages**, and **Google Gemini**. The selected format controls the request body, auth headers, and streaming parser.
-
-The **Models** tab can load models from the CLI or API (`opencode models`, or `GET /models`) and search them. Pick a default model there; it is used when the provider args contain `{model}`. Manual models are supported for CLIs without a list command.
-
-### Agent runs and sessions
-
-A task owns one or more **execution sessions**. Each session groups runs, handoff packages, snapshots, and status. Runs stream stdout/stderr into the task panel, can be cancelled, and are marked `interrupted` if the core stops mid-run.
-
-- **Continue** uses the real CLI session when the provider exposes a session id and resume flags (Codex, Claude, OpenCode presets). The CLI keeps its own context; Kova sends only the new message.
-- **Hand over** creates a new session with a handoff package when continuing with another provider or when resume is unavailable.
-- **Handoff preview** shows exactly what the next agent will receive before you start.
-- **Queue** limits parallel runs per project (1–4). With one slot, runs wait instead of writing over each other.
-- **Worktree isolation** (git projects) runs an agent in a separate copy of `HEAD`. Changes are shown in Review and applied to the project only by explicit click, with a snapshot first.
-- **Read-only mode** uses flags you configure per provider. Kova does not guess flags or intercept commands.
-
-### Checks and review
-
-Validation commands are task-level and user-editable. Kova can suggest commands from `package.json`, `tsconfig.json`, `pyproject.toml`, `pytest`, `Cargo.toml`, `go.mod`, `Makefile`, or .NET project files. Checks run only when you click, with your OS permissions.
-
-Review compares the run against its pre-run snapshot, shows added/modified/deleted files, line counts, unified patches, and check results. Failed, missing, or stale checks require an explicit confirmation before accepting.
-
-### Workflow and budget
-
-Tasks can hold ordered workflow steps. **Run step** sends that step's prompt to the selected agent, and the workflow stops there: the next step starts only when you approve it. A failed run marks the step failed; a cancelled run returns it to pending.
-
-Set a project **token limit** in Agents. Kova sums only real token counts reported by CLIs or APIs. If a provider returns no usage, the run is counted as unknown and the UI says so instead of inventing numbers. `0` disables the limit.
-
-**Routing rules** map task tags to a recommended provider. The recommendation is shown in the task; Kova does not silently switch providers. **Roles** add a name and instructions to the prompt and can be attached to a task. Both live in `%APPDATA%\KovaHub\routing.json`.
-
-### Honest limits
-
-- Kova does not intercept commands the CLI runs inside itself.
-- File write boundaries come from the CLI sandbox/flags, not from Kova.
-- Tokens and cost come from real CLI output when the provider emits usage (for example Codex JSONL or Claude JSON); otherwise they show `Unknown`. There are no invented budgets.
-- There is no automatic provider fallback or automatic merge.
-
-## Built-in editor and VS Code
-
-- The **Editor** screen downloads [code-server](https://github.com/coder/code-server) 4.146.0 on demand to `%LOCALAPPDATA%\KovaHub\editor`.
-- It runs locally on `127.0.0.1:48620` with authentication disabled, so do not expose the port.
-- Extensions are installed on request from the code-server extension registry.
-- “Open in VS Code” launches a locally installed VS Code if one is available.
-- Kova does not bundle Microsoft VS Code binaries or the Microsoft Marketplace. See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
-
-## Where data lives
-
-| Path | Contents |
-| --- | --- |
-| `<project>/` | Source project and `assets/` |
-| `<project>/.hub/` | Project metadata, tasks, passports, checks, snapshots, ledger, previews |
-| `%APPDATA%\KovaHub\projects.json` | Project registry |
-| `%APPDATA%\KovaHub\providers.json` | AI provider configuration |
-| `%APPDATA%\KovaHub\capabilities.json` | Probed CLI capabilities |
-| `%APPDATA%\KovaHub\secrets.json` | API keys encrypted with Windows DPAPI |
-| `%APPDATA%\KovaHub\worktrees\` | Temporary git worktrees for isolated runs |
-| `%APPDATA%\KovaHub\projects\` | Projects created through Kova |
-| `%LOCALAPPDATA%\KovaHub\editor\` | code-server and extensions |
-| `%LOCALAPPDATA%\KovaHub\blender\bridge.json` | Blender bridge discovery |
-
-Local project data and `.hub` folders are gitignored by default. Back up `.hub` and `assets` together if you move a project.
+`KOVA_SKIP_CORE_BUILD=1` rebuilds only the shell when the sidecar is current.
 
 ## Repository layout
 
 ```text
-apps/desktop/            Tauri shell + React UI
-core/kova_core/          FastAPI core, domain, storage, checks, integrations
+apps/desktop/                 Tauri shell + React UI
+core/kova_core/               FastAPI core, domain, storage, checks, integrations
 core/kova_core/integrations/blender/
-                        Blender bridge, skills, add-on
-core/tests/              Python tests
-packages/                Reserved for engine-specific packages
-scripts/                 Setup, dev, build, and diagnostic scripts
-media/screenshots/       README screenshots
-docs/                    Internal notes (gitignored)
+                              Blender bridge, add-on, skills
+core/kova_core/integrations/engines/
+                              Godot, Unity, Unreal, RPG Maker, Web adapters
+core/tests/                   Python tests
+scripts/                      setup, dev, build, release, diagnostics
+media/screenshots/            README screenshots
+.github/workflows/            CI and release workflows
+USER_GUIDE.md                 Russian end-user guide
+docs/                         Internal notes (gitignored)
 ```
-
-## Troubleshooting
-
-**The UI shows “Core: недоступен”.**
-Start the core with `scripts\run-core.ps1` and check that port `8765` is free:
-`Get-NetTCPConnection -LocalPort 8765`.
-
-**The app opens blank.**
-Install or repair the WebView2 Runtime.
-
-**Rust build fails with missing linker or `link.exe`.**
-Install the Visual Studio Build Tools C++ workload and run `rustup default stable-msvc`.
-
-**Blender is installed but Kova does not see it.**
-Open Blender once, then check the Blender panel in Kova. Set `KOVA_BLENDER` to the full `blender.exe` path if needed.
-
-**3D preview does not load for a `.blend`, `.fbx`, or `.obj`.**
-Those formats need Blender for conversion. `.glb` and `.gltf` work without it. Check the Blender installation and the generated cache in `<project>/.hub/artifacts/viewer`.
-
-**The editor fails to download.**
-Check internet access and antivirus rules for `%LOCALAPPDATA%\KovaHub\editor`. The download comes from the official code-server GitHub releases.
 
 ## Tests
 
@@ -342,32 +324,46 @@ cd ..
 npm run typecheck
 ```
 
-The bundled UI/diagnostic scripts under `scripts/` are development helpers and may expect a local demo project.
+Current suite: **129 Python tests**, plus TypeScript typecheck.
 
-## License and third-party rights
+## Troubleshooting
 
-Kova Hub is released under the [MIT License](LICENSE).
-
-Short version of the legal picture:
-
-- The Kova codebase can be used, modified, and redistributed under MIT.
-- Bundled libraries keep their own licenses (React, Three.js, Tauri, FastAPI, and others are permissive; Inter is OFL; Lucide is ISC). Their notices are summarized in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). Include full license texts when you ship binaries.
-- The Blender add-on is GPL-3.0-or-later. Blender itself is GPL and is **not** bundled.
-- The editor is code-server (MIT), downloaded at runtime and **not** redistributed. Kova does not ship Microsoft VS Code builds or the Microsoft Marketplace.
-- Brand names and logos (Roblox, Unity, Godot, Unreal, Blender, OpenAI, Anthropic, Gemini, OpenCode, GitHub, Microsoft, VS Code) belong to their owners. They are used only to identify the tools Kova works with. Kova is not affiliated with or endorsed by them.
-- Engines, AI services, extensions, and assets you use with Kova are governed by their own licenses and terms.
-
-This summary is not legal advice. If you plan a commercial release, review the final dependency list with a license scanner.
-
-## Contributing
-
-Issues and pull requests are welcome. Before opening a PR:
+**Core: недоступен**
+Check that port `8765` is free and start the core:
 
 ```powershell
-cd core
-python -m pytest -q
-cd ..
-npm run typecheck
+Get-NetTCPConnection -LocalPort 8765
+powershell -ExecutionPolicy Bypass -File scripts/run-core.ps1
 ```
 
-Please keep changes local-first, avoid invented asset metrics, and keep checks tied to the asset version they were run against.
+**App opens blank**
+Install or repair the WebView2 Runtime.
+
+**Rust build fails with missing `link.exe`**
+Install Visual Studio Build Tools C++ workload and run `rustup default stable-msvc`.
+
+**Blender is installed but not detected**
+Open Blender once, then refresh the Blender panel. Set `KOVA_BLENDER` to the full path if needed.
+
+**3D preview does not load for `.blend`/`.fbx`/`.obj`**
+Those formats need Blender. `.glb`/`.gltf` work without it. Check the cache in `<project>/.hub/artifacts/viewer`.
+
+**Installer shows SmartScreen**
+The current installer is unsigned. Use the one-line installer with SHA256 check,
+or build from source. A trusted certificate is not required for local use.
+
+**Editor cannot download code-server**
+Check internet access and antivirus rules for `%LOCALAPPDATA%\KovaHub\editor`.
+
+## Documentation
+
+- [Russian user guide](USER_GUIDE.md)
+- [MIT License](LICENSE)
+- [Third-party notices](THIRD_PARTY_NOTICES.md)
+
+## License
+
+Kova Hub is released under the [MIT License](LICENSE). The Blender add-on is
+GPL-3.0-or-later because it runs inside Blender. Blender itself is not bundled.
+code-server is downloaded at runtime and is not redistributed. Brand names and
+logos belong to their owners.

@@ -21,7 +21,9 @@ if ($manifestAsset) {
   $manifestPath = Join-Path $work "manifest.json"
   Invoke-WebRequest $manifestAsset.browser_download_url -OutFile $manifestPath -Headers $headers
   $manifest = Get-Content $manifestPath -Raw | ConvertFrom-Json
-  $expected = ($manifest.files | Where-Object { $_.name -eq $installerAsset.name } | Select-Object -First 1)
+  $expected = ($manifest.files | Where-Object {
+    $_.name -eq $installerAsset.name -or ($_.name -replace " ", ".") -eq $installerAsset.name
+  } | Select-Object -First 1)
 }
 
 $target = Join-Path $work $installerAsset.name
@@ -35,6 +37,11 @@ if ($expected) {
     throw "Installer SHA256 does not match manifest.json"
   }
   Write-Host "Kova Hub: SHA256 verified"
+}
+
+if ($env:KOVA_INSTALL_DRYRUN -eq "1") {
+  Write-Host "Kova Hub: dry run, installer downloaded and verified at $target"
+  return
 }
 
 Get-Process kova-hub,kova-core -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
