@@ -91,6 +91,13 @@ export type AgentUsage = {
   unknown_runs: number;
   remaining: number | null;
   exhausted: boolean;
+  providers: Array<{
+    id: string;
+    name: string;
+    used: number;
+    known_runs: number;
+    unknown_runs: number;
+  }>;
 };
 
 export type Project = {

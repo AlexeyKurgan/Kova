@@ -28,15 +28,25 @@ def usage_summary(hub: Path, budget: int = 0) -> dict[str, Any]:
     total = 0
     known = 0
     unknown = 0
+    providers: dict[str, dict[str, Any]] = {}
     for run in list_runs_raw(hub):
         if run.get("status") not in {"succeeded", "failed", "cancelled", "interrupted"}:
             continue
+        provider_id = str(run.get("provider_id") or "")
+        provider_name = str(run.get("provider_name") or provider_id or "unknown")
+        row = providers.setdefault(
+            provider_id or provider_name,
+            {"id": provider_id, "name": provider_name, "used": 0, "known_runs": 0, "unknown_runs": 0},
+        )
         tokens = token_total(run.get("usage"))
         if tokens is None:
             unknown += 1
+            row["unknown_runs"] += 1
             continue
         total += tokens
         known += 1
+        row["used"] += tokens
+        row["known_runs"] += 1
     remaining = max(0, budget - total) if budget > 0 else None
     return {
         "budget": budget,
@@ -45,4 +55,9 @@ def usage_summary(hub: Path, budget: int = 0) -> dict[str, Any]:
         "unknown_runs": unknown,
         "remaining": remaining,
         "exhausted": bool(budget > 0 and total >= budget),
+        "providers": sorted(
+            providers.values(),
+            key=lambda row: (row["used"], row["known_runs"]),
+            reverse=True,
+        ),
     }

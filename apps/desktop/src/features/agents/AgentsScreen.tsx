@@ -1387,14 +1387,38 @@ export default function AgentsScreen({
                           {" "}0 токенов — без лимита.
                         </small>
                         {usage ? (
-                          <small className="ag-muted">
-                            Использовано: {usage.used.toLocaleString("ru-RU")}
-                            {usage.budget > 0
-                              ? ` из ${usage.budget.toLocaleString("ru-RU")}`
-                              : ""}
-                            {" · "}
-                            запусков без usage: {usage.unknown_runs}
-                          </small>
+                          <>
+                            <small
+                              className={`ag-muted${
+                                usage.budget > 0 && usage.used >= usage.budget * 0.8
+                                  ? " is-warn"
+                                  : ""
+                              }`}
+                            >
+                              Использовано: {usage.used.toLocaleString("ru-RU")}
+                              {usage.budget > 0
+                                ? ` из ${usage.budget.toLocaleString("ru-RU")}`
+                                : ""}
+                              {" · "}
+                              запусков без usage: {usage.unknown_runs}
+                              {usage.budget > 0 && usage.used >= usage.budget * 0.8
+                                ? " · близко к лимиту"
+                                : ""}
+                            </small>
+                            {usage.providers.length > 0 ? (
+                              <div className="ag-usage-providers">
+                                {usage.providers.slice(0, 6).map((provider) => (
+                                  <span key={provider.id || provider.name}>
+                                    <b>{provider.name}</b>
+                                    {provider.used.toLocaleString("ru-RU")} токенов
+                                    {provider.unknown_runs > 0
+                                      ? ` · ${provider.unknown_runs} без usage`
+                                      : ""}
+                                  </span>
+                                ))}
+                              </div>
+                            ) : null}
+                          </>
                         ) : null}
                         {slotsNote ? <small className="ag-muted">{slotsNote}</small> : null}
                       </div>

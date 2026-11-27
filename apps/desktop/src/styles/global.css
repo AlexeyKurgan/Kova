@@ -20850,3 +20850,29 @@ html[data-mode="beginner"] .advanced-only {
   color: var(--text-muted);
   font-size: 7px;
 }
+
+.ag-muted.is-warn {
+  color: var(--warning-text);
+}
+
+.ag-usage-providers {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  margin-top: 2px;
+}
+
+.ag-usage-providers span {
+  padding: 2px 5px;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  background: var(--bg-raised);
+  color: var(--text-muted);
+  font-size: 7px;
+}
+
+.ag-usage-providers b {
+  margin-right: 3px;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
