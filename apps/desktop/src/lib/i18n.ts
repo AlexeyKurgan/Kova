@@ -1378,6 +1378,250 @@ const EN: Record<string, string> = {
   "{count} вне проекта": "{count} outside project",
   "{count} требует внимания": "{count} need attention",
 
+  // Agents
+  "Управление CLI, моделями и возможностями": "Manage CLIs, models and capabilities",
+  "Поставить безопасные настройки для этого проекта":
+    "Apply safe settings for this project",
+  "Настроить за меня": "Set up for me",
+  "Добавить CLI": "Add CLI",
+  "Другие типы": "Other types",
+  "Из каталога": "From catalog",
+  "OpenAI, Anthropic, Google и другие": "OpenAI, Anthropic, Google and others",
+  "CLI-агент": "CLI agent",
+  "Codex, Claude, OpenCode или своя команда":
+    "Codex, Claude, OpenCode or a custom command",
+  "API-провайдер": "API provider",
+  "OpenAI-совместимый endpoint и ключ": "OpenAI-compatible endpoint and key",
+  "Локальный коннектор": "Local connector",
+  "Ollama / LM Studio на localhost, без ключа":
+    "Ollama / LM Studio on localhost, no key",
+  "Обновить провайдеров и запуски": "Refresh providers and runs",
+  "Загружаю провайдеров…": "Loading providers…",
+  "Готовы к запуску: {ready} из {total}": "Ready to run: {ready} of {total}",
+  "Основной: {name}": "Default: {name}",
+  "Провайдеры и CLI": "Providers and CLIs",
+  "Поиск провайдера…": "Search providers…",
+  "Только доступные": "Available only",
+  "Провайдеры ещё не загрузились…": "Providers are still loading…",
+  Основной: "Default",
+  "Ключ сохранён": "Key saved",
+  "Нужен ключ": "Key required",
+  "модель не задана": "model not set",
+  "версия неизвестна": "version unknown",
+  "Проверьте установку CLI": "Check the CLI installation",
+  "Модель API": "API model",
+  Путь: "Path",
+  "не задана": "not set",
+  сек: "sec",
+  настроен: "configured",
+  "Автоматическая / CLI default": "Automatic / CLI default",
+  "Список моделей задаётся в настройках провайдера.":
+    "The model list is configured in provider settings.",
+  "Список моделей пуст. Укажи модели в настройках провайдера.":
+    "Model list is empty. Add models in provider settings.",
+  "Effort по умолчанию": "Default effort",
+  "Применяется к новым чатам. Старые чаты не меняются.":
+    "Applies to new chats. Existing chats are unchanged.",
+  "Что умеет CLI": "What the CLI can do",
+  "Проверяется по --help и настройкам провайдера.":
+    "Checked via --help and provider settings.",
+  "Модели провайдера": "Provider models",
+  "Модель по умолчанию подставляется в запуск, если в аргументах есть {model}.":
+    "The default model is passed to a run when {model} is present in the arguments.",
+  "Список пуст. Загрузи модели из CLI/API или добавь вручную.":
+    "List is empty. Load models from CLI/API or add them manually.",
+  "Загрузить из CLI/API": "Load from CLI/API",
+  "Модели пока не загружены.": "Models are not loaded yet.",
+  "Добавить модель вручную": "Add a model manually",
+  "Сбросить модель по умолчанию": "Reset default model",
+  "Запуски и безопасность": "Runs and security",
+  "Запуски проекта": "Project runs",
+  "Параллельных запусков": "Parallel runs",
+  Изоляция: "Isolation",
+  "Прямо в проекте": "Directly in project",
+  "Песочница (копия проекта)": "Sandbox (project copy)",
+  "Только локальные модели": "Local models only",
+  "Запрещает чат и запуски через провайдеров, которые ходят в интернет. Локальные API на localhost остаются доступны.":
+    "Blocks chat and runs through providers that use the internet. Local APIs on localhost remain available.",
+  "Сетевой щит (allowlist доменов)": "Network guard (domain allowlist)",
+  "Для CLI-чата и запусков задач: разрешены только домены выбранного провайдера, остальные соединения блокируются и видны в активности.":
+    "For CLI chat and task runs, only the selected provider's domains are allowed; other connections are blocked and visible in activity.",
+  "Лимит токенов": "Token limit",
+  "Агент работает в копии HEAD, изменения применяются вручную из Review.":
+    "The agent works in a copy of HEAD; changes are applied manually from Review.",
+  "Агент работает в отдельной копии проекта; изменения применяются вручную из Review.":
+    "The agent works in a separate project copy; changes are applied manually from Review.",
+  "Агент пишет напрямую в проект.": "The agent writes directly to the project.",
+  "0 токенов — без лимита.": "0 tokens means no limit.",
+  "Использовано: {used}": "Used: {used}",
+  " из {budget}": " of {budget}",
+  "запусков без usage: {count}": "runs without usage: {count}",
+  " · близко к лимиту": " · close to the limit",
+  "{count} токенов": "{count} tokens",
+  " · {count} без usage": " · {count} without usage",
+  "Открой проект, чтобы настроить очередь.":
+    "Open a project to configure the queue.",
+  "Маршрутизация и роли": "Routing and roles",
+  "Правила маршрутизации": "Routing rules",
+  "Правило даёт рекомендацию в задаче по тегу. Автопереключения нет.":
+    "A rule recommends a provider for a task tag. There is no automatic switching.",
+  "Тег задачи": "Task tag",
+  "например: backend": "for example: backend",
+  "Добавить правило": "Add rule",
+  Роли: "Roles",
+  "Роль добавляет инструкции к промпту агента. Инструкции видны в задаче при выборе роли.":
+    "A role adds instructions to the agent prompt. Instructions are visible in the task when the role is selected.",
+  "без инструкций": "no instructions",
+  "любой CLI": "any CLI",
+  "Название роли": "Role name",
+  "например: Строгий ревьюер": "for example: Strict reviewer",
+  "Инструкции для агента": "Agent instructions",
+  "Что проверять, на что смотреть, в каком формате отвечать…":
+    "What to check, what to look at, what format to answer in…",
+  "Любой CLI": "Any CLI",
+  "Добавить роль": "Add role",
+  "Выбери провайдера слева.": "Choose a provider on the left.",
+  "Последние запуски": "Recent runs",
+  "Все запуски →": "All runs →",
+  "Удалить старые запуски, логи и патчи":
+    "Delete old runs, logs and patches",
+  "Запусков пока нет.": "No runs yet.",
+  Агент: "Agent",
+  "Установка и авторизация выполняются внутри CLI. Kova не хранит ключи CLI.":
+    "Installation and authorization happen inside the CLI. Kova does not store CLI keys.",
+  "Подключить провайдера": "Connect provider",
+  "Выбери сервис. Ключ хранится через Windows DPAPI.":
+    "Choose a service. The key is stored with Windows DPAPI.",
+  "Свой endpoint": "Custom endpoint",
+  Донастроить: "Finish setup",
+  Подключить: "Connect",
+  Позже: "Later",
+  "ключ сохранён": "key saved",
+  "модели загрузятся после ключа": "models load after the key",
+  "нужен отдельный адаптер": "separate adapter required",
+  "Настроить провайдера": "Configure provider",
+  "Подключить {name}": "Connect {name}",
+  "Свой API-провайдер": "Custom API provider",
+  "Свой CLI-агент": "Custom CLI agent",
+  "Подключение, модели и режимы запуска": "Connection, models and run modes",
+  "Обычно здесь ничего менять не нужно: Kova уже знает, как безопасно запускать этот CLI. Модель выбирается в «Агентах → Модели».":
+    "Usually nothing needs changing here: Kova already knows how to run this CLI safely. The model is chosen in Agents → Models.",
+  Основное: "General",
+  "Формат API": "API format",
+  "OpenAI-совместимый": "OpenAI-compatible",
+  "Определяет тело запроса и разбор стриминга. Не угадывается по URL.":
+    "Defines the request body and streaming parser. Not guessed from the URL.",
+  "Полный URL Messages API. Ключ уходит в x-api-key.":
+    "Full Messages API URL. The key is sent as x-api-key.",
+  "Базовый URL API. Модель и ключ добавляются к пути автоматически.":
+    "Base API URL. Model and key are appended automatically.",
+  "Полный URL deployment. Ключ уходит в api-key.":
+    "Full deployment URL. The key is sent as api-key.",
+  "Полный URL chat/completions. Kova не угадывает путь.":
+    "Full chat/completions URL. Kova does not guess the path.",
+  Регион: "Region",
+  "Токен берётся из GOOGLE_ACCESS_TOKEN или `gcloud auth print-access-token`.":
+    "The token is read from GOOGLE_ACCESS_TOKEN or `gcloud auth print-access-token`.",
+  "Нужны AWS_ACCESS_KEY_ID и AWS_SECRET_ACCESS_KEY в окружении.":
+    "AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY are required in the environment.",
+  "API-ключ": "API key",
+  "Access token (необязательно)": "Access token (optional)",
+  "ключ сохранён — оставь пустым, чтобы не менять":
+    "key saved — leave empty to keep it",
+  "или задай GOOGLE_ACCESS_TOKEN": "or set GOOGLE_ACCESS_TOKEN",
+  "Ключ шифруется Windows DPAPI и не возвращается через API.":
+    "The key is encrypted with Windows DPAPI and never returned via the API.",
+  "Удалить сохранённый ключ": "Delete saved key",
+  "Инструменты: чтение и запись файлов по политике запуска. Команды — только в режиме «auto». CLI остаётся для сложных сценариев.":
+    "Tools: file reads and writes follow the run policy. Commands only in auto mode. CLI remains for complex scenarios.",
+  "Дополнительные настройки": "Advanced settings",
+  "Команда запуска CLI": "CLI launch command",
+  "codex или полный путь к .exe/.cmd": "codex or full path to .exe/.cmd",
+  "Аргументы запуска": "Launch arguments",
+  "{prompt} заменяется на текст задачи. Если плейсхолдера нет, промпт добавится в конец.":
+    "{prompt} is replaced with the task text. If the placeholder is missing, the prompt is appended.",
+  "Модели и продолжение": "Models and continuation",
+  "Модели (через запятую)": "Models (comma-separated)",
+  "Например: gpt-5-codex, o3": "For example: gpt-5-codex, o3",
+  "Через запятую. Чтобы модель передавалась в CLI, добавь {model} в аргументы.":
+    "Comma-separated. To pass the model to the CLI, add {model} to the arguments.",
+  "Ограничения и режимы": "Limits and modes",
+  "Безопасный режим (только чтение)": "Safe mode (read only)",
+  "Необязательно, но для чата обязательно: без этих аргументов безопасный режим чата для CLI недоступен. Флаги задаёшь ты — Kova не угадывает их.":
+    "Optional, but required for chat: without these arguments safe chat mode is unavailable. You set the flags; Kova does not guess them.",
+  "Продолжение сессии": "Session resume",
+  "{session} — id сессии CLI. Пусто — «Продолжить» будет передавать контекст в новую сессию.":
+    "{session} is the CLI session id. Empty means “Continue” passes context into a new session.",
+  "ID сессии (regex)": "Session ID (regex)",
+  "Формат вывода": "Output format",
+  "Лимит токенов провайдера": "Provider token limit",
+  "0 — без лимита": "0 — no limit",
+  "Для чего этот CLI": "What this CLI is for",
+  "Возможности CLI": "CLI capabilities",
+  "Не проверялись. Нажми «Проверить» на странице «Агенты».":
+    "Not checked. Click “Check” on the Agents page.",
+  "Сделать основным": "Make default",
+  "Не удалось сохранить": "Could not save",
+  "Готово. Выбрана безопасная изоляция, 1 запуск, сетевой щит включён, лимит токенов без ограничения.":
+    "Done. Safe isolation, 1 run, network guard on, no token limit.",
+  "Не удалось применить настройки": "Could not apply settings",
+  "Сохранено. Действует для новых запусков.": "Saved. Applies to new runs.",
+  "Сетевой щит включён: CLI-агенты ходят только к доменам провайдера.":
+    "Network guard on: CLI agents can only reach provider domains.",
+  "Сетевой щит выключен: CLI-агенты могут обращаться в сеть напрямую.":
+    "Network guard off: CLI agents can access the network directly.",
+  "Локальный режим включён. Чаты и запуски через внешние провайдеры заблокированы.":
+    "Local mode on. Chats and runs through external providers are blocked.",
+  "Локальный режим выключен. Внешние провайдеры снова доступны.":
+    "Local mode off. External providers are available again.",
+  "Бюджет сохранён. Действует для новых запусков.":
+    "Budget saved. Applies to new runs.",
+  "Не удалось сохранить бюджет": "Could not save the budget",
+  "История запусков недоступна": "Run history is unavailable",
+  "Не удалось сохранить провайдера": "Could not save the provider",
+  "Проверка не удалась": "Check failed",
+  "Не удалось выбрать основного": "Could not set the default",
+  "Удалить провайдера?": "Delete provider?",
+  "«{name}» будет удалён из Kova.": "“{name}” will be removed from Kova.",
+  "Сохранённый API-ключ будет удалён.": "The saved API key will be deleted.",
+  "История запусков останется.": "Run history remains.",
+  "CLI и его логин на компьютере не затрагиваются.":
+    "The CLI and its login on this computer are not affected.",
+  "Не удалось удалить провайдера": "Could not delete the provider",
+  "Очистить историю?": "Clear history?",
+  "Старые запуски, сессии, логи, патчи и worktree будут удалены.":
+    "Old runs, sessions, logs, patches and worktrees will be deleted.",
+  "Останутся последние 50 запусков.": "The latest 50 runs remain.",
+  "Снапшоты и файлы проекта не удаляются.":
+    "Snapshots and project files are not deleted.",
+  Очистить: "Clear",
+  "Не удалось очистить историю": "Could not clear history",
+  "Не удалось сохранить модель": "Could not save the model",
+  "Флаги CLI": "CLI flags",
+  Настроен: "Configured",
+  "Флаг есть, шаблон не задан": "Flag present, template not set",
+  "Из вывода": "From output",
+  "Работа с workspace-write": "Workspace-write support",
+  "Работа с файлами": "File access",
+  "Стриминг вывода": "Output streaming",
+  Модели: "Models",
+  Дополнительно: "Advanced",
+  "Не удалось открыть папку": "Could not open the folder",
+  "Загружено моделей: {count}": "Models loaded: {count}",
+  "CLI вернул пустой список": "The CLI returned an empty list",
+  "Не удалось загрузить модели": "Could not load models",
+
+  "API не настроен": "API is not configured",
+  "флаги не найдены": "no flags found",
+  Да: "Yes",
+  Нет: "No",
+  "Нет, только текст": "No, text only",
+
+  "Например: DeepSeek API": "For example: DeepSeek API",
+  "Например: DeepSeek CLI": "For example: DeepSeek CLI",
+  провайдера: "provider",
+  "{count} моделей": "{count} models",
+
   // Sandbox card
   Песочница: "Sandbox",
   "OS sandbox или безопасный fallback для агентов":
