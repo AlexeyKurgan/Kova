@@ -638,6 +638,15 @@ export default function AssetPassportScreen({
                 <div><span>Движок</span><b>{ENGINE_LABELS[asset.engine]}</b></div>
                 <div><span>Лицензия</span><b>{asset.license || "Не указана"}</b></div>
                 <div><span>Версия</span><b>{selectedVersion?.label ?? "—"}{isCurrent ? " · текущая" : ""}</b></div>
+                {selectedVersion?.preview_frames.length ? (
+                  <div>
+                    <span>Анимация</span>
+                    <b>
+                      {selectedVersion.preview_frames.length} превью · кадры{" "}
+                      {selectedVersion.frame_start}–{selectedVersion.frame_end}
+                    </b>
+                  </div>
+                ) : null}
               </div>
 
               <div className="ad3-description">
