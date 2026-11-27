@@ -20610,3 +20610,36 @@ html[data-mode="beginner"] .advanced-only {
   white-space: nowrap;
   font-size: 8px;
 }
+
+.ad3-engine-actions {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+
+.ad3-reimport {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 8px;
+}
+
+.ad3-reimport b {
+  color: var(--text-muted);
+  font-size: 8px;
+  font-weight: 500;
+}
+
+.ad3-reimport pre {
+  max-height: 160px;
+  overflow: auto;
+  margin: 0;
+  padding: 7px 8px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--bg-raised);
+  color: var(--text-secondary);
+  font-size: 7.5px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+}

@@ -15,6 +15,7 @@ import {
   Link2,
   Network,
   Plus,
+  RefreshCw,
   ShieldCheck,
   Trash2,
   TriangleAlert,
@@ -26,6 +27,7 @@ import {
   getEngineInfo,
   getPackage,
   importAssetToEngine,
+  reimportEngine,
   mediaUrl,
 } from "../../lib/coreClient";
 import { formatBytes, formatDate, plural } from "../../lib/format";
@@ -209,6 +211,12 @@ export default function AssetPassportScreen({
   } | null>(null);
   const [engineBusy, setEngineBusy] = useState(false);
   const [engineError, setEngineError] = useState("");
+  const [reimportBusy, setReimportBusy] = useState(false);
+  const [reimportResult, setReimportResult] = useState<{
+    status: string;
+    duration_ms: number;
+    output: string;
+  } | null>(null);
   const stripRef = useRef<HTMLDivElement | null>(null);
   const currentVersion =
     asset.versions.find((item) => item.id === asset.current_version_id) ??
@@ -357,6 +365,22 @@ export default function AssetPassportScreen({
   };
   const metricValue = (version: AssetVersion | null, key: keyof AssetMetrics) =>
     version?.metrics?.[key] ?? null;
+  const reimportInEngine = async () => {
+    if (engineBusy || reimportBusy) return;
+    setReimportBusy(true);
+    setEngineError("");
+    setReimportResult(null);
+    try {
+      const result = await reimportEngine(asset.engine, 180);
+      setReimportResult(result);
+      if (result.status !== "ok") setEngineError(`Переиндексация: ${result.status}`);
+    } catch (err) {
+      setEngineError(err instanceof Error ? err.message : "Не удалось переиндексировать проект");
+    } finally {
+      setReimportBusy(false);
+    }
+  };
+
   const importToEngine = async () => {
     if (!engineInfo || engineBusy) return;
     setEngineBusy(true);
@@ -738,15 +762,28 @@ export default function AssetPassportScreen({
                   </div>
                 ) : null}
                 {engineInfo.installed && engineInfo.project_detected && enginePackageReady ? (
-                  <button
-                    type="button"
-                    className="btn btn-secondary btn-small"
-                    disabled={engineBusy}
-                    onClick={() => void importToEngine()}
-                  >
-                    <Upload size={13} />
-                    {engineBusy ? "Импорт…" : "Импортировать текущую версию"}
-                  </button>
+                  <div className="ad3-engine-actions">
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-small"
+                      disabled={engineBusy}
+                      onClick={() => void importToEngine()}
+                    >
+                      <Upload size={13} />
+                      {engineBusy ? "Импорт…" : "Импортировать текущую версию"}
+                    </button>
+                    {asset.engine === "godot" || asset.engine === "unity" ? (
+                      <button
+                        type="button"
+                        className="btn btn-secondary btn-small"
+                        disabled={reimportBusy || engineBusy}
+                        onClick={() => void reimportInEngine()}
+                      >
+                        <RefreshCw size={13} />
+                        {reimportBusy ? "Переиндексация…" : "Переиндексировать в движке"}
+                      </button>
+                    ) : null}
+                  </div>
                 ) : engineInfo.installed && engineInfo.project_detected ? (
                   <p className="ad3-engine-message">
                     Установи и включи пакет <code>{asset.engine}-core</code> в разделе «Пакеты».
@@ -757,6 +794,15 @@ export default function AssetPassportScreen({
                   <p className="ad3-engine-success">
                     Импортировано: <code>{engineImport.relative}</code>
                   </p>
+                ) : null}
+                {reimportResult ? (
+                  <div className="ad3-reimport">
+                    <b>
+                      {reimportResult.status === "ok" ? "Готово" : "Есть ошибка"} ·{" "}
+                      {(reimportResult.duration_ms / 1000).toFixed(1)} с
+                    </b>
+                    {reimportResult.output ? <pre>{reimportResult.output}</pre> : null}
+                  </div>
                 ) : null}
               </article>
             ) : null}

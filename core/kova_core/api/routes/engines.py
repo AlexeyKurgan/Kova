@@ -1,10 +1,16 @@
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
 
 from ...domain.enums import Engine
 from ...domain.ledger import LedgerEvent
-from ...integrations.engines import IMPORT_FORMATS, detect_engine, import_asset_to_engine
+from ...integrations.engines import (
+    IMPORT_FORMATS,
+    detect_engine,
+    import_asset_to_engine,
+    reimport_project,
+)
 from ...packages import store
 from ...storage.assets import get_asset
 from ...storage.ledger import append_event
@@ -13,6 +19,10 @@ from ..deps import require_hub
 router = APIRouter(prefix="/engines", tags=["engines"])
 
 SUPPORTED = [Engine.godot, Engine.unity, Engine.unreal, Engine.rpgmaker, Engine.web]
+
+
+class ReimportRequest(BaseModel):
+    timeout: int = 180
 
 
 @router.get("")
@@ -28,6 +38,44 @@ def get_engine(engine: Engine, hub: Path = Depends(require_hub)) -> dict[str, ob
     if engine not in SUPPORTED:
         raise HTTPException(status_code=404, detail="engine is not supported")
     return detect_engine(engine, hub.parent).model_dump(mode="json")
+
+
+@router.post("/{engine}/reimport")
+def reimport_engine(
+    engine: Engine,
+    payload: ReimportRequest,
+    hub: Path = Depends(require_hub),
+) -> dict[str, object]:
+    if engine not in (Engine.godot, Engine.unity):
+        raise HTTPException(
+            status_code=400,
+            detail="Нативная переиндексация доступна для Godot и Unity",
+        )
+    package = store.get_package(hub, f"{engine.value}-core")
+    if package is None or not package.get("installed") or not package.get("enabled"):
+        raise HTTPException(
+            status_code=400,
+            detail=f"Установи и включи пакет {engine.value}-core в разделе «Пакеты»",
+        )
+    try:
+        result = reimport_project(engine, hub.parent, payload.timeout)
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except RuntimeError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    append_event(
+        hub,
+        LedgerEvent(
+            type="engine.reimported",
+            subject=engine.value,
+            data={
+                "status": result.get("status"),
+                "exit_code": result.get("exit_code"),
+                "duration_ms": result.get("duration_ms"),
+            },
+        ),
+    )
+    return result
 
 
 @router.post("/{engine}/import/{asset_id}")

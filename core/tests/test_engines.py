@@ -84,3 +84,18 @@ def test_engine_import_rejects_wrong_format(tmp_path: Path, monkeypatch) -> None
     response = client.post(f"/engines/rpgmaker/import/{asset['id']}")
     assert response.status_code == 400
     assert "не поддерживается" in response.json()["detail"]
+
+
+def test_reimport_requires_supported_engine_and_package(tmp_path: Path, monkeypatch) -> None:
+    client = make_client(tmp_path, monkeypatch)
+    game = tmp_path / "game"
+    game.mkdir()
+    (game / "game.rmmzproject").write_text("{}", encoding="utf-8")
+    client.post("/project/open", json={"path": str(game), "engine": "rpgmaker"})
+    response = client.post("/engines/rpgmaker/reimport", json={})
+    assert response.status_code == 400
+    assert "Godot и Unity" in response.json()["detail"]
+
+    response = client.post("/engines/godot/reimport", json={})
+    assert response.status_code == 400
+    assert "пакет" in response.json()["detail"]

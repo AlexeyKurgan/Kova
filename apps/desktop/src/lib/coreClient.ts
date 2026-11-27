@@ -392,6 +392,30 @@ export async function getEngineInfo(engine: Engine): Promise<EngineInfo> {
   return request<EngineInfo>(`/engines/${encodeURIComponent(engine)}`);
 }
 
+export async function reimportEngine(
+  engine: Engine,
+  timeout = 180,
+): Promise<{
+  engine: string;
+  status: string;
+  exit_code: number | null;
+  duration_ms: number;
+  output: string;
+  command: string;
+}> {
+  return request<{
+    engine: string;
+    status: string;
+    exit_code: number | null;
+    duration_ms: number;
+    output: string;
+    command: string;
+  }>(`/engines/${encodeURIComponent(engine)}/reimport`, {
+    method: "POST",
+    body: JSON.stringify({ timeout }),
+  });
+}
+
 export async function importAssetToEngine(
   engine: Engine,
   assetId: string,

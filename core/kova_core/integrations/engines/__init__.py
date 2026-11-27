@@ -1,6 +1,7 @@
 import os
 import shutil
 import subprocess
+import time
 from pathlib import Path
 
 from pydantic import BaseModel
@@ -256,4 +257,70 @@ def import_asset_to_engine(
         "target": str(target),
         "relative": target.relative_to(root).as_posix(),
         "size": target.stat().st_size,
+    }
+
+
+def reimport_project(
+    engine: Engine,
+    root: Path,
+    timeout: int = 180,
+) -> dict[str, object]:
+    info = detect_engine(engine, root)
+    if not info.installed:
+        raise RuntimeError(info.message or f"{info.name} не найден")
+    if not info.project_detected:
+        raise RuntimeError(info.message or f"Проект {info.name} не найден")
+
+    if engine == Engine.godot:
+        args = [
+            info.executable,
+            "--headless",
+            "--path",
+            str(root),
+            "--import",
+        ]
+    elif engine == Engine.unity:
+        args = [
+            info.executable,
+            "-batchmode",
+            "-quit",
+            "-projectPath",
+            str(root),
+            "-logFile",
+            "-",
+        ]
+    else:
+        raise RuntimeError(
+            f"Нативная переиндексация для {info.name} пока не поддерживается: "
+            "используй импорт файлов и редактор движка."
+        )
+
+    started = time.monotonic()
+    try:
+        result = subprocess.run(
+            args,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            timeout=max(30, min(600, timeout)),
+            creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
+        )
+    except subprocess.TimeoutExpired as exc:
+        return {
+            "engine": engine.value,
+            "status": "timeout",
+            "exit_code": None,
+            "duration_ms": int((time.monotonic() - started) * 1000),
+            "output": ((exc.stdout or "") + "\n" + (exc.stderr or ""))[-12000:],
+            "command": " ".join(args),
+        }
+    output = ((result.stdout or "") + "\n" + (result.stderr or ""))[-12000:]
+    return {
+        "engine": engine.value,
+        "status": "ok" if result.returncode == 0 else "failed",
+        "exit_code": result.returncode,
+        "duration_ms": int((time.monotonic() - started) * 1000),
+        "output": output.strip(),
+        "command": " ".join(args),
     }
