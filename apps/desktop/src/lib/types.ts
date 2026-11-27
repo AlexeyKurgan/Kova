@@ -137,6 +137,14 @@ export type ProjectCard = {
   assets_total: number;
 };
 
+export type ExportProjectResult = {
+  path: string;
+  files: number;
+  bytes: number;
+  name: string;
+  engine: Engine;
+};
+
 export type ProjectsResponse = {
   projects: ProjectCard[];
   default_parent: string;

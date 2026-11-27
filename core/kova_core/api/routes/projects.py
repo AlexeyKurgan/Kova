@@ -13,6 +13,7 @@ from ...security.trash import (
     purge_project_trash,
     restore_project_trash,
 )
+from ...sharing import ShareError, export_project, import_project
 from ...storage.registry import (
     cover_file,
     create_project,
@@ -24,6 +25,7 @@ from ...storage.registry import (
     open_project_by_id,
     register,
     set_cover,
+    summary,
     update_project,
 )
 
@@ -86,6 +88,23 @@ class DuplicateProjectRequest(BaseModel):
 
 class CoverRequest(BaseModel):
     path: str
+
+
+class ExportProjectRequest(BaseModel):
+    target: str
+
+
+class ExportProjectResult(BaseModel):
+    path: str
+    files: int
+    bytes: int
+    name: str
+    engine: str
+
+
+class ImportProjectRequest(BaseModel):
+    path: str
+    parent: str | None = None
 
 
 @router.get("/trash", response_model=TrashProjectsResponse)
@@ -152,6 +171,47 @@ def create_project_route(payload: CreateProjectRequest) -> ProjectCard:
             LedgerEvent(type="project.created", subject=str(row["id"]), data={"name": row["name"]}),
         )
     return ProjectCard(**row)
+
+
+@router.post("/import", response_model=ProjectCard, status_code=201)
+def import_project_route(payload: ImportProjectRequest) -> ProjectCard:
+    try:
+        row = import_project(
+            Path(payload.path),
+            Path(payload.parent) if payload.parent else None,
+        )
+    except ShareError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except (OSError, ValueError) as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    hub = Path(str(row["path"])) / ".hub"
+    if hub.is_dir():
+        append_event(
+            hub,
+            LedgerEvent(
+                type="project.imported",
+                subject=str(row["id"]),
+                data={"name": row["name"]},
+            ),
+        )
+    return ProjectCard(**summary(row))
+
+
+@router.post("/{project}/export", response_model=ExportProjectResult)
+def export_project_route(
+    project: str,
+    payload: ExportProjectRequest,
+) -> ExportProjectResult:
+    row = get_project(project)
+    if row is None:
+        raise HTTPException(status_code=404, detail="project not found")
+    try:
+        result = export_project(Path(str(row["path"])), Path(payload.target))
+    except ShareError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except OSError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return ExportProjectResult(**result)
 
 
 @router.post("/{project}/open", response_model=ProjectCard)

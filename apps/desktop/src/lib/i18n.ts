@@ -128,6 +128,7 @@ const EN: Record<string, string> = {
   "Задача восстановлена": "Task restored",
   "Задача удалена навсегда": "Task permanently deleted",
   "Проект создан": "Project created",
+  "Проект импортирован": "Project imported",
   "Капсула подготовлена": "Capsule prepared",
   "Ответ AI импортирован": "AI response imported",
   "Результат принят": "Result accepted",
@@ -1622,6 +1623,21 @@ const EN: Record<string, string> = {
   "Например: DeepSeek CLI": "For example: DeepSeek CLI",
   провайдера: "provider",
   "{count} моделей": "{count} models",
+
+  // Project sharing
+  Импорт: "Import",
+  "Экспорт проекта": "Export project",
+  "Импорт проекта": "Import project",
+  "Куда импортировать проект": "Where to import the project",
+  "Проект Kova (.kovaproj)": "Kova project (.kovaproj)",
+  "Сохранить проект": "Save project",
+  "Экспортирую…": "Exporting…",
+  "Импортирую…": "Importing…",
+  "Проект экспортирован: {files} файлов · {size}":
+    "Project exported: {files} files · {size}",
+  "Проект импортирован: {name}": "Project imported: {name}",
+  "Не удалось экспортировать проект": "Could not export the project",
+  "Не удалось импортировать проект": "Could not import the project",
 
   // Sandbox card
   Песочница: "Sandbox",

@@ -125,6 +125,16 @@ For free browser AIs:
 - Project diary with 7/14/30-day summaries and a calendar of active days.
 - Ledger of every important action.
 
+### Project sharing
+
+- Export a project as a portable `.kovaproj` archive and import it on another machine.
+- The archive contains project files and `.hub` metadata.
+- Excluded automatically: `.git`, `node_modules`, virtualenvs, caches, build/release
+  outputs, `.hub/.local`, `.env`, private keys and other local secrets.
+- Limits: 20,000 files and 2 GB; zip-slip and symlink entries are rejected.
+- History and ledger paths may still contain local paths — review the archive before
+  sharing it outside your team.
+
 ### Packages and engines
 
 - Package catalog with permissions, tools, checks and engine coverage.

@@ -17,6 +17,7 @@ import type {
   CreateTaskInput,
   DiaryResponse,
   DuplicateProjectInput,
+  ExportProjectResult,
   Engine,
   EngineInfo,
   ImportAssetInput,
@@ -304,6 +305,29 @@ export async function createProject(input: CreateProjectInput): Promise<ProjectC
   return request<ProjectCard>("/projects", {
     method: "POST",
     body: JSON.stringify(input),
+  });
+}
+
+export async function exportProjectCard(
+  projectId: string,
+  target: string,
+): Promise<ExportProjectResult> {
+  return request<ExportProjectResult>(
+    `/projects/${encodeURIComponent(projectId)}/export`,
+    {
+      method: "POST",
+      body: JSON.stringify({ target }),
+    },
+  );
+}
+
+export async function importProjectCard(
+  path: string,
+  parent: string,
+): Promise<ProjectCard> {
+  return request<ProjectCard>("/projects/import", {
+    method: "POST",
+    body: JSON.stringify({ path, parent }),
   });
 }
 

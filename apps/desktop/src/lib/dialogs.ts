@@ -2,6 +2,7 @@ type DialogResult = string | string[] | null;
 
 type DialogModule = {
   open: (options: Record<string, unknown>) => Promise<DialogResult>;
+  save?: (options: Record<string, unknown>) => Promise<string | null>;
 };
 
 async function loadDialog(): Promise<DialogModule | null> {
@@ -43,6 +44,22 @@ export async function pickImage(title = "Выбрать обложку"): Promis
     multiple: false,
     title,
     filters: [{ name: "Изображения", extensions: ["png", "jpg", "jpeg", "webp"] }],
+  });
+  return typeof selected === "string" ? selected : null;
+}
+
+
+export async function pickSaveFile(
+  title: string,
+  defaultName: string,
+  extensions: string[],
+): Promise<string | null> {
+  const dialog = await loadDialog();
+  if (!dialog?.save) return null;
+  const selected = await dialog.save({
+    title,
+    defaultPath: defaultName,
+    filters: [{ name: "Kova", extensions }],
   });
   return typeof selected === "string" ? selected : null;
 }

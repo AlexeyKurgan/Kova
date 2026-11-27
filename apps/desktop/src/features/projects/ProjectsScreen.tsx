@@ -3,6 +3,7 @@ import {
   Box,
   ClipboardList,
   Copy,
+  Download,
   Ellipsis,
   FolderKanban,
   FolderOpen,
@@ -15,19 +16,23 @@ import {
   RotateCcw,
   Search,
   Trash2,
+  Upload,
   X,
 } from "lucide-react";
 import BrandIcon from "../../components/BrandIcon";
 import { engineBrand } from "../../lib/brands";
 import {
   cleanupProjectTrash,
+  exportProjectCard,
+  importProjectCard,
   mediaUrl,
   listProjectTrash,
   purgeProjectTrash,
   restoreProjectTrash,
 } from "../../lib/coreClient";
 import { t, tp } from "../../lib/i18n";
-import { pickFolder, pickImage } from "../../lib/dialogs";
+import { pickFile, pickFolder, pickImage, pickSaveFile } from "../../lib/dialogs";
+import { formatBytes } from "../../lib/format";
 import { ENGINE_LABELS } from "../../lib/labels";
 import type {
   CreateProjectInput,
@@ -95,6 +100,7 @@ export default function ProjectsScreen({
   const [deleteFiles, setDeleteFiles] = useState(true);
   const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
+  const [transferBusy, setTransferBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [engineFilter, setEngineFilter] = useState("all");
@@ -184,6 +190,64 @@ export default function ProjectsScreen({
   const chooseParent = async () => {
     const selected = await pickFolder(t("Куда сохранить проект"));
     if (selected) setParent(selected);
+  };
+
+  const exportProject = async (project: ProjectCard) => {
+    if (transferBusy) return;
+    setMenuFor(null);
+    setError(null);
+    setNotice("");
+    const safeName = project.name.replace(/[<>:"/\|?*]/g, "_");
+    const target = await pickSaveFile(
+      t("Сохранить проект"),
+      `${safeName}.kovaproj`,
+      ["kovaproj"],
+    );
+    if (!target) return;
+    setTransferBusy(true);
+    setNotice(t("Экспортирую…"));
+    try {
+      const result = await exportProjectCard(project.id, target);
+      setNotice(
+        t("Проект экспортирован: {files} файлов · {size}", {
+          files: result.files,
+          size: formatBytes(result.bytes),
+        }),
+      );
+      await onRefresh();
+    } catch (err) {
+      setNotice("");
+      setError(
+        err instanceof Error ? err.message : t("Не удалось экспортировать проект"),
+      );
+    } finally {
+      setTransferBusy(false);
+    }
+  };
+
+  const importProject = async () => {
+    if (transferBusy) return;
+    setError(null);
+    setNotice("");
+    const destination = await pickFolder(t("Куда импортировать проект"));
+    if (!destination) return;
+    const source = await pickFile(t("Проект Kova (.kovaproj)"), ["kovaproj"]);
+    if (!source) return;
+    setTransferBusy(true);
+    setNotice(t("Импортирую…"));
+    try {
+      const project = await importProjectCard(source, destination);
+      setNotice(t("Проект импортирован: {name}", { name: project.name }));
+      await onRefresh();
+      await onOpen(project.id);
+    } catch (err) {
+      setNotice("");
+      setError(
+        err instanceof Error ? err.message : t("Не удалось импортировать проект"),
+      );
+    } finally {
+      setTransferBusy(false);
+    }
   };
 
   const chooseCover = async (project: ProjectCard) => {
@@ -318,6 +382,15 @@ export default function ProjectsScreen({
           </p>
         </div>
         <div className="header-actions">
+          <button
+            type="button"
+            className="btn btn-secondary"
+            disabled={transferBusy}
+            onClick={() => void importProject()}
+          >
+            <Upload size={15} />
+            {t("Импорт")}
+          </button>
           <button type="button" className="btn btn-secondary" onClick={openTrash}>
             <Trash2 size={15} />
             {t("Корзина")}
@@ -478,6 +551,14 @@ export default function ProjectsScreen({
                           <button type="button" onClick={() => void chooseCover(project)}>
                             <ImagePlus size={13} />
                             {t("Обложка")}
+                          </button>
+                          <button
+                            type="button"
+                            disabled={transferBusy}
+                            onClick={() => void exportProject(project)}
+                          >
+                            <Download size={13} />
+                            {t("Экспорт")}
                           </button>
                           <button type="button" onClick={() => openDuplicate(project)}>
                             <Copy size={13} />

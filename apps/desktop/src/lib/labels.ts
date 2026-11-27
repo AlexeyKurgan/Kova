@@ -94,6 +94,7 @@ const LEDGER_TYPE_LABELS_BASE: Record<string, string> = {
   "task.restored": "Задача восстановлена",
   "task.purged": "Задача удалена навсегда",
   "project.created": "Проект создан",
+  "project.imported": "Проект импортирован",
   "capsule.created": "Капсула подготовлена",
   "response.imported": "Ответ AI импортирован",
   "review.accepted": "Результат принят",
