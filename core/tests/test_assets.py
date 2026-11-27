@@ -262,3 +262,48 @@ def test_duplicate_asset_copies_current_file(tmp_path: Path, monkeypatch) -> Non
     assert copy["versions"][0]["path"] != asset["versions"][0]["path"]
     assert (game / copy["versions"][0]["path"]).is_file()
     assert len(client.get("/assets").json()) == 2
+
+
+def test_asset_dependencies(tmp_path: Path, monkeypatch) -> None:
+    client = make_client(tmp_path, monkeypatch)
+    game = tmp_path / "game"
+    game.mkdir()
+    client.post("/project/open", json={"path": str(game)})
+    texture = tmp_path / "wood.png"
+    texture.write_bytes(b"png")
+    model = tmp_path / "chest.glb"
+    model.write_bytes(b"glb")
+    texture_asset = client.post("/assets/import", json={"path": str(texture)}).json()
+    model_asset = client.post("/assets/import", json={"path": str(model)}).json()
+
+    updated = client.patch(
+        f"/assets/{model_asset['id']}",
+        json={
+            "dependencies": [
+                {
+                    "kind": "texture",
+                    "target_id": texture_asset["id"],
+                    "label": "wood texture",
+                }
+            ]
+        },
+    )
+    assert updated.status_code == 200, updated.text
+    deps = updated.json()["dependencies"]
+    assert deps == [
+        {
+            "kind": "texture",
+            "target_id": texture_asset["id"],
+            "label": "wood texture",
+        }
+    ]
+
+    cleared = client.patch(f"/assets/{model_asset['id']}", json={"dependencies": []})
+    assert cleared.status_code == 200
+    assert cleared.json()["dependencies"] == []
+
+    self_link = client.patch(
+        f"/assets/{model_asset['id']}",
+        json={"dependencies": [{"kind": "asset", "target_id": model_asset["id"]}]},
+    )
+    assert self_link.status_code == 422

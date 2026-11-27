@@ -124,6 +124,7 @@ async function notifyReview(count: number): Promise<void> {
 }
 
 import type {
+  AssetDependency,
   AssetPassport,
   BlenderSkill,
   BlenderStatus,
@@ -979,6 +980,19 @@ export default function App() {
     [openAssetId, loadProjectData],
   );
 
+  const handleAssetDependencies = useCallback(
+    async (dependencies: AssetDependency[]) => {
+      if (!openAssetId) return;
+      try {
+        await updateAsset(openAssetId, { dependencies });
+        await loadProjectData();
+      } catch (err) {
+        setAssetError(err instanceof Error ? err.message : "Не удалось сохранить зависимости");
+      }
+    },
+    [openAssetId, loadProjectData],
+  );
+
   const handleAddAssetVersion = useCallback(async () => {
     if (!openAssetId) return;
     const selected = await pickFile("Новая версия ассета", [
@@ -1313,6 +1327,7 @@ export default function App() {
             selectedAsset ? (
               <AssetPassportScreen
                 asset={selectedAsset}
+                assets={assets}
                 tasks={tasks}
                 checks={assetChecks}
                 checking={checkingAsset}
@@ -1331,6 +1346,8 @@ export default function App() {
                 }}
                 onUpdateDescription={(text) => void handleAssetDescription(text)}
                 onUpdateExportProfiles={(profiles) => void handleAssetExportProfiles(profiles)}
+                onUpdateDependencies={(dependencies) => void handleAssetDependencies(dependencies)}
+                onOpenAsset={(assetId) => void openAsset(assetId)}
                 onAddVersion={() => void handleAddAssetVersion()}
                 onActivateVersion={(versionId) => void handleActivateAssetVersion(versionId)}
                 onDelete={() => void handleDeleteAsset(selectedAsset.id)}

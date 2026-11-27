@@ -13,6 +13,7 @@ import {
   ImageIcon,
   Info,
   Link2,
+  Network,
   Plus,
   ShieldCheck,
   Trash2,
@@ -28,6 +29,7 @@ import {
   TASK_STATUS_LABELS,
 } from "../../lib/labels";
 import type {
+  AssetDependency,
   AssetMetrics,
   AssetPassport,
   AssetVersion,
@@ -47,6 +49,7 @@ function supports3d(path: string) {
 
 type Props = {
   asset: AssetPassport;
+  assets: AssetPassport[];
   tasks: Task[];
   checks: CheckResult[];
   checking: boolean;
@@ -61,6 +64,8 @@ type Props = {
   onOpenTask: (taskId: string) => void;
   onUpdateDescription: (text: string) => void;
   onUpdateExportProfiles: (profiles: ExportProfile[]) => void;
+  onUpdateDependencies: (dependencies: AssetDependency[]) => void;
+  onOpenAsset: (assetId: string) => void;
   onAddVersion: () => void;
   onActivateVersion: (versionId: string) => void;
   onSelectVersion: (versionId: string) => void;
@@ -101,6 +106,7 @@ const CHECK_LABELS: Record<CheckStatus, string> = {
 
 export default function AssetPassportScreen({
   asset,
+  assets,
   tasks,
   checks,
   checking,
@@ -114,6 +120,8 @@ export default function AssetPassportScreen({
   onOpenTask,
   onUpdateDescription,
   onUpdateExportProfiles,
+  onUpdateDependencies,
+  onOpenAsset,
   onAddVersion,
   onActivateVersion,
   onSelectVersion,
@@ -136,6 +144,8 @@ export default function AssetPassportScreen({
     asset.engine === "generic" ? "roblox" : asset.engine,
   );
   const [exportFormat, setExportFormat] = useState("FBX");
+  const [depTarget, setDepTarget] = useState("");
+  const [depKind, setDepKind] = useState("texture");
   const stripRef = useRef<HTMLDivElement | null>(null);
   const currentVersion =
     asset.versions.find((item) => item.id === asset.current_version_id) ??
@@ -255,6 +265,20 @@ export default function AssetPassportScreen({
   };
   const metricValue = (version: AssetVersion | null, key: keyof AssetMetrics) =>
     version?.metrics?.[key] ?? null;
+  const addDependency = () => {
+    if (!depTarget || depTarget === asset.id) return;
+    const target = assets.find((item) => item.id === depTarget);
+    onUpdateDependencies([
+      ...asset.dependencies,
+      {
+        kind: depKind,
+        target_id: depTarget,
+        label: target?.name ?? depTarget,
+      },
+    ]);
+    setDepTarget("");
+  };
+
   const addExportProfile = () => {
     const format = exportFormat.trim();
     if (!format) return;
@@ -948,6 +972,119 @@ export default function AssetPassportScreen({
               </div>
             )}
           </article>
+          <article className="ad3-card ad3-depmap-card">
+            <div className="ad3-card-head">
+              <h2><Network size={14} /> Карта зависимостей</h2>
+              <span>{asset.dependencies.length + usage.length}</span>
+            </div>
+            <div className="ad3-depmap">
+              <div className="ad3-dep-root">
+                <Box size={18} />
+                <b>{asset.name}</b>
+                <small>текущий ассет</small>
+              </div>
+              <div className="ad3-dep-branch">
+                <span>Зависит от</span>
+                {asset.dependencies.length === 0 ? (
+                  <small className="ad3-dep-empty">пока нет связей</small>
+                ) : (
+                  asset.dependencies.map((dependency, index) => {
+                    const target = assets.find((item) => item.id === dependency.target_id);
+                    return (
+                      <div className="ad3-dep-node" key={`${dependency.kind}:${dependency.target_id}:${index}`}>
+                        <button
+                          type="button"
+                          disabled={!target}
+                          onClick={() => target && onOpenAsset(target.id)}
+                          title={target ? "Открыть ассет" : dependency.target_id}
+                        >
+                          <Box size={12} />
+                          <span>
+                            <b>{dependency.label || target?.name || dependency.target_id}</b>
+                            <small>{dependency.kind}</small>
+                          </span>
+                        </button>
+                        <button
+                          type="button"
+                          className="icon-btn is-danger"
+                          title="Удалить связь"
+                          onClick={() =>
+                            onUpdateDependencies(
+                              asset.dependencies.filter((_, itemIndex) => itemIndex !== index),
+                            )
+                          }
+                        >
+                          <Trash2 size={12} />
+                        </button>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+              <div className="ad3-dep-branch">
+                <span>Используется в</span>
+                {usage.length === 0 ? (
+                  <small className="ad3-dep-empty">задач пока нет</small>
+                ) : (
+                  usage.slice(0, 4).map((task) => (
+                    <button
+                      type="button"
+                      className="ad3-dep-task"
+                      key={task.id}
+                      onClick={() => onOpenTask(task.id)}
+                    >
+                      <ClipboardList size={12} />
+                      <span>
+                        <b>{task.title}</b>
+                        <small>{TASK_STATUS_LABELS[task.status]}</small>
+                      </span>
+                    </button>
+                  ))
+                )}
+              </div>
+            </div>
+            <div className="ad3-dep-form">
+              <select
+                value={depTarget}
+                onChange={(event) => setDepTarget(event.target.value)}
+                aria-label="Ассет-зависимость"
+              >
+                <option value="">Добавить зависимость…</option>
+                {assets
+                  .filter(
+                    (item) =>
+                      item.id !== asset.id &&
+                      !asset.dependencies.some((dependency) => dependency.target_id === item.id),
+                  )
+                  .map((item) => (
+                    <option key={item.id} value={item.id}>
+                      {item.name}
+                    </option>
+                  ))}
+              </select>
+              <select
+                value={depKind}
+                onChange={(event) => setDepKind(event.target.value)}
+                aria-label="Тип зависимости"
+              >
+                <option value="texture">Текстура</option>
+                <option value="material">Материал</option>
+                <option value="animation">Анимация</option>
+                <option value="prefab">Префаб</option>
+                <option value="reference">Референс</option>
+              </select>
+              <button
+                type="button"
+                className="btn btn-secondary btn-small"
+                disabled={!depTarget}
+                onClick={addDependency}
+              >
+                <Plus size={13} />
+                Связать
+              </button>
+            </div>
+          </article>
+
           <article className="ad3-card">
             <div className="ad3-card-head">
               <h2><Box size={14} /> Зависимости</h2>

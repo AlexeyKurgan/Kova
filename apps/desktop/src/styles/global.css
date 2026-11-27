@@ -19917,3 +19917,152 @@ html[data-mode="beginner"] .advanced-only {
 .notifications-filters button.is-active {
   background: rgba(var(--accent-rgb), 0.12);
 }
+
+/* Asset dependency map */
+.ad3-depmap {
+  display: grid;
+  align-items: start;
+  gap: 10px;
+  grid-template-columns: minmax(150px, 190px) minmax(0, 1fr) minmax(0, 1fr);
+  margin: 10px 0;
+}
+
+.ad3-dep-root {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 16px 10px;
+  border: 1px solid rgba(var(--accent-rgb), 0.36);
+  border-radius: 12px;
+  background: rgba(var(--accent-rgb), 0.06);
+  color: var(--accent-strong);
+  text-align: center;
+}
+
+.ad3-dep-root b {
+  color: var(--text);
+  font-size: 10.5px;
+}
+
+.ad3-dep-root small {
+  color: var(--text-muted);
+  font-size: 7.5px;
+}
+
+.ad3-dep-branch {
+  display: flex;
+  min-height: 92px;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px;
+  border: 1px dashed var(--border);
+  border-radius: 10px;
+}
+
+.ad3-dep-branch > span:first-child {
+  color: var(--text-muted);
+  font-size: 7.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.ad3-dep-empty {
+  color: var(--text-muted);
+  font-size: 8px;
+}
+
+.ad3-dep-node,
+.ad3-dep-task {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-card);
+}
+
+.ad3-dep-node > button:first-child,
+.ad3-dep-task {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 4px;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+}
+
+.ad3-dep-node > button:first-child:disabled {
+  cursor: default;
+}
+
+.ad3-dep-node > button:first-child > span,
+.ad3-dep-task > span {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 0;
+}
+
+.ad3-dep-node b,
+.ad3-dep-task b {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 8.5px;
+}
+
+.ad3-dep-node small,
+.ad3-dep-task small {
+  color: var(--text-muted);
+  font-size: 7px;
+}
+
+.ad3-dep-task {
+  cursor: pointer;
+}
+
+.ad3-dep-task:hover,
+.ad3-dep-node > button:first-child:hover:not(:disabled) {
+  color: var(--accent-strong);
+}
+
+.ad3-dep-form {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+}
+
+.ad3-dep-form select {
+  min-width: 0;
+  padding: 5px 7px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 8.5px;
+}
+
+.ad3-dep-form select:first-child {
+  flex: 1;
+}
+
+@media (max-width: 1100px) {
+  .ad3-depmap {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .ad3-dep-root {
+    grid-column: 1 / -1;
+  }
+}

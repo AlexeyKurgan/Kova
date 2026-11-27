@@ -8,7 +8,7 @@ from ...checks.assets import get_asset_checks, run_asset_checks, save_asset_chec
 from ...checks.blender import blender_checks
 from ...checks.contracts import contract_checks, contract_for
 from ...checks.style import style_checks
-from ...domain.asset import AssetPassport, ExportProfile
+from ...domain.asset import AssetDependency, AssetPassport, ExportProfile
 from ...domain.check import CheckResult
 from ...domain.contract import ContractReport
 from ...domain.enums import AssetType, Engine
@@ -51,12 +51,19 @@ class ExportProfileInput(BaseModel):
     options: dict[str, str] = {}
 
 
+class AssetDependencyInput(BaseModel):
+    kind: str = "asset"
+    target_id: str
+    label: str = ""
+
+
 class UpdateAssetRequest(BaseModel):
     task_id: str | None = None
     task_ids: list[str] | None = None
     description: str | None = None
     license: str | None = None
     export_profiles: list[ExportProfileInput] | None = None
+    dependencies: list[AssetDependencyInput] | None = None
 
 
 class AddVersionRequest(BaseModel):
@@ -151,6 +158,22 @@ def update_asset_route(
             )
             for item in (updates["export_profiles"] or [])
         ]
+    if "dependencies" in updates:
+        dependencies = []
+        for item in updates["dependencies"] or []:
+            target = str(item.get("target_id") or "").strip()
+            if not target:
+                continue
+            if target == asset.id:
+                raise HTTPException(status_code=422, detail="asset cannot depend on itself")
+            dependencies.append(
+                AssetDependency(
+                    kind=str(item.get("kind") or "asset"),
+                    target_id=target,
+                    label=str(item.get("label") or ""),
+                )
+            )
+        asset.dependencies = dependencies
 
     saved = save_asset(hub, asset)
     append_event(

@@ -646,6 +646,11 @@ export async function updateAsset(
       format: string;
       options?: Record<string, string>;
     }>;
+    dependencies?: Array<{
+      kind: string;
+      target_id: string;
+      label?: string;
+    }>;
   },
 ): Promise<AssetPassport> {
   return request<AssetPassport>(`/assets/${encodeURIComponent(assetId)}`, {
