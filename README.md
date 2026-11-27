@@ -125,6 +125,7 @@ For free browser AIs:
 ### Packages and engines
 
 - Package catalog with permissions, tools, checks and engine coverage.
+- Import local `.zip` packages with `kova-package.json`.
 - Install, enable, disable and uninstall packages.
 - Godot, Unity, Unreal, RPG Maker and Web packages detect the engine and project.
 - Import assets into the right engine folder:
@@ -326,7 +327,7 @@ cd ..
 npm run typecheck
 ```
 
-Current suite: **132 Python tests**, plus TypeScript typecheck.
+Current suite: **135 Python tests**, plus TypeScript typecheck.
 
 ## Troubleshooting
 
