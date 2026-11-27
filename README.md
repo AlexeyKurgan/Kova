@@ -79,6 +79,7 @@ game project:
 - Review Inbox and archive.
 - Add/modify/delete file diffs with unified patches.
 - Checks and stale-check detection.
+- Replay a failed check, capture its environment and compare status/output.
 - Image pins and comments tied to an asset version.
 - Version comparison slider (A/B).
 - “Second opinion” prompt for an independent critic.
@@ -115,7 +116,7 @@ For free browser AIs:
 
 ### Project memory
 
-- File-based search across tasks, assets, chats, decisions and ledger events.
+- File-based semantic-ish search across tasks, assets, chats, decisions and ledger events, with Russian/English asset synonyms and relevance scoring.
 - Activity timeline with hours/days/months/years and type filters.
 - Project diary with 7/14/30-day summaries and a calendar of active days.
 - Ledger of every important action.
@@ -139,7 +140,7 @@ For free browser AIs:
 - Triangle, vertex, material, texture and bone budgets.
 - License requirement and asset-name regex.
 - Style warnings in the asset passport and Review.
-- Palette is stored as guidance; pixel-level visual matching is not automated yet.
+- Palette check samples the asset preview and warns when too few pixels are close to the Style Bible palette.
 
 ### Night Shift
 

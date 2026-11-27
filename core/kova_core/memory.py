@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
@@ -8,6 +9,55 @@ from typing import Any
 from .chats import list_chats
 from .storage.assets import list_assets
 from .storage.tasks import list_tasks
+
+
+STOPWORDS = {
+    "где", "что", "как", "этот", "эта", "эти", "это", "для", "или", "при",
+    "про", "без", "под", "над", "из", "на", "в", "во", "и", "а", "но",
+    "используется", "использовать", "почему", "какие", "какой", "какая",
+    "какие", "от", "до", "по", "ли", "же", "бы",
+    "the", "and", "for", "with", "from", "this", "that", "what", "where",
+}
+
+SYNONYMS = {
+    "материал": {"material", "materials", "материалы", "материала"},
+    "текстура": {"texture", "textures", "текстуры", "текстуры"},
+    "ассет": {"asset", "assets", "ассеты", "ресурс"},
+    "задача": {"task", "tasks", "задачи", "задачу"},
+    "проверка": {"check", "checks", "validation", "проверки", "тест"},
+    "ошибка": {"error", "failed", "failure", "ошибки", "баг"},
+    "пивот": {"pivot", "origin", "пивот"},
+    "анимация": {"animation", "animations", "анимации"},
+    "звук": {"audio", "sound", "звуки", "аудио"},
+    "сцена": {"scene", "level", "сцены", "уровень"},
+    "персонаж": {"character", "rig", "персонажи"},
+    "меч": {"sword", "blade", "мечи"},
+    "снапшот": {"snapshot", "snapshots", "снапшоты", "откат"},
+    "решение": {"decision", "decisions", "решения"},
+}
+
+
+def _terms(query: str) -> list[str]:
+    words = re.findall(r"[a-zа-яё0-9]{2,}", query.lower())
+    return [word for word in dict.fromkeys(words) if word not in STOPWORDS]
+
+
+def _match(haystack: str, query: str) -> tuple[bool, int]:
+    if not query:
+        return True, 0
+    if query in haystack:
+        return True, 100
+    terms = _terms(query)
+    if not terms:
+        return True, 0
+    score = 0
+    for term in terms:
+        variants = {term, *SYNONYMS.get(term, set())}
+        if any(variant in haystack for variant in variants):
+            score += 8
+        else:
+            return False, 0
+    return True, score
 
 
 def _short(value: Any, limit: int = 240) -> str:
@@ -49,11 +99,13 @@ def _task_results(tasks: list[Any], query: str, limit: int) -> list[dict[str, An
                 task.assigned_agent or "",
             ]
         ).lower()
-        if query and query not in haystack:
+        matched, score = _match(haystack, query)
+        if not matched:
             continue
         snippet = task.goal or task.next_step or "; ".join(item.text for item in task.criteria)
         rows.append(
             {
+                "score": score,
                 "kind": "task",
                 "id": task.id,
                 "title": task.title,
@@ -63,7 +115,7 @@ def _task_results(tasks: list[Any], query: str, limit: int) -> list[dict[str, An
                 "updated_at": task.updated_at.isoformat(),
             }
         )
-    rows.sort(key=lambda row: row["updated_at"], reverse=True)
+    rows.sort(key=lambda row: (row.get("score", 0), row["updated_at"]), reverse=True)
     return rows[:limit]
 
 
@@ -80,10 +132,12 @@ def _asset_results(assets: list[Any], query: str, limit: int) -> list[dict[str, 
                 " ".join(asset.task_ids),
             ]
         ).lower()
-        if query and query not in haystack:
+        matched, score = _match(haystack, query)
+        if not matched:
             continue
         rows.append(
             {
+                "score": score,
                 "kind": "asset",
                 "id": asset.id,
                 "title": asset.name,
@@ -93,7 +147,7 @@ def _asset_results(assets: list[Any], query: str, limit: int) -> list[dict[str, 
                 "updated_at": asset.updated_at.isoformat(),
             }
         )
-    rows.sort(key=lambda row: row["updated_at"], reverse=True)
+    rows.sort(key=lambda row: (row.get("score", 0), row["updated_at"]), reverse=True)
     return rows[:limit]
 
 
@@ -101,10 +155,12 @@ def _chat_results(chats: list[dict[str, Any]], query: str, limit: int) -> list[d
     rows: list[dict[str, Any]] = []
     for chat in chats:
         haystack = f"{chat.get('title') or ''} {chat.get('last_message') or ''}".lower()
-        if query and query not in haystack:
+        matched, score = _match(haystack, query)
+        if not matched:
             continue
         rows.append(
             {
+                "score": score,
                 "kind": "chat",
                 "id": str(chat.get("id") or ""),
                 "title": str(chat.get("title") or "Чат"),
@@ -114,7 +170,7 @@ def _chat_results(chats: list[dict[str, Any]], query: str, limit: int) -> list[d
                 "updated_at": str(chat.get("updated_at") or ""),
             }
         )
-    rows.sort(key=lambda row: row["updated_at"], reverse=True)
+    rows.sort(key=lambda row: (row.get("score", 0), row["updated_at"]), reverse=True)
     return rows[:limit]
 
 
@@ -126,13 +182,15 @@ def _event_results(rows: list[dict[str, Any]], query: str, limit: int) -> list[d
             [str(event.get("type") or ""), str(event.get("actor") or ""), str(event.get("subject") or "")]
             + [str(value) for value in payload.values()]
         ).lower()
-        if query and query not in haystack:
+        matched, score = _match(haystack, query)
+        if not matched:
             continue
         title = str(payload.get("title") or payload.get("name") or event.get("type") or "Событие")
         subject = str(event.get("subject") or "")
         link = subject if subject.startswith(("task_", "asst_")) else ""
         result.append(
             {
+                "score": score,
                 "kind": "event",
                 "id": str(event.get("id") or ""),
                 "title": title,
@@ -152,10 +210,12 @@ def _decision_results(rows: list[dict[str, Any]], query: str, limit: int) -> lis
     result: list[dict[str, Any]] = []
     for row in rows:
         text = " ".join(str(value) for value in row.values())
-        if query and query not in text.lower():
+        matched, score = _match(text.lower(), query)
+        if not matched:
             continue
         result.append(
             {
+                "score": score,
                 "kind": "decision",
                 "id": str(row.get("id") or ""),
                 "title": str(row.get("title") or row.get("decision") or "Решение"),

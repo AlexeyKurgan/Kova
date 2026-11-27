@@ -83,3 +83,32 @@ def test_style_bible_checks(tmp_path: Path, monkeypatch) -> None:
     disabled = client.patch("/style", json={"enabled": False})
     assert disabled.status_code == 200
     assert client.get("/style/violations").json() == []
+
+
+def test_style_palette_preview(tmp_path: Path, monkeypatch) -> None:
+    from PIL import Image
+
+    client = make_client(tmp_path, monkeypatch)
+    game = tmp_path / "game"
+    game.mkdir()
+    client.post("/project/open", json={"path": str(game)})
+    hub = game / ".hub"
+    source = tmp_path / "sword.png"
+    Image.new("RGB", (16, 16), (220, 30, 30)).save(source)
+    asset = client.post("/assets/import", json={"path": str(source)}).json()
+
+    preview = hub / "artifacts" / "previews" / f"{asset['id']}.png"
+    preview.parent.mkdir(parents=True, exist_ok=True)
+    Image.new("RGB", (16, 16), (220, 30, 30)).save(preview)
+    asset_file = hub / "assets" / f"{asset['id']}.json"
+    data = json.loads(asset_file.read_text(encoding="utf-8"))
+    data["preview"] = f"artifacts/previews/{asset['id']}.png"
+    asset_file.write_text(json.dumps(data), encoding="utf-8")
+
+    client.patch("/style", json={"enabled": True, "palette": ["#00FF00"]})
+    violations = client.get("/style/violations").json()
+    checks = {row["name"]: row for row in violations[0]["checks"]}
+    assert "Стиль: палитра" in checks
+
+    client.patch("/style", json={"palette": ["#DC1E1E"]})
+    assert client.get("/style/violations").json() == []

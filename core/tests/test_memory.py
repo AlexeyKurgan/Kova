@@ -49,6 +49,26 @@ def test_memory_search_finds_tasks_and_assets(client: TestClient, tmp_path: Path
     found_asset = client.get("/memory/search", params={"q": "quasar"})
     assert any(row["id"] == asset_id for row in found_asset.json()["groups"]["assets"])
 
+    semantic_task = client.post(
+        "/tasks",
+        json={
+            "title": "Сундук",
+            "goal": "Исправить pivot у модели",
+            "status": "ready",
+        },
+    ).json()
+    pivot = client.get("/memory/search", params={"q": "пивот"}).json()
+    assert any(row["id"] == semantic_task["id"] for row in pivot["groups"]["tasks"])
+    assert pivot["total"] >= 1
+
+    material_task = client.post(
+        "/tasks",
+        json={"title": "Steel material", "goal": "Проверить material на сундуке"},
+    ).json()
+    material = client.get("/memory/search", params={"q": "где используется материал"}).json()
+    assert any(row["id"] == material_task["id"] for row in material["groups"]["tasks"])
+    assert any(row["score"] > 0 for items in material["groups"].values() for row in items)
+
     empty = client.get("/memory/search", params={"q": "no-such-token-xyz"})
     assert empty.status_code == 200
     assert empty.json()["total"] == 0

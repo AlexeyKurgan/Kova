@@ -78,7 +78,7 @@ def get_violations(hub: Path = Depends(require_hub)) -> list[StyleViolation]:
         return []
     rows: list[StyleViolation] = []
     for asset in list_assets(hub):
-        checks = style_checks(asset, bible)
+        checks = style_checks(asset, bible, hub)
         if checks:
             rows.append(
                 StyleViolation(

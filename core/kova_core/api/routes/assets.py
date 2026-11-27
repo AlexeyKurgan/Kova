@@ -377,7 +377,7 @@ def run_blender_route(
     sync_current_version(asset)
     save_asset(hub, asset)
     basic = run_asset_checks(hub, asset)
-    checks = basic + blender_checks(asset, info) + style_checks(asset, load_style(hub))
+    checks = basic + blender_checks(asset, info) + style_checks(asset, load_style(hub), hub)
     save_asset_checks(hub, asset, checks)
     append_event(
         hub,
@@ -399,7 +399,7 @@ def run_checks_route(asset_id: str, hub: Path = Depends(require_hub)) -> list[Ch
     if asset is None:
         raise HTTPException(status_code=404, detail="asset not found")
 
-    results = run_asset_checks(hub, asset) + style_checks(asset, load_style(hub))
+    results = run_asset_checks(hub, asset) + style_checks(asset, load_style(hub), hub)
     failed = sum(1 for result in results if result.status.value in {"failed", "error"})
     append_event(
         hub,
