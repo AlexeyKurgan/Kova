@@ -305,3 +305,14 @@ def test_marketplace_updates_existing_package(tmp_path: Path, monkeypatch) -> No
     assert json.loads((target / "kova-package.json").read_text())["version"] == "2.0.0"
     assert json.loads((target / "checklist.json").read_text()) == {"items": ["v2"]}
     assert not (target.parent / "remote-pack.backup").exists()
+
+
+def test_raw_index_url_gets_cache_buster() -> None:
+    fresh = remote._fresh_index_url(
+        "https://raw.githubusercontent.com/AlexeyKurgan/Kova/main/packages/index.json"
+    )
+    assert "kova_refresh=" in fresh
+    again = remote._fresh_index_url(fresh)
+    assert again.count("kova_refresh=") == 1
+    untouched = remote._fresh_index_url("https://1.1.1.1/index.json")
+    assert untouched == "https://1.1.1.1/index.json"

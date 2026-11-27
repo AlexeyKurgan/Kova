@@ -13,6 +13,7 @@ import re
 import socket
 import ssl
 import tempfile
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -89,6 +90,22 @@ def _open(url: str):
     )
     request = urllib.request.Request(url, headers={"User-Agent": "Kova-Hub-Packages"})
     return opener.open(request, timeout=15)
+
+
+def _fresh_index_url(url: str) -> str:
+    """Bypass the raw.githubusercontent.com CDN cache for a mutable index."""
+    parsed = urllib.parse.urlparse(url)
+    if parsed.hostname != "raw.githubusercontent.com":
+        return url
+    query = [
+        (key, value)
+        for key, value in urllib.parse.parse_qsl(parsed.query, keep_blank_values=True)
+        if key != "kova_refresh"
+    ]
+    query.append(("kova_refresh", str(int(time.time()))))
+    return urllib.parse.urlunparse(
+        parsed._replace(query=urllib.parse.urlencode(query))
+    )
 
 
 def _read_url(url: str, limit: int) -> bytes:
@@ -175,7 +192,7 @@ def _normalize_entry(raw: Any) -> dict[str, Any] | None:
 def fetch_index(url: str = "") -> dict[str, Any]:
     index_url = (url or DEFAULT_INDEX_URL).strip()
     _validate_url(index_url)
-    body = _read_url(index_url, MAX_INDEX_BYTES)
+    body = _read_url(_fresh_index_url(index_url), MAX_INDEX_BYTES)
     try:
         payload = json.loads(body.decode("utf-8"))
     except (UnicodeDecodeError, ValueError) as exc:
