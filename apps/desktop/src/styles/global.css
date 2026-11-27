@@ -19843,3 +19843,77 @@ html[data-mode="beginner"] .advanced-only {
     grid-column: 1 / -1;
   }
 }
+
+/* Theme-aware custom controls on analytics pages */
+.memory-filter-chips button,
+.memory-sort,
+.memory-select,
+.memory-segmented,
+.pkg-tab,
+.pkg-range-chips button,
+.diary-range,
+.diary-today-btn,
+.pkg-search {
+  background: var(--bg-card);
+}
+
+.memory-filter-chips button:hover,
+.pkg-tab:hover,
+.pkg-range-chips button:hover,
+.diary-today-btn:hover:not(:disabled) {
+  border-color: var(--border-strong);
+  background: var(--bg-card-hover);
+}
+
+.memory-filter-chips button.is-active,
+.pkg-range-chips button.is-active {
+  border-color: rgba(var(--accent-rgb), 0.4);
+  background: rgba(var(--accent-rgb), 0.1);
+  color: var(--accent-strong);
+}
+
+.pkg-tab.is-active {
+  border-color: rgba(var(--accent-rgb), 0.35);
+  background: rgba(var(--accent-rgb), 0.1);
+}
+
+.diary-range button.is-active {
+  background: rgba(var(--accent-rgb), 0.14);
+}
+
+.pkg-tab {
+  border-color: var(--border);
+}
+
+/* Theme-aware secondary surfaces for new UI */
+.review-stage-block,
+.snap-compare,
+.template-card,
+.td2-why-grid > div {
+  background: var(--bg-raised);
+}
+
+.review-stage-compare-bar,
+.review-archive-switch,
+.review-stage-assets button,
+.settings-mode,
+.notifications-ranges button,
+.notifications-filters button {
+  background: var(--bg-card);
+}
+
+.review-pin-form textarea,
+.style-field input,
+.style-field textarea {
+  background: var(--bg-raised);
+}
+
+.settings-mode.is-active {
+  background: rgba(var(--accent-rgb), 0.1);
+}
+
+.review-stage-assets button.is-active,
+.notifications-ranges button.is-active,
+.notifications-filters button.is-active {
+  background: rgba(var(--accent-rgb), 0.12);
+}

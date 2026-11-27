@@ -9,6 +9,9 @@
   --bg-card-hover: #1d2530;
   --bg-inset: #10141b;
   --bg-raised: #1d2530;
+  --surface: var(--bg-card);
+  --surface-2: var(--bg-raised);
+  --text-primary: var(--text);
 
   --border: #283342;
   --border-strong: #34445a;
@@ -53,6 +56,9 @@
   --bg-card-hover: #f7f9fc;
   --bg-inset: #f4f6f9;
   --bg-raised: #eef2f7;
+  --surface: var(--bg-card);
+  --surface-2: var(--bg-raised);
+  --text-primary: var(--text);
 
   --border: #dce2ea;
   --border-strong: #c9d3df;
