@@ -853,6 +853,27 @@ export type SnapshotFile = {
   size: number;
 };
 
+export type StyleBible = {
+  enabled: boolean;
+  name: string;
+  description: string;
+  palette: string[];
+  max_triangles: number | null;
+  max_vertices: number | null;
+  max_materials: number | null;
+  max_textures: number | null;
+  max_bones: number | null;
+  require_license: boolean;
+  naming_pattern: string;
+  updated_at: string;
+};
+
+export type StyleViolation = {
+  asset_id: string;
+  asset_name: string;
+  checks: CheckResult[];
+};
+
 export type DiaryDay = {
   date: string;
   events: number;

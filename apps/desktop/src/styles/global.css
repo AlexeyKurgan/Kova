@@ -19247,3 +19247,141 @@ html[data-mode="beginner"] .advanced-only {
   background: rgba(255, 255, 255, 0.08);
   font-size: 7.5px;
 }
+
+/* Style Bible */
+.style-bible-card .settings-card-head {
+  align-items: center;
+}
+
+.style-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-left: auto;
+  color: var(--text-muted);
+  font-size: 8.5px;
+}
+
+.style-bible-grid {
+  display: grid;
+  gap: 7px;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  margin: 10px 0;
+}
+
+.style-field {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.style-field.is-wide {
+  grid-column: 1 / -1;
+}
+
+.style-field > span {
+  color: var(--text-muted);
+  font-size: 7.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.style-field input,
+.style-field textarea {
+  width: 100%;
+  padding: 5px 7px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.18);
+  color: var(--text);
+  font: inherit;
+  font-size: 9px;
+  resize: vertical;
+}
+
+.style-bible-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 4px;
+}
+
+.style-saved {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin: 4px 0;
+  color: var(--accent-strong);
+  font-size: 8.5px;
+}
+
+.style-violations {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+}
+
+.style-violations > b {
+  font-size: 8.5px;
+}
+
+.style-violation-row {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  color: var(--text-muted);
+  font-size: 8px;
+}
+
+.style-violation-row svg {
+  align-self: center;
+  color: var(--accent-strong);
+  flex: none;
+}
+
+.style-violation-row > span {
+  flex: none;
+  color: var(--text);
+}
+
+.style-violation-row small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 7.5px;
+}
+
+.review-style-warning {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+  padding: 5px 8px;
+  border: 1px solid rgba(var(--accent-rgb), 0.32);
+  border-radius: 7px;
+  background: rgba(var(--accent-rgb), 0.055);
+  color: var(--accent-strong);
+  font-size: 8.5px;
+}
+
+.review-style-warning b {
+  font-size: 8.5px;
+}
+
+.review-style-warning span {
+  color: var(--text);
+}
+
+.review-style-warning small {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-muted);
+  font-size: 7.5px;
+}

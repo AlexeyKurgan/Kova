@@ -9,6 +9,7 @@ import {
   listAiRuns,
   listReviewArchive,
   listReviewComments,
+  listStyleViolations,
   listValidationResults,
   reviewResponse,
   updateReviewComment,
@@ -20,6 +21,7 @@ import { REVIEW_STATUS_LABELS } from "../../lib/labels";
 import type {
   AiRun,
   AssetPassport,
+  CheckResult,
   ReviewComment,
   ReviewItem,
   Task,
@@ -63,6 +65,7 @@ export default function ReviewScreen({
   const [showArchive, setShowArchive] = useState(false);
   const [archiveLoading, setArchiveLoading] = useState(false);
   const [archiveKey, setArchiveKey] = useState(0);
+  const [styleChecksByAsset, setStyleChecksByAsset] = useState<Record<string, CheckResult[]>>({});
   const [stageAsset, setStageAsset] = useState<Record<string, string>>({});
 
   const applyRun = async (run: AiRun) => {
@@ -168,6 +171,24 @@ export default function ReviewScreen({
   }, [showArchive, archiveKey]);
 
   const reviewKey = visibleItems.map((item) => item.id).join(",");
+
+  useEffect(() => {
+    let alive = true;
+    listStyleViolations()
+      .then((rows) => {
+        if (alive) {
+          setStyleChecksByAsset(
+            Object.fromEntries(rows.map((row) => [row.asset_id, row.checks])),
+          );
+        }
+      })
+      .catch(() => {
+        if (alive) setStyleChecksByAsset({});
+      });
+    return () => {
+      alive = false;
+    };
+  }, [reviewKey]);
   useEffect(() => {
     let alive = true;
     const loadComments = () =>
@@ -414,6 +435,9 @@ export default function ReviewScreen({
             const activeStage =
               stageCandidates.find((asset) => asset.id === stageCandidateId) ??
               stageCandidates[0];
+            const styleChecks = reviewAssets.flatMap(
+              (asset) => styleChecksByAsset[asset.id] ?? [],
+            );
             return (
             <article className="task-card review-card" key={item.id}>
               <div className="task-card-main">
@@ -449,6 +473,20 @@ export default function ReviewScreen({
                         </button>
                       );
                     })}
+                  </div>
+                ) : null}
+                {styleChecks.length > 0 ? (
+                  <div
+                    className="review-style-warning"
+                    title={styleChecks.map((check) => check.message).join(" · ")}
+                  >
+                    <TriangleAlert size={12} />
+                    <b>Style Guard</b>
+                    <span>
+                      {styleChecks.length}{" "}
+                      {plural(styleChecks.length, ["нарушение", "нарушения", "нарушений"])}
+                    </span>
+                    <small>{styleChecks[0].message}</small>
                   </div>
                 ) : null}
                 {!showArchive && activeStage ? (

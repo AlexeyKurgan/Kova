@@ -35,6 +35,8 @@ import type {
   SkillDetail,
   Snapshot,
   SnapshotDiff,
+  StyleBible,
+  StyleViolation,
   Task,
   UpdateTaskInput,
   ValidationResult,
@@ -377,6 +379,21 @@ export async function purgeTask(taskId: string): Promise<void> {
 
 export async function listAssets(): Promise<AssetPassport[]> {
   return request<AssetPassport[]>("/assets");
+}
+
+export async function getStyle(): Promise<StyleBible> {
+  return request<StyleBible>("/style");
+}
+
+export async function updateStyle(input: Partial<StyleBible>): Promise<StyleBible> {
+  return request<StyleBible>("/style", {
+    method: "PATCH",
+    body: JSON.stringify(input),
+  });
+}
+
+export async function listStyleViolations(): Promise<StyleViolation[]> {
+  return request<StyleViolation[]>("/style/violations");
 }
 
 export async function getDiary(days = 14): Promise<DiaryResponse> {

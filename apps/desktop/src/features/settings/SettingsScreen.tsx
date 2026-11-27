@@ -17,6 +17,7 @@ import {
 import type { AppPreferences } from "../../lib/appPreferences";
 import { formatDate } from "../../lib/format";
 import type { Snapshot } from "../../lib/types";
+import StyleBibleCard from "./StyleBibleCard";
 
 type Props = {
   preferences: ChatPreferences;
@@ -297,6 +298,8 @@ export default function SettingsScreen({
             </span>
           </div>
         </article>
+
+        <StyleBibleCard />
 
         <article className="settings-card">
           <div className="settings-card-head">
