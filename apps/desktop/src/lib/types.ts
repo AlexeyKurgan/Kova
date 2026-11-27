@@ -272,6 +272,11 @@ export type UpdateTaskInput = {
 
 export type AssetVersionStatus = "draft" | "review" | "accepted" | "archived";
 
+export type AssetPreviewFrame = {
+  frame: number;
+  path: string;
+};
+
 export type AssetVersion = {
   id: string;
   label: string;
@@ -281,6 +286,10 @@ export type AssetVersion = {
   file_hash: string;
   file_size: number;
   preview: string;
+  preview_frames: AssetPreviewFrame[];
+  frame_start: number;
+  frame_end: number;
+  fps: number;
   metrics: AssetMetrics | null;
   scene: SceneObject[];
   created_at: string;
@@ -445,6 +454,10 @@ export type AssetPassport = {
   file_hash: string;
   file_size: number;
   preview: string;
+  preview_frames: AssetPreviewFrame[];
+  frame_start: number;
+  frame_end: number;
+  fps: number;
   current_version_id: string | null;
   origin: string;
   task_id: string | null;
@@ -923,6 +936,7 @@ export type ReviewComment = {
   x: number;
   y: number;
   timestamp: number | null;
+  frame: number | null;
   body: string;
   author: string;
   resolved: boolean;

@@ -12,7 +12,11 @@ import {
 } from "lucide-react";
 import { mediaUrl } from "../../lib/coreClient";
 import { formatDate } from "../../lib/format";
-import type { AssetPassport, ReviewComment } from "../../lib/types";
+import type {
+  AssetPassport,
+  AssetPreviewFrame,
+  ReviewComment,
+} from "../../lib/types";
 
 const VIDEO_RE = /\.(mp4|webm|mov|mkv|avi)$/i;
 
@@ -26,6 +30,7 @@ type Props = {
     x: number;
     y: number;
     timestamp?: number | null;
+    frame?: number | null;
   }) => Promise<void>;
   onResolve: (commentId: string, resolved: boolean) => Promise<void>;
   onDelete: (commentId: string) => Promise<void>;
@@ -38,6 +43,24 @@ function previewFor(asset: AssetPassport, versionId: string) {
   return mediaUrl(`/assets/${asset.id}/preview`, {
     version_id: versionId,
     v: preview,
+  });
+}
+
+function framesFor(asset: AssetPassport, versionId: string): AssetPreviewFrame[] {
+  const version = asset.versions.find((item) => item.id === versionId);
+  if (version?.preview_frames?.length) return version.preview_frames;
+  return asset.preview_frames ?? [];
+}
+
+function framePreviewFor(
+  asset: AssetPassport,
+  versionId: string,
+  frame: number,
+) {
+  return mediaUrl(`/assets/${asset.id}/preview`, {
+    version_id: versionId,
+    frame,
+    v: `${frame}-${asset.versions.find((item) => item.id === versionId)?.file_hash || asset.file_hash}`,
   });
 }
 
@@ -81,6 +104,7 @@ export default function ReviewAssetStage({
     x: number;
     y: number;
     timestamp?: number | null;
+    frame?: number | null;
   } | null>(null);
   const [body, setBody] = useState("");
   const [busy, setBusy] = useState(false);
@@ -88,6 +112,7 @@ export default function ReviewAssetStage({
   const [showResolved, setShowResolved] = useState(false);
   const [duration, setDuration] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
+  const [frame, setFrame] = useState<number | null>(null);
   const stageRef = useRef<HTMLDivElement | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
 
@@ -98,13 +123,24 @@ export default function ReviewAssetStage({
   const overlayPreview = overlaySource ? previewFor(asset, overlaySource) : "";
   const baseVideo = baseSource ? videoFor(asset, baseSource) : videoFor(asset, "");
   const video = Boolean(baseVideo) && !compare;
+  const frameList = useMemo(
+    () => (compare ? [] : framesFor(asset, baseSource || selectedVersion?.id || "")),
+    [asset, baseSource, compare, selectedVersion?.id],
+  );
+  const frameAnimated = frameList.length > 0;
+  const activeFrame =
+    frameList.find((item) => item.frame === frame) ?? frameList[0] ?? null;
   const canCompare =
-    !video && asset.versions.length > 1 && asset.versions.every((item) => item.preview);
+    !video &&
+    !frameAnimated &&
+    asset.versions.length > 1 &&
+    asset.versions.every((item) => item.preview);
 
   useEffect(() => {
     setCurrentTime(0);
     setDuration(0);
-  }, [baseSource]);
+    setFrame(framesFor(asset, baseSource || selectedVersion?.id || "")[0]?.frame ?? null);
+  }, [asset, baseSource, selectedVersion?.id]);
 
 
   const visibleComments = useMemo(
@@ -133,6 +169,7 @@ export default function ReviewAssetStage({
       x,
       y,
       timestamp: video ? videoRef.current?.currentTime ?? 0 : null,
+      frame: frameAnimated ? activeFrame?.frame ?? null : null,
     });
     setBody("");
     setError("");
@@ -143,6 +180,11 @@ export default function ReviewAssetStage({
     if (!player) return;
     player.currentTime = Math.min(Math.max(0, value), duration || value);
     setCurrentTime(player.currentTime);
+  };
+
+  const selectFrame = (value: number) => {
+    setFrame(value);
+    setDraft(null);
   };
 
   const submit = async () => {
@@ -162,6 +204,7 @@ export default function ReviewAssetStage({
         x: draft.x,
         y: draft.y,
         timestamp: draft.timestamp ?? null,
+        frame: draft.frame ?? null,
       });
       setDraft(null);
       setBody("");
@@ -176,7 +219,28 @@ export default function ReviewAssetStage({
   const versionLabel = (id: string) =>
     asset.versions.find((item) => item.id === id)?.label ?? "—";
 
-  if (!basePreview && !video) return null;
+  const displayPreview =
+    frameAnimated && activeFrame
+      ? framePreviewFor(asset, baseSource || selectedVersion?.id || "", activeFrame.frame)
+      : basePreview;
+  const stageComments =
+    frameAnimated && activeFrame
+      ? visibleComments.filter(
+          (comment) => comment.frame == null || comment.frame === activeFrame.frame,
+        )
+      : visibleComments;
+  const commentNumber = (commentId: string) =>
+    comments.filter((comment) => comment.asset_id === asset.id).findIndex(
+      (comment) => comment.id === commentId,
+    ) + 1;
+  const frameIndex = activeFrame
+    ? Math.max(
+        0,
+        frameList.findIndex((item) => item.frame === activeFrame.frame),
+      )
+    : 0;
+
+  if (!basePreview && !video && !frameAnimated) return null;
 
   return (
     <div className={`review-stage${pinMode ? " is-pinning" : ""}`}>
@@ -236,6 +300,25 @@ export default function ReviewAssetStage({
           >
             <Film size={13} />
             Пин на {formatClock(currentTime)}
+          </button>
+        ) : null}
+        {frameAnimated && activeFrame ? (
+          <button
+            type="button"
+            className="review-stage-toggle"
+            onClick={() => {
+              setPinMode(false);
+              setDraft({
+                x: 0.5,
+                y: 0.5,
+                frame: activeFrame.frame,
+              });
+              setBody("");
+              setError("");
+            }}
+          >
+            <Film size={13} />
+            Пин на кадре {activeFrame.frame}
           </button>
         ) : null}
         <button
@@ -299,6 +382,7 @@ export default function ReviewAssetStage({
             x: 0.5,
             y: 0.5,
             timestamp: video ? videoRef.current?.currentTime ?? 0 : null,
+            frame: frameAnimated ? activeFrame?.frame ?? null : null,
           });
         }}
       >
@@ -317,7 +401,15 @@ export default function ReviewAssetStage({
             onTimeUpdate={(event) => setCurrentTime(event.currentTarget.currentTime)}
           />
         ) : (
-          <img className="review-stage-image" src={basePreview} alt={`${asset.name}`} />
+          <img
+            className="review-stage-image"
+            src={displayPreview}
+            alt={
+              frameAnimated && activeFrame
+                ? `${asset.name}, кадр ${activeFrame.frame}`
+                : asset.name
+            }
+          />
         )}
         {video && pinMode ? <span className="review-stage-pin-layer" /> : null}
         {compare && overlayPreview ? (
@@ -337,7 +429,7 @@ export default function ReviewAssetStage({
             <span className="review-stage-tag is-right">{versionLabel(compareB)}</span>
           </>
         ) : null}
-        {visibleComments.map((comment, index) => (
+        {stageComments.map((comment) => (
           <button
             type="button"
             key={comment.id}
@@ -346,7 +438,9 @@ export default function ReviewAssetStage({
             title={
               comment.timestamp != null
                 ? `${formatClock(comment.timestamp)} · ${comment.body}`
-                : comment.body
+                : comment.frame != null
+                  ? `Кадр ${comment.frame} · ${comment.body}`
+                  : comment.body
             }
             onClick={(event) => {
               event.stopPropagation();
@@ -354,12 +448,13 @@ export default function ReviewAssetStage({
               setDraft(null);
               setBody(comment.body);
               if (comment.timestamp != null) seekTo(comment.timestamp);
+              if (comment.frame != null) selectFrame(comment.frame);
             }}
           >
-            {index + 1}
+            {commentNumber(comment.id)}
           </button>
         ))}
-        {draft ? (
+        {draft && (!frameAnimated || draft.frame === activeFrame?.frame) ? (
           <span
             className="review-pin is-draft"
             style={{ left: `${draft.x * 100}%`, top: `${draft.y * 100}%` }}
@@ -371,7 +466,9 @@ export default function ReviewAssetStage({
           <span className="review-stage-hint">
             {video
               ? "Кликни по кадру, чтобы привязать пин ко времени"
-              : "Кликни по изображению, чтобы поставить пин"}
+              : frameAnimated
+                ? "Кликни по изображению, чтобы привязать пин к кадру"
+                : "Кликни по изображению, чтобы поставить пин"}
           </span>
         ) : null}
       </div>
@@ -436,6 +533,60 @@ export default function ReviewAssetStage({
         </div>
       ) : null}
 
+      {frameAnimated && activeFrame ? (
+        <div className="review-frame-timeline">
+          <div className="review-frame-head">
+            <span>
+              Кадр <b>{activeFrame.frame}</b>
+              {asset.frame_end ? ` из ${asset.frame_end}` : ""}
+            </span>
+            <small>
+              {frameList.length} превью
+              {asset.fps ? ` · ${Math.round(asset.fps)} fps` : ""}
+            </small>
+          </div>
+          <div className="review-frame-track">
+            <input
+              type="range"
+              min={0}
+              max={Math.max(0, frameList.length - 1)}
+              step={1}
+              value={frameIndex}
+              aria-label="Кадр анимации"
+              onChange={(event) => {
+                const next = frameList[Number(event.target.value)];
+                if (next) selectFrame(next.frame);
+              }}
+            />
+            {visibleComments
+              .filter((comment) => comment.frame != null)
+              .map((comment) => {
+                const index = frameList.findIndex(
+                  (item) => item.frame === comment.frame,
+                );
+                if (index < 0) return null;
+                return (
+                  <button
+                    type="button"
+                    key={comment.id}
+                    className={`review-frame-marker${
+                      comment.resolved ? " is-resolved" : ""
+                    }`}
+                    style={{
+                      left: `${(index / Math.max(1, frameList.length - 1)) * 100}%`,
+                    }}
+                    title={`Кадр ${comment.frame} · ${comment.body}`}
+                    aria-label={`Перейти к пину на кадре ${comment.frame}`}
+                    onClick={() => selectFrame(comment.frame ?? activeFrame.frame)}
+                  >
+                    {commentNumber(comment.id)}
+                  </button>
+                );
+              })}
+          </div>
+        </div>
+      ) : null}
+
       {draft ? (
         <div className="review-pin-form">
           <div className="review-pin-form-head">
@@ -443,7 +594,9 @@ export default function ReviewAssetStage({
               <Pin size={12} /> Пин на {versionLabel(baseSource)}
               {draft.timestamp != null
                 ? ` · ${formatClock(draft.timestamp)}`
-                : ""}
+                : draft.frame != null
+                  ? ` · кадр ${draft.frame}`
+                  : ""}
             </span>
             <button
               type="button"
@@ -515,7 +668,9 @@ export default function ReviewAssetStage({
                     {comment.version_id ? `${versionLabel(comment.version_id)} · ` : ""}
                     {comment.timestamp != null
                       ? `${formatClock(comment.timestamp)} · `
-                      : ""}
+                      : comment.frame != null
+                        ? `кадр ${comment.frame} · `
+                        : ""}
                     {formatDate(comment.created_at)}
                   </small>
                 </div>

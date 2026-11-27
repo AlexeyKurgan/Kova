@@ -5,7 +5,7 @@ import subprocess
 from functools import lru_cache
 from pathlib import Path
 
-from ...domain.asset import AssetMetrics, AssetPassport, SceneObject
+from ...domain.asset import AssetMetrics, AssetPassport, AssetPreviewFrame, SceneObject
 from ...security.paths import resolve_inside
 
 MARKER = "---KOVA_JSON---"
@@ -133,11 +133,19 @@ def inspect_asset(hub: Path, asset: AssetPassport) -> dict[str, object]:
     )
     preview.parent.mkdir(parents=True, exist_ok=True)
     preview.unlink(missing_ok=True)
+    frames_dir = resolve_inside(
+        hub,
+        Path("artifacts") / "previews" / f"{asset.id}{suffix}_frames",
+    )
+    if frames_dir.is_dir():
+        shutil.rmtree(frames_dir, ignore_errors=True)
 
     script = Path(__file__).with_name("inspect_asset.py")
     env = os.environ.copy()
     env["KOVA_ASSET_PATH"] = str(asset_path)
     env["KOVA_RENDER_PATH"] = str(preview)
+    env["KOVA_RENDER_FRAMES_DIR"] = str(frames_dir)
+    env["KOVA_RENDER_FRAMES"] = "7"
 
     try:
         process = subprocess.run(
@@ -152,7 +160,7 @@ def inspect_asset(hub: Path, asset: AssetPassport) -> dict[str, object]:
             text=True,
             encoding="utf-8",
             errors="replace",
-            timeout=240,
+            timeout=300,
             env=env,
         )
     except subprocess.TimeoutExpired as exc:
@@ -210,10 +218,34 @@ def inspect_asset(hub: Path, asset: AssetPassport) -> dict[str, object]:
     asset.preview = (
         preview.relative_to(hub).as_posix() if preview.is_file() else ""
     )
+    frame_rows = payload.get("frames") or []
+    frames: list[AssetPreviewFrame] = []
+    if isinstance(frame_rows, list):
+        for row in frame_rows:
+            if not isinstance(row, dict):
+                continue
+            try:
+                frame_path = Path(str(row.get("path") or "")).resolve()
+                relative = frame_path.relative_to(hub.resolve()).as_posix()
+                frame_number = int(row.get("frame") or 0)
+            except (OSError, ValueError):
+                continue
+            if frame_path.is_file():
+                frames.append(AssetPreviewFrame(frame=frame_number, path=relative))
+    asset.preview_frames = sorted(frames, key=lambda item: item.frame)
+    try:
+        asset.frame_start = int(payload.get("frame_start") or 0)
+        asset.frame_end = int(payload.get("frame_end") or 0)
+        asset.fps = float(payload.get("fps") or 0)
+    except (TypeError, ValueError):
+        asset.frame_start = 0
+        asset.frame_end = 0
+        asset.fps = 0
 
     return {
         "metrics": dict(metrics),
         "preview": asset.preview,
+        "frames": len(asset.preview_frames),
         "objects": int(metrics.get("objects") or 0),
         "missing_textures": list(metrics.get("missing_textures") or []),
     }

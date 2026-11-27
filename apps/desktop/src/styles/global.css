@@ -18169,6 +18169,65 @@ button.blender-chip {
   font-size: 8px;
 }
 
+.review-frame-timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 8px 10px 6px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--surface);
+}
+
+.review-frame-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: var(--text-muted);
+  font-size: 8.5px;
+}
+
+.review-frame-head b {
+  color: var(--accent-strong);
+}
+
+.review-frame-track {
+  position: relative;
+  height: 24px;
+  padding-top: 9px;
+}
+
+.review-frame-track input[type="range"] {
+  width: 100%;
+  margin: 0;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.review-frame-marker {
+  position: absolute;
+  top: -2px;
+  transform: translateX(-50%);
+  display: grid;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  place-items: center;
+  border: 2px solid rgba(0, 0, 0, 0.55);
+  border-radius: 50%;
+  background: var(--accent);
+  color: #17130b;
+  font: inherit;
+  font-size: 7px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.review-frame-marker.is-resolved {
+  background: rgba(255, 255, 255, 0.35);
+  color: #fff;
+}
+
 .review-stage-image.is-overlay {
   position: absolute;
   inset: 0;

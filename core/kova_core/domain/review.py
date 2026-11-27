@@ -26,6 +26,7 @@ class ReviewComment(DomainModel):
     x: float = Field(default=0.5, ge=0, le=1)
     y: float = Field(default=0.5, ge=0, le=1)
     timestamp: float | None = Field(default=None, ge=0, le=86400)
+    frame: int | None = Field(default=None, ge=0, le=1000000)
     body: str = Field(min_length=1, max_length=2000)
     author: str = "human"
     resolved: bool = False

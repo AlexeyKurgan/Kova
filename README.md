@@ -82,6 +82,8 @@ game project:
 - Replay a failed check, capture its environment and compare status/output.
 - Image pins and comments tied to an asset version.
 - Video review with a timeline, frame-time pins and seek-to-comment.
+- Blender animation previews: Blender renders sampled frames, Review shows a frame
+  scrubber and frame pins.
 - Version comparison slider (A/B).
 - “Second opinion” prompt for an independent critic.
 - Accept, rework or archive; accepting with failed checks requires explicit confirmation.

@@ -941,6 +941,7 @@ export async function addReviewComment(
     x?: number;
     y?: number;
     timestamp?: number | null;
+    frame?: number | null;
   },
 ): Promise<ReviewComment> {
   return request<ReviewComment>(`/review/${encodeURIComponent(reviewId)}/comments`, {

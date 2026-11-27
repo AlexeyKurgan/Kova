@@ -227,6 +227,7 @@ export default function ReviewScreen({
       x: number;
       y: number;
       timestamp?: number | null;
+      frame?: number | null;
     },
   ) => {
     const created = await addReviewComment(reviewId, {
@@ -236,6 +237,7 @@ export default function ReviewScreen({
       x: input.x,
       y: input.y,
       timestamp: input.timestamp ?? null,
+      frame: input.frame ?? null,
     });
     setComments((current) => ({
       ...current,
@@ -459,7 +461,11 @@ export default function ReviewScreen({
               : filteredChanges.slice(0, 6);
             const reviewAssets = linkedAssets(item.task_id);
             const stageCandidates = reviewAssets.filter(
-              (asset) => assetPreview(asset) || asset.type === "video",
+              (asset) =>
+                assetPreview(asset) ||
+                asset.type === "video" ||
+                asset.preview_frames.length > 0 ||
+                asset.versions.some((version) => version.preview_frames.length > 0),
             );
             const stageCandidateId = stageAsset[item.id] ?? stageCandidates[0]?.id ?? "";
             const activeStage =

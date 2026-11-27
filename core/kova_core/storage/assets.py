@@ -2,7 +2,12 @@ import hashlib
 import shutil
 from pathlib import Path
 
-from ..domain.asset import AssetMetrics, AssetPassport, AssetVersion
+from ..domain.asset import (
+    AssetMetrics,
+    AssetPassport,
+    AssetPreviewFrame,
+    AssetVersion,
+)
 from ..domain.enums import AssetType, AssetVersionStatus, Engine
 from ..security.paths import resolve_inside
 
@@ -20,6 +25,12 @@ def _normalize(asset: AssetPassport) -> AssetPassport:
             version.file_hash = asset.file_hash
             version.file_size = asset.file_size
             version.preview = asset.preview
+            version.preview_frames = [
+                item.model_copy(deep=True) for item in asset.preview_frames
+            ]
+            version.frame_start = asset.frame_start
+            version.frame_end = asset.frame_end
+            version.fps = asset.fps
             version.metrics = asset.metrics.model_copy(deep=True)
     return asset
 
@@ -152,6 +163,10 @@ def add_asset_version(
         asset.file_hash = version.file_hash
         asset.file_size = version.file_size
         asset.preview = ""
+        asset.preview_frames = []
+        asset.frame_start = 0
+        asset.frame_end = 0
+        asset.fps = 0
         asset.metrics = AssetMetrics()
         asset.scene = []
     save_asset(hub, asset)
@@ -172,6 +187,10 @@ def activate_asset_version(hub: Path, asset: AssetPassport, version_id: str) -> 
     asset.file_hash = version.file_hash
     asset.file_size = version.file_size
     asset.preview = version.preview
+    asset.preview_frames = [item.model_copy(deep=True) for item in version.preview_frames]
+    asset.frame_start = version.frame_start
+    asset.frame_end = version.frame_end
+    asset.fps = version.fps
     asset.metrics = version.metrics.model_copy(deep=True) if version.metrics else AssetMetrics()
     asset.scene = [item.model_copy(deep=True) for item in version.scene]
     save_asset(hub, asset)
@@ -189,6 +208,10 @@ def sync_current_version(asset: AssetPassport) -> AssetVersion | None:
     version.file_hash = asset.file_hash
     version.file_size = asset.file_size
     version.preview = asset.preview
+    version.preview_frames = [item.model_copy(deep=True) for item in asset.preview_frames]
+    version.frame_start = asset.frame_start
+    version.frame_end = asset.frame_end
+    version.fps = asset.fps
     version.metrics = asset.metrics.model_copy(deep=True)
     version.scene = [item.model_copy(deep=True) for item in asset.scene]
     return version
@@ -286,6 +309,7 @@ def delete_asset(hub: Path, asset_id: str) -> bool:
     project_root = hub.parent
     other_paths: set[str] = set()
     other_previews: set[str] = set()
+    other_frame_dirs: set[str] = set()
     for other in list_assets(hub):
         if other.id == asset_id:
             continue
@@ -294,22 +318,43 @@ def delete_asset(hub: Path, asset_id: str) -> bool:
                 other_paths.add(version.path)
             if version.preview:
                 other_previews.add(version.preview)
+            other_frame_dirs.update(
+                Path(item.path).parent.as_posix()
+                for item in version.preview_frames
+                if item.path
+            )
         if other.path:
             other_paths.add(other.path)
         if other.preview:
             other_previews.add(other.preview)
+        other_frame_dirs.update(
+            Path(item.path).parent.as_posix()
+            for item in other.preview_frames
+            if item.path
+        )
 
     paths: set[str] = set(other_paths)
     previews: set[str] = set()
+    frame_dirs: set[str] = set()
     for version in asset.versions:
         if version.path:
             paths.add(version.path)
         if version.preview:
             previews.add(version.preview)
+        frame_dirs.update(
+            Path(item.path).parent.as_posix()
+            for item in version.preview_frames
+            if item.path
+        )
     if asset.path:
         paths.add(asset.path)
     if asset.preview:
         previews.add(asset.preview)
+    frame_dirs.update(
+        Path(item.path).parent.as_posix()
+        for item in asset.preview_frames
+        if item.path
+    )
 
     for relative in paths - other_paths:
         try:
@@ -332,6 +377,15 @@ def delete_asset(hub: Path, asset_id: str) -> bool:
             continue
         if target.is_file() and "artifacts" in target.relative_to(hub).parts:
             target.unlink(missing_ok=True)
+
+    for relative in frame_dirs - other_frame_dirs:
+        try:
+            target = resolve_inside(hub, relative)
+        except ValueError:
+            continue
+        parts = target.relative_to(hub).parts
+        if "artifacts" in parts and "previews" in parts and target.is_dir():
+            shutil.rmtree(target, ignore_errors=True)
 
     from ..checks.assets import checks_file
     from .tasks import get_task, save_task

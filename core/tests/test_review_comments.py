@@ -134,3 +134,62 @@ def test_review_video_media_and_timestamp_bounds(tmp_path: Path, monkeypatch) ->
         json={"body": "too late", "timestamp": 90000},
     )
     assert bad.status_code == 422
+
+
+def test_animation_frame_pins_and_preview(tmp_path: Path, monkeypatch) -> None:
+    client = make_client(tmp_path, monkeypatch)
+    game = tmp_path / "game"
+    game.mkdir()
+    client.post("/project/open", json={"path": str(game)})
+    task = client.post("/tasks", json={"title": "Animation review"}).json()
+    review = save_review(game / ".hub", ReviewItem(task_id=task["id"], summary="Swing"))
+
+    png = bytes.fromhex(
+        "89504e470d0a1a0a0000000d49484452000000010000000108060000001f15c4"
+        "890000000d49444154789c6360000000020001e221bc330000000049454e44ae426082"
+    )
+    source = tmp_path / "swing.fbx"
+    source.write_bytes(b"fbx")
+    asset = client.post("/assets/import", json={"path": str(source)}).json()
+
+    from kova_core.domain.asset import AssetPreviewFrame
+    from kova_core.storage.assets import get_asset, save_asset, sync_current_version
+
+    hub = game / ".hub"
+    stored = get_asset(hub, asset["id"])
+    assert stored is not None
+    frame_path = hub / "artifacts" / "previews" / "anim" / "frame_0012.png"
+    frame_path.parent.mkdir(parents=True)
+    frame_path.write_bytes(png)
+    stored.preview_frames = [
+        AssetPreviewFrame(frame=12, path=frame_path.relative_to(hub).as_posix())
+    ]
+    stored.frame_start = 1
+    stored.frame_end = 24
+    stored.fps = 24
+    sync_current_version(stored)
+    save_asset(hub, stored)
+
+    preview = client.get(f"/assets/{asset['id']}/preview", params={"frame": 12})
+    assert preview.status_code == 200
+    assert preview.headers["content-type"].startswith("image/png")
+    missing = client.get(f"/assets/{asset['id']}/preview", params={"frame": 99})
+    assert missing.status_code == 404
+
+    version_id = stored.versions[0].id
+    added = client.post(
+        f"/review/{review.id}/comments",
+        json={
+            "body": "Поправить замах",
+            "asset_id": asset["id"],
+            "version_id": version_id,
+            "frame": 12,
+        },
+    )
+    assert added.status_code == 201, added.text
+    assert added.json()["frame"] == 12
+    bad = client.post(
+        f"/review/{review.id}/comments",
+        json={"body": "bad frame", "frame": -1},
+    )
+    assert bad.status_code == 422

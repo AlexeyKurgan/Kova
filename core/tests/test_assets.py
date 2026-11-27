@@ -236,9 +236,25 @@ def test_delete_asset_removes_file_and_task_link(tmp_path: Path, monkeypatch) ->
     copied = game / asset["path"]
     assert copied.is_file()
 
+    from kova_core.domain.asset import AssetPreviewFrame
+    from kova_core.storage.assets import get_asset, save_asset, sync_current_version
+
+    hub = game / ".hub"
+    stored = get_asset(hub, asset["id"])
+    frame_dir = hub / "artifacts" / "previews" / "anim_frames"
+    frame_dir.mkdir(parents=True)
+    frame_file = frame_dir / "frame_0001.png"
+    frame_file.write_bytes(b"png")
+    stored.preview_frames = [
+        AssetPreviewFrame(frame=1, path=frame_file.relative_to(hub).as_posix())
+    ]
+    sync_current_version(stored)
+    save_asset(hub, stored)
+
     response = client.delete(f"/assets/{asset['id']}")
     assert response.status_code == 204
     assert not copied.exists()
+    assert not frame_dir.exists()
     assert not (game / ".hub" / "assets" / f"{asset['id']}.json").exists()
     assert client.get("/assets").json() == []
     updated = next(item for item in client.get("/tasks").json() if item["id"] == task["id"])

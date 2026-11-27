@@ -9,6 +9,8 @@ from mathutils import Vector
 
 ASSET = os.environ.get("KOVA_ASSET_PATH", "")
 RENDER = os.environ.get("KOVA_RENDER_PATH", "")
+FRAMES_DIR = os.environ.get("KOVA_RENDER_FRAMES_DIR", "")
+FRAME_COUNT = max(2, min(12, int(os.environ.get("KOVA_RENDER_FRAMES") or "7")))
 
 
 def emit(payload: dict) -> None:
@@ -122,23 +124,32 @@ def collect_scene() -> list[dict]:
     return rows
 
 
-def render_preview(path: Path) -> str:
-    scene = bpy.context.scene
+def _prepare_scene(scene) -> None:
     meshes = [obj for obj in scene.objects if obj.type == "MESH"]
     if not meshes:
-        return ""
+        raise RuntimeError("нет мешей для рендера")
 
     mins = Vector((math.inf, math.inf, math.inf))
     maxs = Vector((-math.inf, -math.inf, -math.inf))
-    for obj in meshes:
-        for corner in obj.bound_box:
-            point = obj.matrix_world @ Vector(corner)
-            mins.x = min(mins.x, point.x)
-            mins.y = min(mins.y, point.y)
-            mins.z = min(mins.z, point.z)
-            maxs.x = max(maxs.x, point.x)
-            maxs.y = max(maxs.y, point.y)
-            maxs.z = max(maxs.z, point.z)
+    frame_start, frame_end, _fps = _animation_range()
+    original_frame = scene.frame_current
+    sample_frames = (
+        [frame_start, (frame_start + frame_end) // 2, frame_end]
+        if frame_end > frame_start
+        else [original_frame]
+    )
+    for sample in sample_frames:
+        scene.frame_set(sample)
+        for obj in meshes:
+            for corner in obj.bound_box:
+                point = obj.matrix_world @ Vector(corner)
+                mins.x = min(mins.x, point.x)
+                mins.y = min(mins.y, point.y)
+                mins.z = min(mins.z, point.z)
+                maxs.x = max(maxs.x, point.x)
+                maxs.y = max(maxs.y, point.y)
+                maxs.z = max(maxs.z, point.z)
+    scene.frame_set(original_frame)
 
     center = (mins + maxs) / 2
     dimensions = maxs - mins
@@ -152,7 +163,7 @@ def render_preview(path: Path) -> str:
     look = center - camera.location
     camera.rotation_euler = look.to_track_quat("-Z", "Y").to_euler()
     camera.data.type = "ORTHO"
-    camera.data.ortho_scale = size * 1.8
+    camera.data.ortho_scale = size * 2.4
     scene.camera = camera
 
     light_data = bpy.data.lights.new("KovaPreviewLight", type="AREA")
@@ -177,9 +188,7 @@ def render_preview(path: Path) -> str:
     scene.render.resolution_percentage = 100
     scene.render.film_transparent = True
     scene.render.image_settings.file_format = "PNG"
-    scene.render.filepath = str(path)
     scene.view_settings.view_transform = "Standard"
-
     try:
         scene.render.engine = "BLENDER_WORKBENCH"
         scene.display.shading.light = "STUDIO"
@@ -188,17 +197,74 @@ def render_preview(path: Path) -> str:
         scene.display.shading.show_cavity = True
         scene.display.shading.cavity_type = "WORLD"
         scene.display.render_aa = "8"
-        path.parent.mkdir(parents=True, exist_ok=True)
-        bpy.ops.render.render(write_still=True)
     except Exception:
         scene.render.engine = "CYCLES"
         scene.cycles.device = "CPU"
         scene.cycles.samples = 16
         scene.cycles.use_denoising = False
-        path.parent.mkdir(parents=True, exist_ok=True)
-        bpy.ops.render.render(write_still=True)
 
+
+def _render_still(scene, path: Path) -> str:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    scene.render.filepath = str(path)
+    bpy.ops.render.render(write_still=True)
     return str(path) if path.is_file() else ""
+
+
+def render_preview(path: Path) -> str:
+    scene = bpy.context.scene
+    _prepare_scene(scene)
+    return _render_still(scene, path)
+
+
+def _animation_range() -> tuple[int, int, float]:
+    scene = bpy.context.scene
+    starts: list[int] = []
+    ends: list[int] = []
+    actions = [
+        action
+        for action in bpy.data.actions
+        if getattr(action, "users", 0) or getattr(action, "use_fake_user", False)
+    ]
+    for action in actions:
+        try:
+            start, end = action.frame_range
+        except Exception:
+            continue
+        starts.append(int(round(start)))
+        ends.append(int(round(end)))
+    if not starts and scene.frame_end > scene.frame_start:
+        starts.append(int(scene.frame_start))
+        ends.append(int(scene.frame_end))
+    if not starts:
+        return 0, 0, 0.0
+    start = min(starts)
+    end = max(ends)
+    if end < start:
+        start, end = end, start
+    fps = float(scene.render.fps) / float(scene.render.fps_base or 1.0)
+    return start, end, fps
+
+
+def render_animation_frames(scene, directory: Path, start: int, end: int) -> list[dict[str, object]]:
+    directory.mkdir(parents=True, exist_ok=True)
+    if end <= start:
+        picks = [start]
+    else:
+        picks = sorted(
+            {
+                int(round(start + (end - start) * index / (FRAME_COUNT - 1)))
+                for index in range(FRAME_COUNT)
+            }
+        )
+    rows: list[dict[str, object]] = []
+    for frame in picks:
+        scene.frame_set(frame)
+        target = directory / f"frame_{frame:04d}.png"
+        rendered = _render_still(scene, target)
+        if rendered:
+            rows.append({"frame": frame, "path": rendered})
+    return rows
 
 
 def main() -> None:
@@ -212,9 +278,24 @@ def main() -> None:
         import_asset(asset_path)
         metrics = collect_metrics()
         rendered = ""
+        frames: list[dict[str, object]] = []
+        frame_start = 0
+        frame_end = 0
+        fps = 0.0
         if RENDER and metrics["objects"] > 0:
             try:
-                rendered = render_preview(Path(RENDER))
+                scene = bpy.context.scene
+                _prepare_scene(scene)
+                rendered = _render_still(scene, Path(RENDER))
+                if FRAMES_DIR and (metrics.get("animations") or 0) > 0:
+                    frame_start, frame_end, fps = _animation_range()
+                    if frame_end >= frame_start:
+                        frames = render_animation_frames(
+                            scene,
+                            Path(FRAMES_DIR),
+                            frame_start,
+                            frame_end,
+                        )
             except Exception as render_error:
                 metrics["render_error"] = str(render_error)
 
@@ -223,6 +304,10 @@ def main() -> None:
                 "ok": True,
                 "metrics": metrics,
                 "rendered": bool(rendered),
+                "frames": frames,
+                "frame_start": frame_start,
+                "frame_end": frame_end,
+                "fps": fps,
             }
         )
     except Exception as error:

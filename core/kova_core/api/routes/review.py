@@ -45,6 +45,7 @@ class ReviewCommentCreate(BaseModel):
     x: float = 0.5
     y: float = 0.5
     timestamp: float | None = Field(default=None, ge=0, le=86400)
+    frame: int | None = Field(default=None, ge=0, le=1000000)
 
 
 class ReviewCommentUpdate(BaseModel):
@@ -104,6 +105,7 @@ def add_comment(
         x=min(1.0, max(0.0, payload.x)),
         y=min(1.0, max(0.0, payload.y)),
         timestamp=payload.timestamp,
+        frame=payload.frame,
         body=body,
     )
     saved = save_review_comment(hub, comment)

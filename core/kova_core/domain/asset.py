@@ -30,6 +30,11 @@ class SceneObject(DomainModel):
     dimensions: list[float] = Field(default_factory=list)
 
 
+class AssetPreviewFrame(DomainModel):
+    frame: int = 0
+    path: str = ""
+
+
 class AssetVersion(DomainModel):
     id: str = Field(default_factory=lambda: new_id("ver"))
     label: str
@@ -40,6 +45,10 @@ class AssetVersion(DomainModel):
     file_hash: str = ""
     file_size: int = 0
     preview: str = ""
+    preview_frames: list[AssetPreviewFrame] = Field(default_factory=list)
+    frame_start: int = 0
+    frame_end: int = 0
+    fps: float = 0
     metrics: AssetMetrics | None = None
     scene: list[SceneObject] = Field(default_factory=list)
     created_at: datetime = Field(default_factory=utc_now)
@@ -66,6 +75,10 @@ class AssetPassport(DomainModel):
     file_hash: str = ""
     file_size: int = 0
     preview: str = ""
+    preview_frames: list[AssetPreviewFrame] = Field(default_factory=list)
+    frame_start: int = 0
+    frame_end: int = 0
+    fps: float = 0
     current_version_id: str | None = None
     origin: str = ""
     task_id: str | None = None

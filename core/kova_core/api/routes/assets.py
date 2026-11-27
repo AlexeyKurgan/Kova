@@ -225,12 +225,29 @@ def _pick_version(asset: AssetPassport, version_id: str | None):
 def get_asset_preview(
     asset_id: str,
     version_id: str | None = None,
+    frame: int | None = None,
     hub: Path = Depends(require_hub),
 ) -> FileResponse:
     asset = get_asset(hub, asset_id)
     if asset is None:
         raise HTTPException(status_code=404, detail="asset not found")
     version = _pick_version(asset, version_id)
+    if frame is not None:
+        frames = version.preview_frames if version else asset.preview_frames
+        match = next((item for item in frames if item.frame == frame), None)
+        if match is None:
+            raise HTTPException(status_code=404, detail="preview frame not found")
+        try:
+            path = resolve_inside(hub, match.path)
+        except ValueError as exc:
+            raise HTTPException(status_code=404, detail="preview frame not found") from exc
+        if not path.is_file():
+            raise HTTPException(status_code=404, detail="preview frame not found")
+        return FileResponse(
+            path,
+            media_type="image/png",
+            headers={"Cache-Control": "no-store"},
+        )
     preview = version.preview if version else asset.preview
     if not preview:
         raise HTTPException(status_code=404, detail="preview not found")
