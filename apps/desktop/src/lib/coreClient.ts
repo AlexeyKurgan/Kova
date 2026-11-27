@@ -477,6 +477,19 @@ export async function getDiary(days = 14): Promise<DiaryResponse> {
   return request<DiaryResponse>(`/diary?days=${days}`);
 }
 
+export async function downloadUpdate(
+  url: string,
+  expectedSha256 = "",
+): Promise<{ path: string; name: string; size: number; sha256: string }> {
+  return request<{ path: string; name: string; size: number; sha256: string }>(
+    "/updates/download",
+    {
+      method: "POST",
+      body: JSON.stringify({ url, expected_sha256: expectedSha256 }),
+    },
+  );
+}
+
 export async function checkForUpdates(): Promise<{
   current: string;
   latest: string;
@@ -484,6 +497,7 @@ export async function checkForUpdates(): Promise<{
   url: string;
   notes: string;
   published_at: string;
+  assets: Array<{ name: string; url: string; size: number }>;
   checked_at: string;
   error: string;
 }> {

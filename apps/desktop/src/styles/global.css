@@ -20717,3 +20717,22 @@ html[data-mode="beginner"] .advanced-only {
     grid-template-columns: 1fr 1fr;
   }
 }
+
+.about-installer {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-wrap: wrap;
+  width: 100%;
+  color: var(--text-muted);
+  font-size: 8px;
+}
+
+.about-installer code {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 420px;
+  color: var(--text-secondary);
+  font-size: 7.5px;
+}
