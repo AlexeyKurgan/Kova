@@ -6,7 +6,7 @@
     {
       "id": "starter-review-checklist",
       "name": "Starter Review Checklist",
-      "version": "1.1.0",
+      "version": "1.2.0",
       "type": "check",
       "author": "Kova",
       "engines": [
@@ -34,9 +34,10 @@
       "ui": [],
       "description": "Чек-лист приёмки ассета и готовый шаблон задачи: масштаб, нейминг, материалы, UV, LOD и экспорт. Метаданные и рекомендации, без исполняемого кода.",
       "homepage": "https://github.com/AlexeyKurgan/Kova/tree/main/packages/samples/starter-review-checklist",
-      "download_url": "https://raw.githubusercontent.com/AlexeyKurgan/Kova/main/packages/archives/starter-review-checklist-1.1.0.zip",
-      "sha256": "5a3f83b09ecbbdaa646ec3360f4265dc831479fd5ed7f0986cf15380cd9761a6",
-      "size": 1851
+      "download_url": "https://raw.githubusercontent.com/AlexeyKurgan/Kova/main/packages/archives/starter-review-checklist-1.2.0.zip",
+      "sha256": "c645ada146c5ac7a1928afdb3215c5fa1eeb27b7650ba62c3de76aef0ccf0d4e",
+      "size": 2034,
+      "description_en": "Asset acceptance checklist and task template: scale, naming, materials, UV, LOD and export. Metadata and guidance only, no executable code."
     }
   ]
 }

@@ -1,3 +1,4 @@
+import { getLanguage } from "./i18n";
 import type {
   AiRun,
   AgentSession,
@@ -80,6 +81,7 @@ async function ensureToken(): Promise<void> {
 
 function withAuth(headers?: HeadersInit): Headers {
   const result = new Headers(headers);
+  result.set("X-Kova-Language", getLanguage());
   if (TOKEN) result.set("X-Kova-Token", TOKEN);
   return result;
 }

@@ -6,6 +6,7 @@ from pydantic import BaseModel
 
 from ...packages import custom, remote, store
 from ...packages.catalog import get_catalog_entry
+from ...i18n import get_language, tl
 from ...domain.ledger import LedgerEvent
 from ...storage.ledger import append_event
 from ...security.paths import resolve_inside
@@ -70,7 +71,20 @@ def list_package_task_templates(hub: Path = Depends(require_hub)) -> list[dict[s
     for row in store.list_packages(hub):
         if not row.get("custom") or not row.get("installed") or not row.get("enabled"):
             continue
-        templates.extend(row.get("task_templates") or [])
+        for template in row.get("task_templates") or []:
+            templates.append(
+                {
+                    **template,
+                    "label": tl(template.get("label", ""), template.get("label_en", "")),
+                    "title": tl(template.get("title", ""), template.get("title_en", "")),
+                    "goal": tl(template.get("goal", ""), template.get("goal_en", "")),
+                    "criteria": (
+                        template.get("criteria_en")
+                        if get_language() == "en" and template.get("criteria_en")
+                        else template.get("criteria", [])
+                    ),
+                }
+            )
     return templates
 
 
@@ -85,6 +99,11 @@ def get_marketplace(
         raise HTTPException(status_code=502, detail=str(exc)) from exc
     installed = {row["id"]: row for row in store.list_packages(hub)}
     for entry in index["packages"]:
+        entry["name"] = tl(entry.get("name", ""), entry.get("name_en", ""))
+        entry["description"] = tl(
+            entry.get("description", ""),
+            entry.get("description_en", ""),
+        )
         current = installed.get(entry["id"])
         entry["installed"] = bool(current and current.get("installed"))
         entry["status"] = (

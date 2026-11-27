@@ -27,6 +27,7 @@ def _manifest(package_id: str = "my-pack") -> dict:
         "templates": [],
         "ui": [],
         "description": "Local test package",
+        "description_en": "English test package",
     }
 
 
@@ -108,6 +109,10 @@ def test_custom_package_task_templates(tmp_path: Path, monkeypatch) -> None:
             "engine": "generic",
             "goal": "Пройти чек-лист и исправить замечания.",
             "criteria": ["Масштаб", "Материалы"],
+            "label_en": "Checklist review",
+            "title_en": "Review the checklist",
+            "goal_en": "Go through the checklist and fix the findings.",
+            "criteria_en": ["Scale", "Materials"],
         },
         {
             "id": "bad id",
@@ -128,6 +133,20 @@ def test_custom_package_task_templates(tmp_path: Path, monkeypatch) -> None:
     assert rows[0]["type"] == "model"
     assert rows[0]["engine"] == "generic"
     assert rows[0]["criteria"] == ["Масштаб", "Материалы"]
+
+    english = client.get(
+        "/packages/templates", headers={"X-Kova-Language": "en"}
+    ).json()
+    assert english[0]["label"] == "Checklist review"
+    assert english[0]["title"] == "Review the checklist"
+    assert english[0]["criteria"] == ["Scale", "Materials"]
+    listed_en = {
+        row["id"]: row
+        for row in client.get(
+            "/packages", headers={"X-Kova-Language": "en"}
+        ).json()
+    }
+    assert listed_en["template-pack"]["description"] == "English test package"
 
     client.patch("/packages/template-pack", json={"enabled": False})
     assert client.get("/packages/templates").json() == []

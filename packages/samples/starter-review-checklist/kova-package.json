@@ -1,7 +1,7 @@
 {
   "id": "starter-review-checklist",
   "name": "Starter Review Checklist",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "type": "check",
   "author": "Kova",
   "engines": [
@@ -41,7 +41,17 @@
         "Материалы и UV",
         "LOD и бюджет",
         "Экспорт проверен"
+      ],
+      "label_en": "Checklist review",
+      "title_en": "Review asset against the checklist",
+      "goal_en": "Go through the asset acceptance checklist and prepare a list of fixes.",
+      "criteria_en": [
+        "Scale and units",
+        "Materials and UV",
+        "LOD and budget",
+        "Export verified"
       ]
     }
-  ]
+  ],
+  "description_en": "Asset acceptance checklist and task template: scale, naming, materials, UV, LOD and export. Metadata and guidance only, no executable code."
 }

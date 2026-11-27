@@ -235,8 +235,8 @@ export default function DoctorScreen({ checks, onRefresh, onExport, onRepair }: 
                       {t(STATUS_LABELS[check.status])}
                     </span>
                   </div>
-                  <b>{t(check.name)}</b>
-                  <p>{t(check.message)}</p>
+                  <b>{check.display_name || t(check.name)}</b>
+                  <p>{check.display_message || t(check.message)}</p>
                   {hint ? <small>{t(hint)}</small> : null}
                 </article>
               );

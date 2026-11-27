@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 
 from ...checks.doctor import run_doctor
+from ...i18n import tr
 from ...domain.check import CheckResult
 from ...storage.hub import HUB_STRUCTURE
 from ..deps import require_hub
@@ -29,27 +30,30 @@ def repair_doctor(hub: Path = Depends(require_hub)) -> DoctorRepairResponse:
         target = hub / relative
         if not target.is_dir():
             target.mkdir(parents=True, exist_ok=True)
-            actions.append(f"Создана папка: {relative}")
+            actions.append(tr(f"Создана папка: {relative}", f"Created folder: {relative}"))
 
     for relative in ("decisions/decisions.jsonl", "ledger/events.jsonl"):
         target = hub / relative
         if not target.is_file():
             target.parent.mkdir(parents=True, exist_ok=True)
             target.touch()
-            actions.append(f"Создан журнал: {relative}")
+            actions.append(tr(f"Создан журнал: {relative}", f"Created journal: {relative}"))
 
     index = hub / "snapshots" / "index.json"
     if not index.is_file():
         index.parent.mkdir(parents=True, exist_ok=True)
         index.write_text("{}\n", encoding="utf-8")
-        actions.append("Создан индекс снапшотов")
+        actions.append(tr("Создан индекс снапшотов", "Created snapshot index"))
 
     if not (hub / "project.json").is_file():
         actions.append(
-            "project.json отсутствует — восстанови его из Git или снапшота, автоматически создавать его небезопасно"
+            tr(
+                "project.json отсутствует — восстанови его из Git или снапшота, автоматически создавать его небезопасно",
+                "project.json is missing — restore it from Git or a snapshot; creating it automatically is unsafe",
+            )
         )
 
     if not actions:
-        actions.append("Структура .hub уже в порядке — исправлять нечего")
+        actions.append(tr("Структура .hub уже в порядке — исправлять нечего", "The .hub structure is already fine — nothing to fix"))
 
     return DoctorRepairResponse(actions=actions, checks=run_doctor(hub))

@@ -171,6 +171,7 @@ def _normalize_entry(raw: Any) -> dict[str, Any] | None:
     return {
         "id": package_id,
         "name": name,
+        "name_en": str(raw.get("name_en") or ""),
         "version": str(raw.get("version") or "0.1.0"),
         "type": str(raw.get("type") or "tool_adapter"),
         "author": str(raw.get("author") or "Community"),
@@ -181,6 +182,7 @@ def _normalize_entry(raw: Any) -> dict[str, Any] | None:
         "templates": _string_list(raw.get("templates")),
         "ui": _string_list(raw.get("ui")),
         "description": str(raw.get("description") or ""),
+        "description_en": str(raw.get("description_en") or ""),
         "homepage": homepage,
         "download_url": download_url,
         "sha256": sha256,

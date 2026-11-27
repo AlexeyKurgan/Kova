@@ -9,6 +9,7 @@ from ..domain.ledger import LedgerEvent
 from ..domain.enums import Engine
 from ..storage.ledger import append_event
 from .catalog import CATALOG, get_catalog_entry
+from ..i18n import tl
 from .custom import get_custom_package, import_custom_package, list_custom_packages
 from ..integrations.engines import detect_engine
 
@@ -73,6 +74,11 @@ def _row(hub: Path, item: dict[str, Any], state: dict[str, Any]) -> dict[str, An
         status = "disabled"
     row = {
         **item,
+        "name": tl(str(item.get("name") or ""), str(item.get("name_en") or "")),
+        "description": tl(
+            str(item.get("description") or ""),
+            str(item.get("description_en") or ""),
+        ),
         "installed": installed,
         "enabled": enabled,
         "status": status,

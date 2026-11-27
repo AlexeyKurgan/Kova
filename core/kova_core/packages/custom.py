@@ -43,14 +43,21 @@ def _normalize_template(raw: Any, package_id: str) -> dict[str, Any] | None:
     criteria = raw.get("criteria") or []
     if not isinstance(criteria, list):
         criteria = []
+    criteria_en = raw.get("criteria_en") or []
+    if not isinstance(criteria_en, list):
+        criteria_en = []
     return {
         "id": f"{package_id}::{template_id}",
         "label": label[:80],
+        "label_en": str(raw.get("label_en") or "")[:80],
         "title": title[:200],
+        "title_en": str(raw.get("title_en") or "")[:200],
         "type": task_type,
         "engine": engine,
         "goal": str(raw.get("goal") or "")[:4000],
+        "goal_en": str(raw.get("goal_en") or "")[:4000],
         "criteria": [str(item)[:300] for item in criteria[:12]],
+        "criteria_en": [str(item)[:300] for item in criteria_en[:12]],
     }
 
 
@@ -81,6 +88,7 @@ def _normalize(manifest: dict[str, Any]) -> dict[str, Any]:
     return {
         "id": package_id,
         "name": name,
+        "name_en": str(manifest.get("name_en") or ""),
         "version": str(manifest.get("version") or "0.1.0"),
         "type": str(manifest.get("type") or "tool_adapter"),
         "author": str(manifest.get("author") or "Local"),
@@ -93,6 +101,7 @@ def _normalize(manifest: dict[str, Any]) -> dict[str, Any]:
         "ui": [str(item) for item in (manifest.get("ui") or [])],
         "trust": "local",
         "description": str(manifest.get("description") or ""),
+        "description_en": str(manifest.get("description_en") or ""),
         "installed_by_default": False,
         "available": True,
         "custom": True,

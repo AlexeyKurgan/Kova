@@ -1092,6 +1092,8 @@ export type CheckStatus =
 export type CheckResult = {
   id: string;
   name: string;
+  display_name?: string;
+  display_message?: string;
   status: CheckStatus;
   message: string;
   details: Record<string, unknown>;

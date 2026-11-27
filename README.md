@@ -222,9 +222,9 @@ explicit click, after a snapshot.
 - Package marketplace entries require HTTPS and a SHA256 digest. Package code is
   never executed; archives pass the same manifest and zip-slip checks as a local
   import.
-- Interface language: Russian by default; English beta covers navigation, the top
-  bar, overview, projects, tasks, assets, review, task/asset details, validation,
-  work panel and settings.
+- Interface language: Russian by default; English covers the whole UI, package
+  descriptions, package task templates and Doctor messages. The backend receives
+  `X-Kova-Language` from the desktop client.
 - Kova does not intercept commands a CLI runs inside itself; read the provider’s
   own permission model.
 - The editor port `48620` has authentication disabled by code-server. Do not expose it.

@@ -31,6 +31,8 @@ from .routes import (
     updates,
 )
 
+from ..i18n import reset_language, set_language
+
 ALLOWED_ORIGINS = [
     "http://localhost:1420",
     "http://127.0.0.1:1420",
@@ -103,6 +105,17 @@ def create_app() -> FastAPI:
         "/roblox/event",
         "/roblox/status",
     }
+
+    @app.middleware("http")
+    async def request_language(request: Request, call_next):
+        token = set_language(
+            request.headers.get("x-kova-language")
+            or request.query_params.get("lang")
+        )
+        try:
+            return await call_next(request)
+        finally:
+            reset_language(token)
 
     @app.middleware("http")
     async def require_token(request: Request, call_next):

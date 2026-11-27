@@ -144,6 +144,7 @@ def test_marketplace_and_install(tmp_path: Path, monkeypatch) -> None:
                 "templates": [],
                 "ui": [],
                 "description": "Remote test package",
+                "description_en": "English remote package",
                 "homepage": "",
                 "download_url": "https://1.1.1.1/remote-pack.zip",
                 "sha256": hashlib.sha256(archive.read_bytes()).hexdigest(),
@@ -158,6 +159,10 @@ def test_marketplace_and_install(tmp_path: Path, monkeypatch) -> None:
     row = response.json()["packages"][0]
     assert row["installed"] is False
     assert row["builtin"] is False
+    english = client.get(
+        "/packages/marketplace", headers={"X-Kova-Language": "en"}
+    ).json()["packages"][0]
+    assert english["description"] == "English remote package"
 
     monkeypatch.setattr(
         remote,
@@ -207,7 +212,7 @@ def test_committed_index_matches_sample_archive() -> None:
     assert index["schema"] == 1
     sample = index["packages"][0]
     archive = (
-        root / "packages" / "archives" / "starter-review-checklist-1.1.0.zip"
+        root / "packages" / "archives" / "starter-review-checklist-1.2.0.zip"
     ).read_bytes()
     assert hashlib.sha256(archive).hexdigest() == sample["sha256"]
     assert len(archive) == sample["size"]

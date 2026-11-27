@@ -31,6 +31,14 @@ def test_packages_catalog_and_install(client: TestClient) -> None:
     assert "engine_info" in ids["godot-core"]
     assert ids["unity-core"]["available"] is True
     assert ids["web-core"]["available"] is True
+    english = {
+        row["id"]: row
+        for row in client.get(
+            "/packages", headers={"X-Kova-Language": "en"}
+        ).json()
+    }
+    assert english["kova-core"]["description"].startswith("Core foundation")
+    assert english["godot-core"]["description"].startswith("Godot project checks")
 
     installed_godot = client.post("/packages/godot-core/install")
     assert installed_godot.status_code == 200, installed_godot.text

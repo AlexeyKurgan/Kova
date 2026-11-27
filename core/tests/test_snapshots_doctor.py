@@ -62,6 +62,24 @@ def test_doctor_reports_environment(tmp_path: Path, monkeypatch) -> None:
     assert "Blender" in checks
 
 
+def test_doctor_reports_english_display_fields(tmp_path: Path, monkeypatch) -> None:
+    client = make_client(tmp_path, monkeypatch)
+    game = tmp_path / "game"
+    game.mkdir()
+    client.post("/project/open", json={"path": str(game)})
+
+    rows = client.get(
+        "/doctor", headers={"X-Kova-Language": "en"}
+    ).json()
+    checks = {item["name"]: item for item in rows}
+    assert checks["Структура .hub"]["display_name"] == ".hub structure"
+    assert checks["Структура .hub"]["display_message"] == "Project memory is present"
+    assert checks["Пакеты проекта"]["display_name"] == "Project packages"
+    assert "installed packages are OK" in checks["Пакеты проекта"]["display_message"]
+    # Grouping keys stay canonical regardless of the display language.
+    assert "Пакеты проекта" in checks
+
+
 def test_snapshot_diff(tmp_path: Path) -> None:
     game = tmp_path / "game"
     game.mkdir()
