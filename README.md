@@ -127,6 +127,7 @@ For free browser AIs:
 
 - Package catalog with permissions, tools, checks and engine coverage.
 - Package marketplace over a configurable HTTPS index, with SHA256-pinned downloads.
+- Installed packages can contribute declarative task templates to the task library.
 - Import local `.zip` packages with `kova-package.json`.
 - Install, enable, disable and uninstall packages.
 - Godot, Unity, Unreal, RPG Maker and Web packages detect the engine and project.

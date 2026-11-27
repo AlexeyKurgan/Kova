@@ -22,13 +22,18 @@ import BrandIcon from "../../components/BrandIcon";
 import { engineBrand } from "../../lib/brands";
 import { TASK_TEMPLATES } from "../../lib/taskTemplates";
 import { formatDate } from "../../lib/format";
-import { mediaUrl } from "../../lib/coreClient";
+import { listPackageTaskTemplates, mediaUrl } from "../../lib/coreClient";
 import {
   ENGINE_LABELS,
   TASK_STATUS_LABELS,
   TASK_TYPE_LABELS,
 } from "../../lib/labels";
-import type { AssetPassport, Task, TaskType } from "../../lib/types";
+import type {
+  AssetPassport,
+  PackageTaskTemplate,
+  Task,
+  TaskType,
+} from "../../lib/types";
 
 type Props = {
   tasks: Task[];
@@ -83,12 +88,31 @@ export default function TasksScreen({
 }: Props) {
   const [status, setStatus] = useState<StatusFilter>("all");
   const [libraryOpen, setLibraryOpen] = useState(false);
+  const [packageTemplates, setPackageTemplates] = useState<PackageTaskTemplate[]>([]);
   const [type, setType] = useState<"all" | TaskType>("all");
   const [sort, setSort] = useState("recent");
   const [query, setQuery] = useState("");
   const [menuFor, setMenuFor] = useState<string | null>(null);
   const [view, setView] = useState<"table" | "grid">("table");
   const [page, setPage] = useState(0);
+  const templates = useMemo(
+    () => [...packageTemplates, ...TASK_TEMPLATES],
+    [packageTemplates],
+  );
+
+  useEffect(() => {
+    let alive = true;
+    listPackageTaskTemplates()
+      .then((rows) => {
+        if (alive) setPackageTemplates(rows);
+      })
+      .catch(() => {
+        // Package templates are optional.
+      });
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   useEffect(() => {
     if (!menuFor) return;
@@ -586,12 +610,15 @@ export default function TasksScreen({
                 откроет задачу с заполненными полями.
               </p>
               <div className="template-library-grid">
-                {TASK_TEMPLATES.map((template) => (
+                {templates.map((template) => (
                   <article className="template-card" key={template.id}>
                     <div className="template-card-head">
                       <b>{template.label}</b>
                       <span className="template-engine">{ENGINE_LABELS[template.engine]}</span>
                     </div>
+                    {template.id.includes("::") ? (
+                      <small className="template-package">из пакета</small>
+                    ) : null}
                     <small className="template-type">{TASK_TYPE_LABELS[template.type]}</small>
                     <p>{template.goal}</p>
                     <ul>

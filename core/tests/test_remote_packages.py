@@ -207,7 +207,7 @@ def test_committed_index_matches_sample_archive() -> None:
     assert index["schema"] == 1
     sample = index["packages"][0]
     archive = (
-        root / "packages" / "archives" / "starter-review-checklist-1.0.0.zip"
+        root / "packages" / "archives" / "starter-review-checklist-1.1.0.zip"
     ).read_bytes()
     assert hashlib.sha256(archive).hexdigest() == sample["sha256"]
     assert len(archive) == sample["size"]

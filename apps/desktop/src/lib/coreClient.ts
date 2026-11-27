@@ -22,6 +22,7 @@ import type {
   ImportResponseResult,
   KovaPackage,
   PackageMarketplace,
+  PackageTaskTemplate,
   LedgerEvent,
   MemoryResponse,
   ProjectCard,
@@ -177,6 +178,10 @@ export async function installRemotePackage(input: {
       sha256: input.sha256,
     }),
   });
+}
+
+export async function listPackageTaskTemplates(): Promise<PackageTaskTemplate[]> {
+  return request<PackageTaskTemplate[]>("/packages/templates");
 }
 
 export async function installPackage(packageId: string): Promise<KovaPackage> {

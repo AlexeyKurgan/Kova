@@ -63,6 +63,16 @@ def import_package(payload: PackageImportRequest, hub: Path = Depends(require_hu
     return store.get_package(hub, manifest["id"]) or {}
 
 
+@router.get("/templates")
+def list_package_task_templates(hub: Path = Depends(require_hub)) -> list[dict[str, Any]]:
+    templates: list[dict[str, Any]] = []
+    for row in store.list_packages(hub):
+        if not row.get("custom") or not row.get("installed") or not row.get("enabled"):
+            continue
+        templates.extend(row.get("task_templates") or [])
+    return templates
+
+
 @router.get("/marketplace")
 def get_marketplace(
     url: str = "",

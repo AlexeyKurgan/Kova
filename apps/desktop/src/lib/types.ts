@@ -734,6 +734,16 @@ export type KovaPackage = {
   engine_info?: EngineInfo | null;
 };
 
+export type PackageTaskTemplate = {
+  id: string;
+  label: string;
+  title: string;
+  type: TaskType;
+  engine: Engine;
+  goal: string;
+  criteria: string[];
+};
+
 export type RemotePackage = {
   id: string;
   name: string;

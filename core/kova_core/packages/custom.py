@@ -7,6 +7,7 @@ import zipfile
 from pathlib import Path
 from typing import Any
 
+from ..domain.enums import Engine, TaskType
 from ..security.paths import resolve_inside
 
 CUSTOM_ROOT = Path("packages") / "custom"
@@ -23,6 +24,36 @@ def _custom_root(hub: Path) -> Path:
     return resolve_inside(hub, CUSTOM_ROOT)
 
 
+def _normalize_template(raw: Any, package_id: str) -> dict[str, Any] | None:
+    if not isinstance(raw, dict):
+        return None
+    template_id = str(raw.get("id") or "").strip()
+    if not ID_RE.match(template_id):
+        return None
+    label = str(raw.get("label") or "").strip()
+    title = str(raw.get("title") or "").strip()
+    if not label or not title:
+        return None
+    task_type = str(raw.get("type") or "model")
+    if task_type not in {item.value for item in TaskType}:
+        task_type = TaskType.model.value
+    engine = str(raw.get("engine") or "generic")
+    if engine not in {item.value for item in Engine}:
+        engine = Engine.generic.value
+    criteria = raw.get("criteria") or []
+    if not isinstance(criteria, list):
+        criteria = []
+    return {
+        "id": f"{package_id}::{template_id}",
+        "label": label[:80],
+        "title": title[:200],
+        "type": task_type,
+        "engine": engine,
+        "goal": str(raw.get("goal") or "")[:4000],
+        "criteria": [str(item)[:300] for item in criteria[:12]],
+    }
+
+
 def _normalize(manifest: dict[str, Any]) -> dict[str, Any]:
     package_id = str(manifest.get("id") or "").strip()
     if not ID_RE.match(package_id):
@@ -36,6 +67,17 @@ def _normalize(manifest: dict[str, Any]) -> dict[str, Any]:
     engines = manifest.get("engines") or ["generic"]
     if not isinstance(engines, list):
         raise PackageImportError("engines должен быть списком")
+    raw_templates = manifest.get("task_templates") or []
+    if not isinstance(raw_templates, list):
+        raw_templates = []
+    task_templates = []
+    seen_templates: set[str] = set()
+    for raw in raw_templates[:20]:
+        template = _normalize_template(raw, package_id)
+        if template is None or template["id"] in seen_templates:
+            continue
+        seen_templates.add(template["id"])
+        task_templates.append(template)
     return {
         "id": package_id,
         "name": name,
@@ -47,6 +89,7 @@ def _normalize(manifest: dict[str, Any]) -> dict[str, Any]:
         "tools": [str(item) for item in (manifest.get("tools") or [])],
         "checks": [str(item) for item in (manifest.get("checks") or [])],
         "templates": [str(item) for item in (manifest.get("templates") or [])],
+        "task_templates": task_templates,
         "ui": [str(item) for item in (manifest.get("ui") or [])],
         "trust": "local",
         "description": str(manifest.get("description") or ""),

@@ -1,7 +1,13 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import { Sparkles, SquareCheckBig, X } from "lucide-react";
-import type { CreateTaskInput, Engine, TaskType } from "../../lib/types";
+import type {
+  CreateTaskInput,
+  Engine,
+  PackageTaskTemplate,
+  TaskType,
+} from "../../lib/types";
+import { listPackageTaskTemplates } from "../../lib/coreClient";
 import { TASK_TEMPLATES, type TaskTemplate } from "../../lib/taskTemplates";
 
 type Props = {
@@ -46,7 +52,27 @@ export default function TaskDialog({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [templateId, setTemplateId] = useState("");
+  const [packageTemplates, setPackageTemplates] = useState<PackageTaskTemplate[]>([]);
   const titleRef = useRef<HTMLInputElement>(null);
+  const appliedInitial = useRef(false);
+  const allTemplates = useMemo(
+    () => [...packageTemplates, ...TASK_TEMPLATES],
+    [packageTemplates],
+  );
+
+  useEffect(() => {
+    let alive = true;
+    listPackageTaskTemplates()
+      .then((rows) => {
+        if (alive) setPackageTemplates(rows);
+      })
+      .catch(() => {
+        // Package templates are optional; built-in templates still work.
+      });
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   useEffect(() => {
     titleRef.current?.focus();
@@ -68,11 +94,14 @@ export default function TaskDialog({
   };
 
   useEffect(() => {
-    if (!initialTemplateId) return;
-    const template = TASK_TEMPLATES.find((item) => item.id === initialTemplateId);
-    if (template) applyTemplate(template);
+    if (!initialTemplateId || appliedInitial.current) return;
+    const template = allTemplates.find((item) => item.id === initialTemplateId);
+    if (template) {
+      applyTemplate(template);
+      appliedInitial.current = true;
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initialTemplateId]);
+  }, [allTemplates, initialTemplateId]);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -124,7 +153,7 @@ export default function TaskDialog({
               Шаблон
             </span>
             <div className="task-template-grid">
-              {TASK_TEMPLATES.map((template) => (
+              {allTemplates.map((template) => (
                 <button
                   type="button"
                   key={template.id}

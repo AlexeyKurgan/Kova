@@ -6,7 +6,7 @@
     {
       "id": "starter-review-checklist",
       "name": "Starter Review Checklist",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "type": "check",
       "author": "Kova",
       "engines": [
@@ -32,11 +32,11 @@
       ],
       "templates": [],
       "ui": [],
-      "description": "Готовый чек-лист приёмки ассета: масштаб, нейминг, материалы, UV, LOD и экспорт. Метаданные и рекомендации, без исполняемого кода.",
+      "description": "Чек-лист приёмки ассета и готовый шаблон задачи: масштаб, нейминг, материалы, UV, LOD и экспорт. Метаданные и рекомендации, без исполняемого кода.",
       "homepage": "https://github.com/AlexeyKurgan/Kova/tree/main/packages/samples/starter-review-checklist",
-      "download_url": "https://raw.githubusercontent.com/AlexeyKurgan/Kova/main/packages/archives/starter-review-checklist-1.0.0.zip",
-      "sha256": "11c7299e2a853b218d44ea6c0669ff2d827e1d0ab41d95a588781c79a1d880d0",
-      "size": 1642
+      "download_url": "https://raw.githubusercontent.com/AlexeyKurgan/Kova/main/packages/archives/starter-review-checklist-1.1.0.zip",
+      "sha256": "5a3f83b09ecbbdaa646ec3360f4265dc831479fd5ed7f0986cf15380cd9761a6",
+      "size": 1851
     }
   ]
 }

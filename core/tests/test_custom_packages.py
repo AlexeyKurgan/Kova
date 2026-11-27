@@ -91,3 +91,43 @@ def test_import_custom_package_static_id_rejected(tmp_path: Path, monkeypatch) -
     response = client.post("/packages/import", json={"path": str(source)})
     assert response.status_code == 409
     assert "встроенным" in response.json()["detail"]
+
+
+def test_custom_package_task_templates(tmp_path: Path, monkeypatch) -> None:
+    client = make_client(tmp_path, monkeypatch)
+    game = tmp_path / "game"
+    game.mkdir()
+    client.post("/project/open", json={"path": str(game)})
+    manifest = _manifest("template-pack")
+    manifest["task_templates"] = [
+        {
+            "id": "review-pass",
+            "label": "Review pass",
+            "title": "Проверить ассет по чек-листу",
+            "type": "model",
+            "engine": "generic",
+            "goal": "Пройти чек-лист и исправить замечания.",
+            "criteria": ["Масштаб", "Материалы"],
+        },
+        {
+            "id": "bad id",
+            "label": "Bad",
+        },
+    ]
+    source = tmp_path / "template-pack"
+    source.mkdir()
+    (source / "kova-package.json").write_text(json.dumps(manifest), encoding="utf-8")
+    assert client.post("/packages/import", json={"path": str(source)}).status_code == 200
+    assert client.get("/packages/templates").json() == []
+
+    installed = client.post("/packages/template-pack/install")
+    assert installed.status_code == 200, installed.text
+    rows = client.get("/packages/templates").json()
+    assert len(rows) == 1
+    assert rows[0]["id"] == "template-pack::review-pass"
+    assert rows[0]["type"] == "model"
+    assert rows[0]["engine"] == "generic"
+    assert rows[0]["criteria"] == ["Масштаб", "Материалы"]
+
+    client.patch("/packages/template-pack", json={"enabled": False})
+    assert client.get("/packages/templates").json() == []
