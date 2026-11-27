@@ -36,6 +36,7 @@ import SkillsScreen from "./features/skills/SkillsScreen";
 import EditorScreen from "./features/editor/EditorScreen";
 import ReviewScreen from "./features/review/ReviewScreen";
 import SectionPlaceholder from "./features/SectionPlaceholder";
+import NightShiftScreen from "./features/night/NightShiftScreen";
 import SnapshotsScreen from "./features/snapshots/SnapshotsScreen";
 import CapsuleModal from "./features/tasks/CapsuleModal";
 import ResponseModal from "./features/tasks/ResponseModal";
@@ -1453,6 +1454,15 @@ export default function App() {
             />
           ) : active === "Дневник" ? (
             <DiaryScreen />
+          ) : active === "Ночная смена" ? (
+            <NightShiftScreen
+              tasks={tasks}
+              providers={providers}
+              onOpenTask={(taskId) => {
+                setActive("Задачи");
+                setOpenTaskId(taskId);
+              }}
+            />
           ) : active === "Настройки" ? (
             <SettingsScreen
               preferences={chatPreferences}

@@ -14,6 +14,7 @@ from .routes import (
     health,
     ledger,
     memory,
+    night,
     project,
     projects,
     packages,
@@ -39,9 +40,17 @@ ALLOWED_ORIGINS = [
 def create_app() -> FastAPI:
     @asynccontextmanager
     async def lifespan(_app: FastAPI):
+        import threading
+
+        from ..agents.night import scheduler_loop
         from ..agents.runner import reconcile_runs
         from ..storage.projects import read_active_hub
 
+        threading.Thread(
+            target=scheduler_loop,
+            daemon=True,
+            name="kova-night-scheduler",
+        ).start()
         hub = read_active_hub()
         if hub is not None:
             try:
@@ -72,6 +81,7 @@ def create_app() -> FastAPI:
     app.include_router(roblox.router)
     app.include_router(snapshots.router)
     app.include_router(style.router)
+    app.include_router(night.router)
     app.include_router(doctor.router)
     app.include_router(ledger.router)
     app.include_router(memory.router)

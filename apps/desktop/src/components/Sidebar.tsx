@@ -11,6 +11,7 @@ import {
   FolderKanban,
   LayoutDashboard,
   MessageSquare,
+  Moon,
   PanelLeftClose,
   PanelLeftOpen,
   Puzzle,
@@ -71,6 +72,7 @@ const GROUPS: NavGroup[] = [
     label: "Инструменты",
     items: [
       { label: "Агенты", icon: Bot },
+      { label: "Ночная смена", icon: Moon },
       { label: "Doctor", icon: Stethoscope },
       { label: "Редактор", icon: Code2 },
     ],

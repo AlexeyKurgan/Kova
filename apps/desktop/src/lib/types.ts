@@ -9,6 +9,7 @@ export const SECTIONS = [
   "Снапшоты",
   "Память",
   "Дневник",
+  "Ночная смена",
   "Пакеты",
   "Агенты",
   "Doctor",
@@ -892,6 +893,40 @@ export type StyleViolation = {
   asset_id: string;
   asset_name: string;
   checks: CheckResult[];
+};
+
+export type NightEntry = {
+  task_id: string;
+  task_title: string;
+  status: string;
+  run_id: string;
+  review_id: string;
+  message: string;
+};
+
+export type NightShiftConfig = {
+  enabled: boolean;
+  start_at: string;
+  provider_id: string;
+  task_ids: string[];
+  max_tasks: number;
+  stop_on_error: boolean;
+};
+
+export type NightShiftRun = {
+  id: string;
+  status: string;
+  started_at: string | null;
+  finished_at: string | null;
+  entries: NightEntry[];
+  current_index: number;
+  error: string;
+};
+
+export type NightShiftState = {
+  config: NightShiftConfig;
+  run: NightShiftRun | null;
+  updated_at: string;
 };
 
 export type DiaryDay = {

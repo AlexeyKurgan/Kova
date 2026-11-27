@@ -6,6 +6,7 @@ import type {
   ChatSession,
   ChatSummary,
   ModelCatalogGroup,
+  NightShiftState,
   BlenderStatus,
   BlenderWorkspace,
   CapsuleResponse,
@@ -395,6 +396,38 @@ export async function updateStyle(input: Partial<StyleBible>): Promise<StyleBibl
 
 export async function listStyleViolations(): Promise<StyleViolation[]> {
   return request<StyleViolation[]>("/style/violations");
+}
+
+export async function getNightShift(): Promise<NightShiftState> {
+  return request<NightShiftState>("/night");
+}
+
+export async function updateNightShift(input: {
+  enabled?: boolean;
+  start_at?: string;
+  provider_id?: string;
+  task_ids?: string[];
+  max_tasks?: number;
+  stop_on_error?: boolean;
+}): Promise<NightShiftState> {
+  return request<NightShiftState>("/night", {
+    method: "PATCH",
+    body: JSON.stringify(input),
+  });
+}
+
+export async function startNightShift(input: {
+  provider_id?: string;
+  task_ids?: string[];
+}): Promise<NightShiftState> {
+  return request<NightShiftState>("/night/start", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export async function stopNightShift(): Promise<NightShiftState> {
+  return request<NightShiftState>("/night/stop", { method: "POST" });
 }
 
 export async function getDiary(days = 14): Promise<DiaryResponse> {
