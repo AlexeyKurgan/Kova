@@ -39,6 +39,19 @@ export default function AboutCard() {
     }
   };
 
+  const installDownloaded = async () => {
+    if (!installer) return;
+    setInstallerError("");
+    try {
+      const { invoke } = await import("@tauri-apps/api/core");
+      await invoke("install_update", { path: installer.path });
+    } catch (err) {
+      setInstallerError(
+        err instanceof Error ? err.message : "Не удалось запустить установку",
+      );
+    }
+  };
+
   const openInstaller = async () => {
     if (!installer) return;
     setInstallerError("");
@@ -117,9 +130,12 @@ export default function AboutCard() {
         {installer ? (
           <div className="about-installer">
             <span>Скачано: <code>{installer.path}</code></span>
-            <button type="button" className="btn btn-primary btn-small" onClick={() => void openInstaller()}>
+            <button type="button" className="btn btn-primary btn-small" onClick={() => void installDownloaded()}>
               <Download size={13} />
-              Открыть установщик
+              Установить и закрыть Kova
+            </button>
+            <button type="button" className="btn btn-secondary btn-small" onClick={() => void openInstaller()}>
+              Открыть вручную
             </button>
             {installerError ? <p className="about-message is-warn">{installerError}</p> : null}
           </div>

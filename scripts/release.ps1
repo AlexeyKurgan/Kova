@@ -34,7 +34,10 @@ $manifestFiles = foreach ($file in $files) {
   }
 }
 
-$signed = -not [string]::IsNullOrEmpty($env:KOVA_SIGN_PFX) -or -not [string]::IsNullOrEmpty($env:KOVA_SIGN_THUMBPRINT)
+$localPfx = Join-Path $env:APPDATA "KovaHub\signing\kova-local.pfx"
+$signed = (-not [string]::IsNullOrEmpty($env:KOVA_SIGN_PFX)) `
+  -or (-not [string]::IsNullOrEmpty($env:KOVA_SIGN_THUMBPRINT)) `
+  -or (Test-Path $localPfx)
 $manifest = [ordered]@{
   version = $Version
   generated_at = (Get-Date).ToUniversalTime().ToString("o")

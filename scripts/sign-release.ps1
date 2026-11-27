@@ -15,7 +15,15 @@ function Find-SignTool {
       Sort-Object Name -Descending |
       ForEach-Object { Join-Path $_.FullName "x64\signtool.exe" } |
       Where-Object { Test-Path $_ }
-    if ($rows) { return $rows[0] }
+    if ($rows) { return @($rows)[0] }
+  }
+  $portable = Join-Path $env:USERPROFILE "sdk\microsoft.windows.sdk.cpp\c\bin"
+  if (Test-Path $portable) {
+    $rows = Get-ChildItem $portable -Directory |
+      Sort-Object Name -Descending |
+      ForEach-Object { Join-Path $_.FullName "x64\signtool.exe" } |
+      Where-Object { Test-Path $_ }
+    if ($rows) { return @($rows)[0] }
   }
   return ""
 }
@@ -29,6 +37,18 @@ if (-not $signTool) {
 $pfx = $env:KOVA_SIGN_PFX
 $password = $env:KOVA_SIGN_PFX_PASSWORD
 $thumbprint = $env:KOVA_SIGN_THUMBPRINT
+
+if (-not $pfx -and -not $thumbprint) {
+  $localPfx = Join-Path $env:APPDATA "KovaHub\signing\kova-local.pfx"
+  $localPassword = Join-Path $env:APPDATA "KovaHub\signing\password.txt"
+  if (Test-Path $localPfx) {
+    $pfx = $localPfx
+    if (Test-Path $localPassword) {
+      $password = (Get-Content $localPassword -Raw).Trim()
+    }
+    Write-Host "using local self-signed certificate: $localPfx"
+  }
+}
 
 if (-not $pfx -and -not $thumbprint) {
   Write-Host "KOVA_SIGN_PFX / KOVA_SIGN_THUMBPRINT is not set - skipping code signing"

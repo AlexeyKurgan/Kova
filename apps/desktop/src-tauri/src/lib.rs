@@ -66,6 +66,32 @@ fn open_editor_context(app: tauri::AppHandle, file: String, line: u32) -> Result
 }
 
 #[tauri::command]
+fn install_update(app: tauri::AppHandle, path: String) -> Result<(), String> {
+    let lower = path.to_lowercase();
+    if !lower.ends_with(".msi") && !lower.ends_with(".exe") {
+        return Err("установщик должен быть .msi или .exe".to_string());
+    }
+    if !std::path::Path::new(&path).is_file() {
+        return Err("файл установщика не найден".to_string());
+    }
+    #[cfg(windows)]
+    {
+        let mut command = if lower.ends_with(".msi") {
+            let mut command = std::process::Command::new("msiexec");
+            command.args(["/i", path.as_str(), "/passive", "/norestart"]);
+            command
+        } else {
+            std::process::Command::new(&path)
+        };
+        command
+            .spawn()
+            .map_err(|error| format!("не удалось запустить установщик: {error}"))?;
+    }
+    app.exit(0);
+    Ok(())
+}
+
+#[tauri::command]
 fn core_token() -> Result<String, String> {
     Ok(load_or_create_token())
 }
@@ -122,6 +148,7 @@ pub fn run() {
             editor::editor_open,
             editor::editor_close,
             editor::open_project_folder,
+            install_update,
             core_token,
             open_editor_context
         ])
