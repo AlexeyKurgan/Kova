@@ -33,6 +33,9 @@ docs/
 .env.*
 !.env.example
 
+# Release artifacts
+release/
+
 # Logs / temp
 *.log
 *.pid
