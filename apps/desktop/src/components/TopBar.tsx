@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Bell, Moon, PanelRight, Search, Settings, Sun } from "lucide-react";
 import type { CoreStatus, Section } from "../lib/types";
+import { t } from "../lib/i18n";
 
 type Props = {
   section: Section;
@@ -57,7 +58,7 @@ export default function TopBar({
       <div className="breadcrumb">
         <span className="breadcrumb-project">{projectName}</span>
         <span className="breadcrumb-sep">/</span>
-        <span className="breadcrumb-current">{section}</span>
+        <span className="breadcrumb-current">{t(section)}</span>
       </div>
 
       <label className="search-box">
@@ -73,8 +74,8 @@ export default function TopBar({
               onSearch(query);
             }
           }}
-          placeholder="Поиск по проекту"
-          aria-label="Поиск по проекту"
+          placeholder={t("Поиск по проекту")}
+          aria-label={t("Поиск по проекту")}
         />
         <kbd>Ctrl+K</kbd>
       </label>
@@ -82,7 +83,7 @@ export default function TopBar({
       <div className="topbar-status">
         <span className={`status is-${core}`}>
           <span className="dot" />
-          Core: {coreLabel[core]}
+          Core: {t(coreLabel[core])}
         </span>
         <span
           className={`status ${
@@ -91,17 +92,25 @@ export default function TopBar({
         >
           <span className="dot" />
           {toolIssues === null
-            ? "Инструменты проверяются"
+            ? t("Инструменты проверяются")
             : toolIssues > 0
-              ? `Инструменты: ${toolIssues}`
-              : "Инструменты в порядке"}
+              ? t("Инструменты: {count}", { count: toolIssues })
+              : t("Инструменты в порядке")}
         </span>
         <button
           type="button"
           className="icon-btn topbar-icon"
           onClick={onOpenNotifications}
-          aria-label={reviewCount > 0 ? `Уведомления: ${reviewCount}` : "Уведомления"}
-          title={reviewCount > 0 ? `Уведомления: ${reviewCount}` : "Уведомления"}
+          aria-label={
+            reviewCount > 0
+              ? t("Уведомления: {count}", { count: reviewCount })
+              : t("Уведомления")
+          }
+          title={
+            reviewCount > 0
+              ? t("Уведомления: {count}", { count: reviewCount })
+              : t("Уведомления")
+          }
         >
           <Bell size={15} />
           {reviewCount > 0 ? <span className="topbar-badge">{reviewCount}</span> : null}
@@ -110,8 +119,8 @@ export default function TopBar({
           type="button"
           className="icon-btn topbar-theme-btn"
           onClick={onToggleTheme}
-          aria-label={theme === "dark" ? "Светлая тема" : "Тёмная тема"}
-          title={theme === "dark" ? "Светлая тема" : "Тёмная тема"}
+          aria-label={theme === "dark" ? t("Светлая тема") : t("Тёмная тема")}
+          title={theme === "dark" ? t("Светлая тема") : t("Тёмная тема")}
         >
           {theme === "dark" ? <Sun size={15} /> : <Moon size={15} />}
         </button>
@@ -119,8 +128,8 @@ export default function TopBar({
           type="button"
           className="icon-btn topbar-icon"
           onClick={onOpenSettings}
-          aria-label="Настройки"
-          title="Настройки"
+          aria-label={t("Настройки")}
+          title={t("Настройки")}
         >
           <Settings size={15} />
         </button>
@@ -129,7 +138,7 @@ export default function TopBar({
             type="button"
             className="icon-btn topbar-panel-btn"
             onClick={onShowInspector}
-            aria-label="Показать состояние проекта"
+            aria-label={t("Показать состояние проекта")}
           >
             <PanelRight size={15} />
           </button>

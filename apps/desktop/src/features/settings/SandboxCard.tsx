@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { RefreshCw, ShieldCheck } from "lucide-react";
 import { getSandboxStatus } from "../../lib/coreClient";
 import type { SandboxStatus } from "../../lib/types";
+import { t } from "../../lib/i18n";
 
 export default function SandboxCard() {
   const [status, setStatus] = useState<SandboxStatus | null>(null);
@@ -14,7 +15,7 @@ export default function SandboxCard() {
     getSandboxStatus()
       .then(setStatus)
       .catch((err) =>
-        setError(err instanceof Error ? err.message : "Не удалось проверить sandbox"),
+        setError(err instanceof Error ? err.message : t("Не удалось проверить sandbox")),
       )
       .finally(() => setBusy(false));
   };
@@ -30,10 +31,10 @@ export default function SandboxCard() {
           <ShieldCheck size={16} />
         </span>
         <div>
-          <b>Песочница</b>
-          <small>OS sandbox или безопасный fallback для агентов</small>
+          <b>{t("Песочница")}</b>
+          <small>{t("OS sandbox или безопасный fallback для агентов")}</small>
         </div>
-        <button type="button" className="icon-btn" disabled={busy} onClick={load} aria-label="Проверить снова">
+        <button type="button" className="icon-btn" disabled={busy} onClick={load} aria-label={t("Проверить снова")}>
           <RefreshCw size={14} />
         </button>
       </div>
@@ -45,7 +46,7 @@ export default function SandboxCard() {
                 <i />
                 <b>{backend.label}</b>
                 <small title={backend.detail}>
-                  {backend.available ? "доступен" : backend.detail}
+                  {backend.available ? t("доступен") : backend.detail}
                 </small>
               </div>
             ))}
@@ -54,11 +55,16 @@ export default function SandboxCard() {
             {status.message}
           </p>
           <p className="sandbox-fallback">
-            Fallback: <b>{status.fallback}</b>
+            {t("Fallback")}: <b>{status.fallback}</b>
+          </p>
+          <p className="sandbox-fallback">
+            {t(
+              "Kova не запускает CLI провайдера внутри Docker/WSL: бинарник и авторизация должны быть установлены в контейнере. Это ограничение указано явно, а не маскируется под готовую изоляцию.",
+            )}
           </p>
         </>
       ) : (
-        <p className="sandbox-message">{error || "Проверяю sandbox…"}</p>
+        <p className="sandbox-message">{error || t("Проверяю sandbox…")}</p>
       )}
     </article>
   );

@@ -4,7 +4,8 @@ from typing import Any
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
-from ...packages import custom, store
+from ...packages import custom, remote, store
+from ...packages.catalog import get_catalog_entry
 from ...domain.ledger import LedgerEvent
 from ...storage.ledger import append_event
 from ...security.paths import resolve_inside
@@ -19,6 +20,12 @@ class PackageToggle(BaseModel):
 
 class PackageImportRequest(BaseModel):
     path: str
+
+
+class RemoteInstallRequest(BaseModel):
+    package_id: str
+    url: str
+    sha256: str
 
 
 @router.get("")
@@ -39,7 +46,6 @@ def import_package(payload: PackageImportRequest, hub: Path = Depends(require_hu
         import shutil
         shutil.rmtree(target, ignore_errors=True)
         raise HTTPException(status_code=400, detail="пакет не появился в реестре")
-    from ...packages.catalog import get_catalog_entry
     if get_catalog_entry(manifest["id"]) is not None:
         target = resolve_inside(hub, Path("packages") / "custom" / manifest["id"])
         import shutil
@@ -55,6 +61,85 @@ def import_package(payload: PackageImportRequest, hub: Path = Depends(require_hu
         ),
     )
     return store.get_package(hub, manifest["id"]) or {}
+
+
+@router.get("/marketplace")
+def get_marketplace(
+    url: str = "",
+    hub: Path = Depends(require_hub),
+) -> dict[str, Any]:
+    try:
+        index = remote.fetch_index(url)
+    except remote.RemoteError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+    installed = {row["id"]: row for row in store.list_packages(hub)}
+    for entry in index["packages"]:
+        current = installed.get(entry["id"])
+        entry["installed"] = bool(current and current.get("installed"))
+        entry["status"] = (
+            current.get("status")
+            if current
+            else "available"
+        )
+        entry["builtin"] = get_catalog_entry(entry["id"]) is not None
+        if entry["builtin"]:
+            entry["installed"] = True
+    return index
+
+
+@router.post("/marketplace/install")
+def install_from_marketplace(
+    payload: RemoteInstallRequest,
+    hub: Path = Depends(require_hub),
+) -> dict[str, Any]:
+    existing = store.get_package(hub, payload.package_id)
+    if existing is not None and not existing.get("custom"):
+        raise HTTPException(status_code=409, detail="id занят встроенным пакетом")
+    if existing is not None:
+        try:
+            return store.install_package(hub, payload.package_id)
+        except (KeyError, RuntimeError) as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+    try:
+        manifest = remote.install_remote_package(
+            hub,
+            payload.package_id,
+            payload.url,
+            payload.sha256,
+        )
+    except remote.RemoteError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except OSError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    target = resolve_inside(hub, Path("packages") / "custom" / manifest["id"])
+    if get_catalog_entry(manifest["id"]) is not None:
+        import shutil
+
+        shutil.rmtree(target, ignore_errors=True)
+        raise HTTPException(status_code=409, detail="id занят встроенным пакетом")
+    if store.get_package(hub, manifest["id"]) is None:
+        import shutil
+
+        shutil.rmtree(target, ignore_errors=True)
+        raise HTTPException(status_code=400, detail="пакет не появился в реестре")
+    append_event(
+        hub,
+        LedgerEvent(
+            type="package.imported",
+            subject=manifest["id"],
+            actor="human",
+            data={
+                "name": manifest["name"],
+                "version": manifest["version"],
+                "trust": "remote",
+                "sha256": payload.sha256,
+            },
+        ),
+    )
+    try:
+        return store.install_package(hub, manifest["id"])
+    except (KeyError, RuntimeError) as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
 @router.get("/{package_id}")

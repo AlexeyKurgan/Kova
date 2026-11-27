@@ -44,6 +44,7 @@ export const ASSET_TYPE_LABELS: Record<string, string> = {
   effect: "Эффект",
   texture: "Текстура",
   audio: "Аудио",
+  video: "Видео",
   code: "Код",
   scene: "Сцена",
   other: "Другое",

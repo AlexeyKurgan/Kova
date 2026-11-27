@@ -202,6 +202,8 @@ def infer_asset_type(path: Path) -> AssetType:
         return AssetType.texture
     if suffix in {".wav", ".mp3", ".ogg", ".flac"}:
         return AssetType.audio
+    if suffix in {".mp4", ".webm", ".mov", ".mkv", ".avi"}:
+        return AssetType.video
     if suffix in {".lua", ".py", ".cs", ".gd", ".ts", ".tsx", ".js", ".jsx"}:
         return AssetType.code
     if suffix in {".anim", ".fbx.anim"}:

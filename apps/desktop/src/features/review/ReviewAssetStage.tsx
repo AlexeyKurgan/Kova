@@ -1,6 +1,7 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Check,
+  Film,
   GitCompareArrows,
   MessageSquarePlus,
   Pin,
@@ -13,6 +14,8 @@ import { mediaUrl } from "../../lib/coreClient";
 import { formatDate } from "../../lib/format";
 import type { AssetPassport, ReviewComment } from "../../lib/types";
 
+const VIDEO_RE = /\.(mp4|webm|mov|mkv|avi)$/i;
+
 type Props = {
   asset: AssetPassport;
   comments: ReviewComment[];
@@ -22,6 +25,7 @@ type Props = {
     versionId: string;
     x: number;
     y: number;
+    timestamp?: number | null;
   }) => Promise<void>;
   onResolve: (commentId: string, resolved: boolean) => Promise<void>;
   onDelete: (commentId: string) => Promise<void>;
@@ -36,6 +40,24 @@ function previewFor(asset: AssetPassport, versionId: string) {
     v: preview,
   });
 }
+
+function videoFor(asset: AssetPassport, versionId: string) {
+  const version = asset.versions.find((item) => item.id === versionId);
+  const path = version?.path || asset.path;
+  if (asset.type !== "video" && !VIDEO_RE.test(path)) return "";
+  return mediaUrl(`/assets/${asset.id}/media`, {
+    version_id: versionId,
+    v: version?.file_hash || asset.file_hash,
+  });
+}
+
+function formatClock(value: number) {
+  if (!Number.isFinite(value) || value < 0) return "0:00";
+  const minutes = Math.floor(value / 60);
+  const seconds = Math.floor(value % 60);
+  return `${minutes}:${String(seconds).padStart(2, "0")}`;
+}
+
 
 export default function ReviewAssetStage({
   asset,
@@ -55,19 +77,35 @@ export default function ReviewAssetStage({
   const [compareB, setCompareB] = useState(lastVersion?.id ?? "");
   const [split, setSplit] = useState(50);
   const [pinMode, setPinMode] = useState(false);
-  const [draft, setDraft] = useState<{ x: number; y: number } | null>(null);
+  const [draft, setDraft] = useState<{
+    x: number;
+    y: number;
+    timestamp?: number | null;
+  } | null>(null);
   const [body, setBody] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [showResolved, setShowResolved] = useState(false);
+  const [duration, setDuration] = useState(0);
+  const [currentTime, setCurrentTime] = useState(0);
   const stageRef = useRef<HTMLDivElement | null>(null);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
 
   const selectedVersion = asset.versions.find((item) => item.id === versionId) ?? lastVersion;
   const baseSource = compare ? compareB : selectedVersion?.id ?? "";
   const overlaySource = compare ? compareA : "";
   const basePreview = baseSource ? previewFor(asset, baseSource) : "";
   const overlayPreview = overlaySource ? previewFor(asset, overlaySource) : "";
-  const canCompare = asset.versions.length > 1 && asset.versions.every((item) => item.preview);
+  const baseVideo = baseSource ? videoFor(asset, baseSource) : videoFor(asset, "");
+  const video = Boolean(baseVideo) && !compare;
+  const canCompare =
+    !video && asset.versions.length > 1 && asset.versions.every((item) => item.preview);
+
+  useEffect(() => {
+    setCurrentTime(0);
+    setDuration(0);
+  }, [baseSource]);
+
 
   const visibleComments = useMemo(
     () =>
@@ -91,9 +129,20 @@ export default function ReviewAssetStage({
     if (rect.width === 0 || rect.height === 0) return;
     const x = Math.min(1, Math.max(0, (event.clientX - rect.left) / rect.width));
     const y = Math.min(1, Math.max(0, (event.clientY - rect.top) / rect.height));
-    setDraft({ x, y });
+    setDraft({
+      x,
+      y,
+      timestamp: video ? videoRef.current?.currentTime ?? 0 : null,
+    });
     setBody("");
     setError("");
+  };
+
+  const seekTo = (value: number) => {
+    const player = videoRef.current;
+    if (!player) return;
+    player.currentTime = Math.min(Math.max(0, value), duration || value);
+    setCurrentTime(player.currentTime);
   };
 
   const submit = async () => {
@@ -112,6 +161,7 @@ export default function ReviewAssetStage({
         versionId: baseSource,
         x: draft.x,
         y: draft.y,
+        timestamp: draft.timestamp ?? null,
       });
       setDraft(null);
       setBody("");
@@ -126,7 +176,7 @@ export default function ReviewAssetStage({
   const versionLabel = (id: string) =>
     asset.versions.find((item) => item.id === id)?.label ?? "—";
 
-  if (!basePreview) return null;
+  if (!basePreview && !video) return null;
 
   return (
     <div className={`review-stage${pinMode ? " is-pinning" : ""}`}>
@@ -167,6 +217,25 @@ export default function ReviewAssetStage({
           >
             <GitCompareArrows size={13} />
             {compare ? "Обычный вид" : "Сравнить"}
+          </button>
+        ) : null}
+        {video ? (
+          <button
+            type="button"
+            className="review-stage-toggle"
+            onClick={() => {
+              setPinMode(false);
+              setDraft({
+                x: 0.5,
+                y: 0.5,
+                timestamp: videoRef.current?.currentTime ?? 0,
+              });
+              setBody("");
+              setError("");
+            }}
+          >
+            <Film size={13} />
+            Пин на {formatClock(currentTime)}
           </button>
         ) : null}
         <button
@@ -226,10 +295,31 @@ export default function ReviewAssetStage({
         onKeyDown={(event) => {
           if (!pinMode || (event.key !== "Enter" && event.key !== " ")) return;
           event.preventDefault();
-          setDraft({ x: 0.5, y: 0.5 });
+          setDraft({
+            x: 0.5,
+            y: 0.5,
+            timestamp: video ? videoRef.current?.currentTime ?? 0 : null,
+          });
         }}
       >
-        <img className="review-stage-image" src={basePreview} alt={`${asset.name}`} />
+        {video ? (
+          <video
+            ref={videoRef}
+            className="review-stage-video"
+            src={baseVideo}
+            controls
+            playsInline
+            preload="metadata"
+            onLoadedMetadata={(event) => {
+              const value = event.currentTarget.duration;
+              setDuration(Number.isFinite(value) ? value : 0);
+            }}
+            onTimeUpdate={(event) => setCurrentTime(event.currentTarget.currentTime)}
+          />
+        ) : (
+          <img className="review-stage-image" src={basePreview} alt={`${asset.name}`} />
+        )}
+        {video && pinMode ? <span className="review-stage-pin-layer" /> : null}
         {compare && overlayPreview ? (
           <img
             className="review-stage-image is-overlay"
@@ -253,12 +343,17 @@ export default function ReviewAssetStage({
             key={comment.id}
             className={`review-pin${comment.resolved ? " is-resolved" : ""}`}
             style={{ left: `${comment.x * 100}%`, top: `${comment.y * 100}%` }}
-            title={comment.body}
+            title={
+              comment.timestamp != null
+                ? `${formatClock(comment.timestamp)} · ${comment.body}`
+                : comment.body
+            }
             onClick={(event) => {
               event.stopPropagation();
               setPinMode(false);
               setDraft(null);
               setBody(comment.body);
+              if (comment.timestamp != null) seekTo(comment.timestamp);
             }}
           >
             {index + 1}
@@ -274,16 +369,81 @@ export default function ReviewAssetStage({
         ) : null}
         {pinMode ? (
           <span className="review-stage-hint">
-            Кликни по изображению, чтобы поставить пин
+            {video
+              ? "Кликни по кадру, чтобы привязать пин ко времени"
+              : "Кликни по изображению, чтобы поставить пин"}
           </span>
         ) : null}
       </div>
+
+      {video ? (
+        <div className="review-video-timeline">
+          <div
+            className="review-video-track"
+            role="slider"
+            tabIndex={0}
+            aria-label="Таймлайн видео"
+            aria-valuemin={0}
+            aria-valuemax={Math.max(0, duration)}
+            aria-valuenow={currentTime}
+            onClick={(event) => {
+              if (!duration) return;
+              const rect = event.currentTarget.getBoundingClientRect();
+              if (!rect.width) return;
+              seekTo(((event.clientX - rect.left) / rect.width) * duration);
+            }}
+            onKeyDown={(event) => {
+              if (event.key === "ArrowLeft") seekTo(currentTime - 1);
+              if (event.key === "ArrowRight") seekTo(currentTime + 1);
+            }}
+          >
+            <i style={{ width: duration ? `${(currentTime / duration) * 100}%` : "0%" }} />
+            {visibleComments
+              .filter((comment) => comment.timestamp != null && duration > 0)
+              .map((comment, index) => (
+                <button
+                  type="button"
+                  key={comment.id}
+                  className={`review-video-marker${comment.resolved ? " is-resolved" : ""}`}
+                  style={{
+                    left: `${Math.min(100, ((comment.timestamp ?? 0) / duration) * 100)}%`,
+                  }}
+                  title={`${formatClock(comment.timestamp ?? 0)} · ${comment.body}`}
+                  aria-label={`Перейти к пину ${index + 1}`}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    seekTo(comment.timestamp ?? 0);
+                  }}
+                >
+                  {index + 1}
+                </button>
+              ))}
+            {draft?.timestamp != null && duration > 0 ? (
+              <span
+                className="review-video-marker is-draft"
+                style={{
+                  left: `${Math.min(100, (draft.timestamp / duration) * 100)}%`,
+                }}
+              >
+                +
+              </span>
+            ) : null}
+          </div>
+          <div className="review-video-time">
+            <span>{formatClock(currentTime)}</span>
+            <span>{formatClock(duration)}</span>
+          </div>
+        </div>
+      ) : null}
 
       {draft ? (
         <div className="review-pin-form">
           <div className="review-pin-form-head">
             <span>
               <Pin size={12} /> Пин на {versionLabel(baseSource)}
+              {draft.timestamp != null
+                ? ` · ${formatClock(draft.timestamp)}`
+                : ""}
             </span>
             <button
               type="button"
@@ -353,6 +513,9 @@ export default function ReviewAssetStage({
                   <p>{comment.body}</p>
                   <small>
                     {comment.version_id ? `${versionLabel(comment.version_id)} · ` : ""}
+                    {comment.timestamp != null
+                      ? `${formatClock(comment.timestamp)} · `
+                      : ""}
                     {formatDate(comment.created_at)}
                   </small>
                 </div>

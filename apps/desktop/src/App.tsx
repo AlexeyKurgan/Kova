@@ -26,6 +26,7 @@ import {
   loadAppPreferences,
   saveAppPreferences,
 } from "./lib/appPreferences";
+import { setLanguage } from "./lib/i18n";
 import OverviewScreen from "./features/overview/OverviewScreen";
 import ProjectsScreen from "./features/projects/ProjectsScreen";
 import PackagesScreen from "./features/packages/PackagesScreen";
@@ -1469,9 +1470,13 @@ export default function App() {
               preferences={chatPreferences}
               onPreferences={setChatPreferences}
               appPreferences={appPreferences}
-              onAppPreferences={setAppPreferences}
+              onAppPreferences={(value) => {
+                setLanguage(value.language);
+                setAppPreferences(value);
+              }}
               onReset={() => {
                 setChatPreferences(DEFAULT_CHAT_PREFERENCES);
+                setLanguage("ru");
                 setAppPreferences(DEFAULT_APP_PREFERENCES);
               }}
               onOnboarding={() => setOnboardingOpen(true)}

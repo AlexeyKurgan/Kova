@@ -5,20 +5,25 @@ import {
   CheckCircle2,
   Clock3,
   Download,
+  ExternalLink,
   Gamepad2,
+  Globe2,
   Package,
   Power,
   RefreshCw,
   Search,
   ShieldCheck,
   Sparkles,
+  Store,
   Trash2,
   Upload,
   Wrench,
 } from "lucide-react";
 import {
+  getPackageMarketplace,
   importPackage,
   installPackage,
+  installRemotePackage,
   listLedger,
   listPackages,
   setPackageEnabled,
@@ -27,9 +32,15 @@ import {
 import { formatDate } from "../../lib/format";
 import { pickFile } from "../../lib/dialogs";
 import { ENGINE_LABELS } from "../../lib/labels";
-import type { Engine, KovaPackage, LedgerEvent } from "../../lib/types";
+import type {
+  Engine,
+  KovaPackage,
+  LedgerEvent,
+  PackageMarketplace,
+  RemotePackage,
+} from "../../lib/types";
 
-type View = "installed" | "available" | "all";
+type View = "installed" | "available" | "all" | "market";
 type Sort = "status" | "name" | "tools" | "checks";
 type Range = "day" | "week" | "month" | "year" | "all";
 
@@ -74,6 +85,10 @@ const EVENT_LABELS: Record<string, string> = {
   "package.disabled": "Выключен",
 };
 
+const INDEX_KEY = "kova.packageIndex";
+const DEFAULT_INDEX_URL =
+  "https://raw.githubusercontent.com/AlexeyKurgan/Kova/main/packages/index.json";
+
 const RANGES: Array<[Range, string, number]> = [
   ["day", "24 часа", 86400_000],
   ["week", "7 дней", 7 * 86400_000],
@@ -88,7 +103,7 @@ const DONUT_COLORS = {
   coming: "#d8a657",
 };
 
-function packageIcon(item: KovaPackage) {
+function packageIcon(item: { type: string; id: string }) {
   if (item.type === "engine") return Gamepad2;
   if (item.type === "style") return Sparkles;
   if (item.type === "task_template") return Wrench;
@@ -109,6 +124,13 @@ export default function PackagesScreen() {
   const [sort, setSort] = useState<Sort>("status");
   const [range, setRange] = useState<Range>("all");
   const [eventsOpen, setEventsOpen] = useState(false);
+  const [market, setMarket] = useState<PackageMarketplace | null>(null);
+  const [marketUrl, setMarketUrl] = useState(
+    () => window.localStorage.getItem(INDEX_KEY) ?? "",
+  );
+  const [marketLoading, setMarketLoading] = useState(false);
+  const [marketError, setMarketError] = useState("");
+  const [remoteBusy, setRemoteBusy] = useState<string | null>(null);
 
   const refresh = async () => {
     setLoading(true);
@@ -132,6 +154,56 @@ export default function PackagesScreen() {
     const timer = window.setInterval(() => void refresh(), 25000);
     return () => window.clearInterval(timer);
   }, []);
+
+  const loadMarket = async (value: string) => {
+    setMarketLoading(true);
+    setMarketError("");
+    try {
+      const data = await getPackageMarketplace(value.trim());
+      setMarket(data);
+      if (!value.trim()) setMarketUrl(data.index_url);
+    } catch (err) {
+      setMarket(null);
+      setMarketError(
+        err instanceof Error ? err.message : "Не удалось загрузить индекс пакетов",
+      );
+    } finally {
+      setMarketLoading(false);
+    }
+  };
+
+  const openMarket = () => {
+    setView("market");
+    if (!market && !marketLoading) void loadMarket(marketUrl);
+  };
+
+  const applyIndex = () => {
+    const value = marketUrl.trim();
+    if (value) window.localStorage.setItem(INDEX_KEY, value);
+    else window.localStorage.removeItem(INDEX_KEY);
+    void loadMarket(value);
+  };
+
+  const installRemote = async (item: RemotePackage) => {
+    if (remoteBusy) return;
+    setRemoteBusy(item.id);
+    setMarketError("");
+    try {
+      await installRemotePackage({
+        packageId: item.id,
+        url: item.download_url,
+        sha256: item.sha256,
+      });
+      await refresh();
+      await loadMarket(market?.index_url ?? marketUrl);
+    } catch (err) {
+      setMarketError(
+        err instanceof Error ? err.message : "Не удалось установить пакет",
+      );
+    } finally {
+      setRemoteBusy(null);
+    }
+  };
 
   const engines = useMemo(
     () => [...new Set(packages.flatMap((item) => item.engines))].sort(),
@@ -158,6 +230,18 @@ export default function PackagesScreen() {
       return rank(left) - rank(right) || left.name.localeCompare(right.name, "ru");
     });
   }, [engine, packages, query, sort, view]);
+
+  const marketRows = useMemo(() => {
+    if (!market) return [];
+    const search = query.trim().toLowerCase();
+    return market.packages.filter((item) => {
+      if (engine !== "all" && !item.engines.includes(engine as Engine)) return false;
+      if (!search) return true;
+      return `${item.name} ${item.id} ${item.description} ${item.author} ${item.engines.join(" ")}`
+        .toLowerCase()
+        .includes(search);
+    });
+  }, [engine, market, query]);
 
   const installed = packages.filter((item) => item.installed);
   const available = packages.filter((item) => !item.installed && item.available);
@@ -343,13 +427,14 @@ export default function PackagesScreen() {
               ["installed", "Установленные"],
               ["available", "Доступные"],
               ["all", "Все"],
+              ["market", "Маркетплейс"],
             ] as Array<[View, string]>
           ).map(([value, label]) => (
             <button
               type="button"
               key={value}
               className={`pkg-tab${view === value ? " is-active" : ""}`}
-              onClick={() => setView(value)}
+              onClick={() => (value === "market" ? openMarket() : setView(value))}
             >
               {label}
             </button>
@@ -376,17 +461,19 @@ export default function PackagesScreen() {
             </option>
           ))}
         </select>
-        <select
-          className="filter-select"
-          value={sort}
-          onChange={(event) => setSort(event.target.value as Sort)}
-          aria-label="Сортировка пакетов"
-        >
-          <option value="status">По статусу</option>
-          <option value="name">По имени</option>
-          <option value="tools">По инструментам</option>
-          <option value="checks">По проверкам</option>
-        </select>
+        {view !== "market" ? (
+          <select
+            className="filter-select"
+            value={sort}
+            onChange={(event) => setSort(event.target.value as Sort)}
+            aria-label="Сортировка пакетов"
+          >
+            <option value="status">По статусу</option>
+            <option value="name">По имени</option>
+            <option value="tools">По инструментам</option>
+            <option value="checks">По проверкам</option>
+          </select>
+        ) : null}
       </div>
 
       {error ? <p className="modal-error resource-error">{error}</p> : null}
@@ -417,7 +504,154 @@ export default function PackagesScreen() {
         </div>
       ) : null}
 
-      {sections.map(([title, rows]) => (
+      {view === "market" ? (
+        <section className="pkg-section pkg-market">
+          <div className="pkg-section-head">
+            <div>
+              <h2>
+                <Store size={13} /> Маркетплейс
+              </h2>
+              <small>
+                {market
+                  ? `${market.name} · ${marketRows.length} из ${market.packages.length} пакетов`
+                  : "Индекс сообщества по HTTPS"}
+              </small>
+            </div>
+            <span>{market?.packages.length ?? 0}</span>
+          </div>
+
+          <div className="pkg-market-bar">
+            <label>
+              <Globe2 size={13} />
+              <input
+                value={marketUrl}
+                placeholder={DEFAULT_INDEX_URL}
+                onChange={(event) => setMarketUrl(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") applyIndex();
+                }}
+                aria-label="Адрес индекса пакетов"
+              />
+            </label>
+            <button
+              type="button"
+              className="btn btn-secondary btn-small"
+              disabled={marketLoading}
+              onClick={applyIndex}
+            >
+              <RefreshCw size={13} />
+              {marketLoading ? "Загрузка…" : "Обновить индекс"}
+            </button>
+          </div>
+
+          <p className="pkg-market-note">
+            Пакеты скачиваются только по HTTPS и проверяются по SHA256. Код
+            пакетов не исполняется: манифест проходит ту же проверку, что и
+            локальный импорт.
+          </p>
+
+          {marketError ? (
+            <p className="modal-error resource-error">{marketError}</p>
+          ) : null}
+          {marketLoading && !market ? (
+            <p className="pkg-loading">Загружаю индекс…</p>
+          ) : null}
+          {market && marketRows.length === 0 ? (
+            <p className="pkg-empty-inline">В индексе пока нет подходящих пакетов.</p>
+          ) : null}
+
+          {marketRows.length > 0 ? (
+            <div className="pkg-grid">
+              {marketRows.map((item) => {
+                const Icon = packageIcon(item);
+                return (
+                  <article className={`pkg-card is-${item.status}`} key={item.id}>
+                    <div className="pkg-card-head">
+                      <span className="pkg-icon">
+                        <Icon size={20} />
+                      </span>
+                      <div className="pkg-title">
+                        <b>{item.name}</b>
+                        <small>
+                          {TYPE_LABELS[item.type] ?? item.type} · {item.author} ·{" "}
+                          {item.version}
+                        </small>
+                      </div>
+                      <span className="pkg-trust">
+                        <Globe2 size={10} />
+                        {item.builtin ? "встроенный" : "внешний"}
+                      </span>
+                    </div>
+
+                    <p className="pkg-description">{item.description}</p>
+
+                    <div className="pkg-engines">
+                      {item.engines.slice(0, 6).map((value) => (
+                        <span key={value}>{ENGINE_LABELS[value] ?? value}</span>
+                      ))}
+                    </div>
+
+                    <div className="pkg-permissions">
+                      {item.permissions.slice(0, 5).map((value) => (
+                        <span key={value}>{PERMISSION_LABELS[value] ?? value}</span>
+                      ))}
+                    </div>
+
+                    <div className="pkg-metrics">
+                      <span>
+                        <Wrench size={11} /> {item.tools.length} инструментов
+                      </span>
+                      <span>
+                        <ShieldCheck size={11} /> {item.checks.length} проверок
+                      </span>
+                      <span>
+                        <Box size={11} /> {item.templates.length} шаблонов
+                      </span>
+                    </div>
+
+                    <div className="pkg-market-meta">
+                      <span>SHA256 проверен</span>
+                      {item.size ? (
+                        <span>{(item.size / 1024).toFixed(1)} КБ</span>
+                      ) : null}
+                      {item.homepage ? (
+                        <a href={item.homepage} target="_blank" rel="noreferrer">
+                          <ExternalLink size={11} /> страница
+                        </a>
+                      ) : null}
+                    </div>
+
+                    <div className="pkg-actions">
+                      {item.installed || item.builtin ? (
+                        <button
+                          type="button"
+                          className="btn btn-secondary btn-small"
+                          disabled
+                        >
+                          <CheckCircle2 size={13} />
+                          {item.builtin ? "Уже в Kova" : "Установлен"}
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          className="btn btn-primary btn-small"
+                          disabled={remoteBusy !== null}
+                          onClick={() => void installRemote(item)}
+                        >
+                          <Download size={13} />
+                          {remoteBusy === item.id ? "Установка…" : "Установить"}
+                        </button>
+                      )}
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          ) : null}
+        </section>
+      ) : null}
+
+      {view !== "market" ? sections.map(([title, rows]) => (
         <section className="pkg-section" key={String(title)}>
           <div className="pkg-section-head">
             <div>
@@ -547,7 +781,7 @@ export default function PackagesScreen() {
             </div>
           )}
         </section>
-      ))}
+      )) : null}
     </section>
   );
 }

@@ -1,0 +1,14 @@
+{
+  "id": "starter-review-checklist",
+  "name": "Starter Review Checklist",
+  "version": "1.0.0",
+  "type": "check",
+  "author": "Kova",
+  "engines": ["generic", "blender", "roblox", "godot", "unity", "unreal", "rpgmaker", "web"],
+  "permissions": ["project.read"],
+  "tools": [],
+  "checks": ["naming", "scale", "materials", "uv", "lod"],
+  "templates": [],
+  "ui": [],
+  "description": "Готовый чек-лист приёмки ассета: масштаб, нейминг, материалы, UV, LOD и экспорт. Метаданные и рекомендации, без исполняемого кода."
+}

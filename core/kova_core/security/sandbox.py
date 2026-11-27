@@ -91,10 +91,12 @@ def _windows_sandbox() -> SandboxBackend:
 def detect_sandbox() -> SandboxStatus:
     backends = [_docker(), _wsl(), _windows_sandbox()]
     available = [item for item in backends if item.available]
-    default = available[0].id if available else "copy"
     message = (
-        f"Доступен backend: {available[0].label}"
+        f"Backend {available[0].label} найден, но Kova не запускает CLI провайдера "
+        "в контейнере: авторизация и бинарники должны быть установлены внутри. "
+        "Используется sandbox-копия проекта + Job Object."
         if available
-        else "OS sandbox недоступен — Kova использует sandbox-копию проекта и Job Object"
+        else "OS sandbox не поддерживается: Kova использует sandbox-копию проекта "
+        "и Job Object. Это явный fallback, а не скрытая изоляция."
     )
-    return SandboxStatus(backends=backends, default=default, message=message)
+    return SandboxStatus(backends=backends, default="copy", message=message)

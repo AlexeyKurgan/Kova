@@ -116,13 +116,14 @@ def run_doctor(hub: Path) -> list[CheckResult]:
     results.append(
         CheckResult(
             name="OS sandbox",
-            status=CheckStatus.passed if os_sandbox else CheckStatus.warning,
+            status=CheckStatus.warning,
             message=(
-                f"доступен backend: {os_sandbox}"
+                f"{os_sandbox} найден, но не используется: провайдеры работают "
+                "в sandbox-копии проекта + process containment"
                 if os_sandbox
-                else "WSL/Docker/Windows Sandbox не настроены — используется sandbox-копия + process containment"
+                else "не поддерживается: используется sandbox-копия проекта + process containment"
             ),
-            details={"backend": os_sandbox},
+            details={"backend": os_sandbox, "supported": False},
         )
     )
     token = bool(os.environ.get("KOVA_CORE_TOKEN"))

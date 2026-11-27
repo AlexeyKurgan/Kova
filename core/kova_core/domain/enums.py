@@ -59,6 +59,7 @@ class AssetType(StrEnum):
     effect = "effect"
     texture = "texture"
     audio = "audio"
+    video = "video"
     code = "code"
     scene = "scene"
     other = "other"

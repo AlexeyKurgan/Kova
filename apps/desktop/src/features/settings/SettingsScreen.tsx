@@ -16,6 +16,7 @@ import {
 } from "../../lib/chatPreferences";
 import type { AppPreferences } from "../../lib/appPreferences";
 import { formatDate } from "../../lib/format";
+import { t } from "../../lib/i18n";
 import type { Snapshot } from "../../lib/types";
 import AboutCard from "./AboutCard";
 import SandboxCard from "./SandboxCard";
@@ -59,15 +60,15 @@ export default function SettingsScreen({
       <div className="assets-heading">
         <SlidersHorizontal size={42} strokeWidth={1.15} className="assets-heading-icon" />
         <div className="assets-heading-copy">
-          <h1>Настройки</h1>
+          <h1>{t("Настройки")}</h1>
           <p className="subtitle">
-            Внешний вид, язык и поведение. Настройки проекта — в «Агентах».
+            {t("Внешний вид, язык и поведение. Настройки проекта — в «Агентах».")}
           </p>
         </div>
         <div className="header-actions">
           <button type="button" className="btn btn-secondary" onClick={onOnboarding}>
             <GraduationCap size={15} />
-            Обучение
+            {t("Обучение")}
           </button>
         </div>
       </div>
@@ -79,16 +80,16 @@ export default function SettingsScreen({
               <MessageSquareText size={16} />
             </span>
             <div>
-              <b>Чат</b>
-              <small>Размер, ширина и поведение сообщений</small>
+              <b>{t("Чат")}</b>
+              <small>{t("Размер, ширина и поведение сообщений")}</small>
             </div>
           </div>
 
           <div className="settings-rows">
             <label className="settings-row">
               <span>
-                <b>Размер текста</b>
-                <small>Основной текст сообщений</small>
+                <b>{t("Размер текста")}</b>
+                <small>{t("Основной текст сообщений")}</small>
               </span>
               <select
                 value={preferences.font}
@@ -106,8 +107,8 @@ export default function SettingsScreen({
 
             <label className="settings-row">
               <span>
-                <b>Межстрочный интервал</b>
-                <small>Больше — воздушнее и легче читать</small>
+                <b>{t("Межстрочный интервал")}</b>
+                <small>{t("Больше — воздушнее и легче читать")}</small>
               </span>
               <select
                 value={preferences.lineHeight}
@@ -127,8 +128,8 @@ export default function SettingsScreen({
 
             <label className="settings-row">
               <span>
-                <b>Ширина сообщений</b>
-                <small>Насколько широко растягивать ответы</small>
+                <b>{t("Ширина сообщений")}</b>
+                <small>{t("Насколько широко растягивать ответы")}</small>
               </span>
               <select
                 value={preferences.width}
@@ -140,16 +141,16 @@ export default function SettingsScreen({
                   )
                 }
               >
-                <option value="narrow">Узкая</option>
-                <option value="normal">Обычная</option>
-                <option value="wide">Широкая</option>
+                <option value="narrow">{t("Узкая")}</option>
+                <option value="normal">{t("Обычная")}</option>
+                <option value="wide">{t("Широкая")}</option>
               </select>
             </label>
 
             <label className="settings-row">
               <span>
-                <b>Размер кода</b>
-                <small>Блоки кода и команды</small>
+                <b>{t("Размер кода")}</b>
+                <small>{t("Блоки кода и команды")}</small>
               </span>
               <select
                 value={preferences.codeFont}
@@ -179,7 +180,7 @@ export default function SettingsScreen({
                   )
                 }
               />
-              Enter отправляет сообщение
+              {t("Enter отправляет сообщение")}
             </label>
             <label className="agent-check">
               <input
@@ -191,7 +192,7 @@ export default function SettingsScreen({
                   )
                 }
               />
-              Показывать время сообщений
+              {t("Показывать время сообщений")}
             </label>
           </div>
 
@@ -202,8 +203,8 @@ export default function SettingsScreen({
               lineHeight: preferences.lineHeight,
             }}
           >
-            <b>Важно:</b> так будет выглядеть текст ответа.
-            <span> Таблицы, списки и предупреждения используют те же настройки.</span>
+            <b>{t("Важно:")}</b> {t("так будет выглядеть текст ответа.")}
+            <span> {t("Таблицы, списки и предупреждения используют те же настройки.")}</span>
           </div>
         </article>
 
@@ -213,15 +214,15 @@ export default function SettingsScreen({
               <UserRound size={16} />
             </span>
             <div>
-              <b>Режим работы</b>
-              <small>Сколько подсказок и технических деталей показывать</small>
+              <b>{t("Режим работы")}</b>
+              <small>{t("Сколько подсказок и технических деталей показывать")}</small>
             </div>
           </div>
           <div className="settings-modes">
             {(
               [
-                ["beginner", "Beginner", "Спокойный интерфейс: главное на виду, технические детали скрыты."],
-                ["pro", "Pro", "Плотнее, больше метрик, путей и диагностики на экране."],
+                ["beginner", "Beginner", t("Спокойный интерфейс: главное на виду, технические детали скрыты.")],
+                ["pro", "Pro", t("Плотнее, больше метрик, путей и диагностики на экране.")],
               ] as const
             ).map(([mode, title, text]) => (
               <button
@@ -232,15 +233,15 @@ export default function SettingsScreen({
               >
                 <b>{title}</b>
                 <span>{text}</span>
-                {appPreferences.mode === mode ? <i>Включён</i> : null}
+                {appPreferences.mode === mode ? <i>{t("Включён")}</i> : null}
               </button>
             ))}
           </div>
           <div className="settings-rows">
             <label className="settings-row">
               <span>
-                <b>Плотность</b>
-                <small>Comfortable или компактный Pro-режим</small>
+                <b>{t("Плотность")}</b>
+                <small>{t("Comfortable или компактный Pro-режим")}</small>
               </span>
               <select
                 value={appPreferences.density}
@@ -264,39 +265,41 @@ export default function SettingsScreen({
               <DatabaseBackup size={16} />
             </span>
             <div>
-              <b>Резервные копии</b>
-              <small>Снапшоты проекта и быстрый откат</small>
+              <b>{t("Резервные копии")}</b>
+              <small>{t("Снапшоты проекта и быстрый откат")}</small>
             </div>
           </div>
           <div className="settings-backup">
             <div className="settings-backup-stat">
               <b>{snapshots.length}</b>
-              <span>снапшотов</span>
+              <span>{t("снапшотов")}</span>
               <small>
                 {latestSnapshot
-                  ? `Последний · ${latestSnapshot.reason || "без описания"} · ${formatDate(
-                      latestSnapshot.created_at,
-                    )}`
-                  : "Резервных копий ещё нет"}
+                  ? t("Последний · {reason} · {date}", {
+                      reason: latestSnapshot.reason || t("без описания"),
+                      date: formatDate(latestSnapshot.created_at),
+                    })
+                  : t("Резервных копий ещё нет")}
               </small>
             </div>
             <div className="settings-backup-actions">
               <button type="button" className="btn btn-secondary" onClick={onCreateSnapshot}>
                 <DatabaseBackup size={14} />
-                Создать снапшот
+                {t("Создать снапшот")}
               </button>
               <button type="button" className="btn btn-secondary" onClick={onOpenSnapshots}>
-                Открыть снапшоты
+                {t("Открыть снапшоты")}
               </button>
             </div>
           </div>
           <div className="settings-checks">
             <label className="agent-check">
               <input type="checkbox" checked readOnly />
-              Снапшот создаётся перед применением изменений worktree
+              {t("Снапшот создаётся перед применением изменений worktree")}
             </label>
             <span className="settings-note">
-              <ShieldCheck size={12} /> Все копии хранятся локально в папке проекта.
+              <ShieldCheck size={12} />{" "}
+              {t("Все копии хранятся локально в папке проекта.")}
             </span>
           </div>
         </article>
@@ -313,19 +316,27 @@ export default function SettingsScreen({
               <Languages size={16} />
             </span>
             <div>
-              <b>Язык</b>
-              <small>Язык интерфейса</small>
+              <b>{t("Язык")}</b>
+              <small>{t("Язык интерфейса")}</small>
             </div>
           </div>
           <div className="settings-rows">
             <label className="settings-row">
               <span>
-                <b>Интерфейс</b>
-                <small>Английский появится позже</small>
+                <b>{t("Интерфейс")}</b>
+                <small>{t("Английский: бета — навигация, верхняя панель и настройки")}</small>
               </span>
-              <select value="ru" disabled>
-                <option value="ru">Русский</option>
-                <option value="en">English (скоро)</option>
+              <select
+                value={appPreferences.language}
+                onChange={(event) =>
+                  onAppPreferences({
+                    ...appPreferences,
+                    language: event.target.value as AppPreferences["language"],
+                  })
+                }
+              >
+                <option value="ru">{t("Русский")}</option>
+                <option value="en">English (beta)</option>
               </select>
             </label>
           </div>
@@ -337,8 +348,8 @@ export default function SettingsScreen({
               <SlidersHorizontal size={16} />
             </span>
             <div>
-              <b>Доступность</b>
-              <small>Меньше движения и резких анимаций</small>
+              <b>{t("Доступность")}</b>
+              <small>{t("Меньше движения и резких анимаций")}</small>
             </div>
           </div>
           <label className="agent-check">
@@ -351,7 +362,7 @@ export default function SettingsScreen({
                 )
               }
             />
-            Уменьшить анимации
+            {t("Уменьшить анимации")}
           </label>
         </article>
       </div>
@@ -359,7 +370,7 @@ export default function SettingsScreen({
       <div className="settings-footer">
         <button type="button" className="btn btn-secondary" onClick={onReset}>
           <RotateCcw size={14} />
-          Сбросить настройки
+          {t("Сбросить настройки")}
         </button>
       </div>
     </section>

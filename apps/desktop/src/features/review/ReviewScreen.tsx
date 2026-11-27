@@ -220,7 +220,14 @@ export default function ReviewScreen({
 
   const addComment = async (
     reviewId: string,
-    input: { body: string; assetId: string; versionId: string; x: number; y: number },
+    input: {
+      body: string;
+      assetId: string;
+      versionId: string;
+      x: number;
+      y: number;
+      timestamp?: number | null;
+    },
   ) => {
     const created = await addReviewComment(reviewId, {
       body: input.body,
@@ -228,6 +235,7 @@ export default function ReviewScreen({
       version_id: input.versionId,
       x: input.x,
       y: input.y,
+      timestamp: input.timestamp ?? null,
     });
     setComments((current) => ({
       ...current,

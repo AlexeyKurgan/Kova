@@ -40,6 +40,7 @@ def test_review_comment_thread(tmp_path: Path, monkeypatch) -> None:
             "version_id": version_id,
             "x": 0.25,
             "y": 0.8,
+            "timestamp": 3.5,
         },
     )
     assert added.status_code == 201, added.text
@@ -48,6 +49,7 @@ def test_review_comment_thread(tmp_path: Path, monkeypatch) -> None:
     assert comment["x"] == 0.25
     assert comment["y"] == 0.8
     assert comment["resolved"] is False
+    assert comment["timestamp"] == 3.5
 
     listed = client.get(f"/review/{review.id}/comments")
     assert listed.status_code == 200
@@ -93,3 +95,42 @@ def test_review_comment_thread(tmp_path: Path, monkeypatch) -> None:
     assert client.get("/review").json() == []
     archive = client.get("/review/archive").json()
     assert [row["id"] for row in archive] == [review.id]
+
+
+def test_review_video_media_and_timestamp_bounds(tmp_path: Path, monkeypatch) -> None:
+    client = make_client(tmp_path, monkeypatch)
+    game = tmp_path / "game"
+    game.mkdir()
+    client.post("/project/open", json={"path": str(game)})
+    task = client.post("/tasks", json={"title": "Video review"}).json()
+    review = save_review(game / ".hub", ReviewItem(task_id=task["id"], summary="Clip"))
+
+    source = tmp_path / "clip.mp4"
+    payload = b"\x00\x00\x00\x18ftypmp42" + b"0" * 512
+    source.write_bytes(payload)
+    asset = client.post("/assets/import", json={"path": str(source)}).json()
+    assert asset["type"] == "video"
+    version = asset["versions"][0]["id"]
+
+    media = client.get(f"/assets/{asset['id']}/media")
+    assert media.status_code == 200
+    assert media.headers["content-type"].startswith("video/mp4")
+    ranged = client.get(
+        f"/assets/{asset['id']}/media",
+        headers={"Range": "bytes=0-15"},
+    )
+    assert ranged.status_code == 206
+    assert ranged.content == payload[:16]
+
+    added = client.post(
+        f"/review/{review.id}/comments",
+        json={"body": "Поправить кадр", "asset_id": asset["id"], "version_id": version, "timestamp": 1.25},
+    )
+    assert added.status_code == 201, added.text
+    assert added.json()["timestamp"] == 1.25
+
+    bad = client.post(
+        f"/review/{review.id}/comments",
+        json={"body": "too late", "timestamp": 90000},
+    )
+    assert bad.status_code == 422

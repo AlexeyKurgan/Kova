@@ -22,6 +22,7 @@ import {
 import type { LucideIcon } from "lucide-react";
 import { engineBrand } from "../lib/brands";
 import { ENGINE_LABELS } from "../lib/labels";
+import { t } from "../lib/i18n";
 import type { Engine, Section } from "../lib/types";
 import BrandIcon from "./BrandIcon";
 import KovaLogo from "./KovaLogo";
@@ -148,20 +149,21 @@ export default function Sidebar({
 
   const renderItem = ({ label, icon: Icon }: NavItem) => {
     const count = counters[label] ?? 0;
-    const title = count > 0 && collapsed ? `${label} · ${count}` : label;
+    const display = t(label);
+    const title = count > 0 && collapsed ? `${display} · ${count}` : display;
     return (
       <button
         key={label}
         type="button"
         className={label === active ? "nav-item is-active" : "nav-item"}
         aria-current={label === active ? "page" : undefined}
-        aria-label={label}
+        aria-label={display}
         title={title}
         data-section={label}
         onClick={() => onSelect(label)}
       >
         <Icon size={17} strokeWidth={1.8} className="nav-icon" />
-        <span className="nav-label">{label}</span>
+        <span className="nav-label">{display}</span>
         {count > 0 ? <span className="nav-count">{count}</span> : null}
       </button>
     );
@@ -206,7 +208,7 @@ export default function Sidebar({
                 onClick={() => toggleGroup(group)}
                 aria-expanded={isOpen(group)}
               >
-                <span>{group.label}</span>
+                <span>{t(group.label)}</span>
                 <ChevronDown
                   size={12}
                   className={isOpen(group) ? "nav-group-chevron" : "nav-group-chevron is-closed"}
@@ -227,15 +229,15 @@ export default function Sidebar({
           type="button"
           className="nav-item sidebar-collapse"
           onClick={onToggleCollapsed}
-          title={collapsed ? "Развернуть панель" : "Свернуть панель"}
-          aria-label={collapsed ? "Развернуть панель" : "Свернуть панель"}
+          title={collapsed ? t("Развернуть панель") : t("Свернуть панель")}
+          aria-label={collapsed ? t("Развернуть панель") : t("Свернуть панель")}
         >
           {collapsed ? (
             <PanelLeftOpen size={17} strokeWidth={1.8} className="nav-icon" />
           ) : (
             <PanelLeftClose size={17} strokeWidth={1.8} className="nav-icon" />
           )}
-          <span className="nav-label">Свернуть</span>
+          <span className="nav-label">{t("Свернуть")}</span>
         </button>
       </div>
     </aside>

@@ -1,7 +1,7 @@
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from ...domain.enums import ReviewStatus, TaskStatus
 from ...domain.ledger import LedgerEvent
@@ -44,6 +44,7 @@ class ReviewCommentCreate(BaseModel):
     version_id: str | None = None
     x: float = 0.5
     y: float = 0.5
+    timestamp: float | None = Field(default=None, ge=0, le=86400)
 
 
 class ReviewCommentUpdate(BaseModel):
@@ -102,6 +103,7 @@ def add_comment(
         version_id=payload.version_id,
         x=min(1.0, max(0.0, payload.x)),
         y=min(1.0, max(0.0, payload.y)),
+        timestamp=payload.timestamp,
         body=body,
     )
     saved = save_review_comment(hub, comment)

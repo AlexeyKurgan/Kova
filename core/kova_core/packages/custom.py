@@ -11,6 +11,7 @@ from ..security.paths import resolve_inside
 
 CUSTOM_ROOT = Path("packages") / "custom"
 MANIFEST = "kova-package.json"
+REMOTE_MARKER = ".kova-remote.json"
 ID_RE = re.compile(r"^[a-z0-9][a-z0-9_-]{1,63}$")
 
 
@@ -67,7 +68,10 @@ def list_custom_packages(hub: Path) -> list[dict[str, Any]]:
         if not manifest.is_file():
             continue
         try:
-            rows.append(_normalize(json.loads(manifest.read_text(encoding="utf-8"))))
+            row = _normalize(json.loads(manifest.read_text(encoding="utf-8")))
+            if (directory / REMOTE_MARKER).is_file():
+                row["trust"] = "remote"
+            rows.append(row)
         except (OSError, ValueError, PackageImportError):
             continue
     return rows
@@ -92,6 +96,8 @@ def _extract_zip(source: Path, target: Path, manifest_target: Path) -> None:
             name = info.filename.replace("\\", "/")
             if name.startswith("/") or ".." in Path(name).parts:
                 raise PackageImportError(f"небезопасный путь в архиве: {name}")
+            if Path(name).name == REMOTE_MARKER:
+                continue
             if info.file_size > 20 * 1024 * 1024:
                 raise PackageImportError(f"файл слишком большой: {name}")
             total += info.file_size
@@ -114,6 +120,8 @@ def _copy_folder(source: Path, target: Path) -> None:
         raise PackageImportError("пакет больше 100 МБ")
     for path in files:
         relative = path.relative_to(source)
+        if relative.name == REMOTE_MARKER:
+            continue
         destination = resolve_inside(target, relative.as_posix())
         destination.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(path, destination)

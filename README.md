@@ -81,6 +81,7 @@ game project:
 - Checks and stale-check detection.
 - Replay a failed check, capture its environment and compare status/output.
 - Image pins and comments tied to an asset version.
+- Video review with a timeline, frame-time pins and seek-to-comment.
 - Version comparison slider (A/B).
 - “Second opinion” prompt for an independent critic.
 - Accept, rework or archive; accepting with failed checks requires explicit confirmation.
@@ -125,6 +126,7 @@ For free browser AIs:
 ### Packages and engines
 
 - Package catalog with permissions, tools, checks and engine coverage.
+- Package marketplace over a configurable HTTPS index, with SHA256-pinned downloads.
 - Import local `.zip` packages with `kova-package.json`.
 - Install, enable, disable and uninstall packages.
 - Godot, Unity, Unreal, RPG Maker and Web packages detect the engine and project.
@@ -209,9 +211,16 @@ explicit click, after a snapshot.
 - Blender bridge listens on `127.0.0.1:47832`.
 - Provider secrets use Windows DPAPI.
 - No telemetry is sent by Kova.
-- OS sandbox backends (Docker/WSL/Windows Sandbox) are detected in Settings.
-  When none is available, Kova reports the fallback: a sandbox project copy plus
-  Windows Job Object containment.
+- OS sandbox backends (Docker/WSL/Windows Sandbox) are detected in Settings,
+  but Kova does not run a provider CLI inside them: the provider binary and
+  authorization would have to live in the container. Every screen reports this
+  explicitly. The supported fallback is a sandbox project copy plus Windows Job
+  Object containment.
+- Package marketplace entries require HTTPS and a SHA256 digest. Package code is
+  never executed; archives pass the same manifest and zip-slip checks as a local
+  import.
+- Interface language: Russian by default; English beta covers navigation, the top
+  bar and settings.
 - Kova does not intercept commands a CLI runs inside itself; read the provider’s
   own permission model.
 - The editor port `48620` has authentication disabled by code-server. Do not expose it.

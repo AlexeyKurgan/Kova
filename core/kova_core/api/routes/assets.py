@@ -247,6 +247,43 @@ def get_asset_preview(
     )
 
 
+@router.get("/{asset_id}/media")
+def get_asset_media(
+    asset_id: str,
+    version_id: str | None = None,
+    hub: Path = Depends(require_hub),
+) -> FileResponse:
+    asset = get_asset(hub, asset_id)
+    if asset is None:
+        raise HTTPException(status_code=404, detail="asset not found")
+    version = _pick_version(asset, version_id)
+    relative = (version.path if version and version.path else "") or asset.path
+    if not relative:
+        raise HTTPException(status_code=404, detail="file not found")
+    try:
+        path = resolve_inside(hub.parent, relative)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail="file not found") from exc
+    if not path.is_file():
+        raise HTTPException(status_code=404, detail="file not found")
+    media = {
+        ".mp4": "video/mp4",
+        ".webm": "video/webm",
+        ".mov": "video/quicktime",
+        ".mkv": "video/x-matroska",
+        ".avi": "video/x-msvideo",
+        ".wav": "audio/wav",
+        ".mp3": "audio/mpeg",
+        ".ogg": "audio/ogg",
+        ".flac": "audio/flac",
+        ".png": "image/png",
+        ".jpg": "image/jpeg",
+        ".jpeg": "image/jpeg",
+        ".webp": "image/webp",
+    }.get(path.suffix.lower(), "application/octet-stream")
+    return FileResponse(path, media_type=media, headers={"Cache-Control": "no-store"})
+
+
 @router.get("/{asset_id}/file")
 def get_asset_file(asset_id: str, hub: Path = Depends(require_hub)) -> FileResponse:
     asset = get_asset(hub, asset_id)

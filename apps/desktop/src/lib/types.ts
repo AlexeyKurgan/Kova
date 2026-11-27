@@ -734,6 +734,36 @@ export type KovaPackage = {
   engine_info?: EngineInfo | null;
 };
 
+export type RemotePackage = {
+  id: string;
+  name: string;
+  version: string;
+  type: string;
+  author: string;
+  engines: Engine[];
+  permissions: string[];
+  tools: string[];
+  checks: string[];
+  templates: string[];
+  ui: string[];
+  description: string;
+  homepage: string;
+  download_url: string;
+  sha256: string;
+  size: number;
+  trust: "remote";
+  installed: boolean;
+  status: KovaPackage["status"];
+  builtin: boolean;
+};
+
+export type PackageMarketplace = {
+  index_url: string;
+  name: string;
+  updated_at: string;
+  packages: RemotePackage[];
+};
+
 export type RobloxStatus = {
   connected: boolean;
   last_seen_seconds: number | null;
@@ -878,6 +908,7 @@ export type ReviewComment = {
   version_id: string | null;
   x: number;
   y: number;
+  timestamp: number | null;
   body: string;
   author: string;
   resolved: boolean;

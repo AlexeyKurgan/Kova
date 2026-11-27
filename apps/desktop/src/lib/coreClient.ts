@@ -21,6 +21,7 @@ import type {
   ImportAssetInput,
   ImportResponseResult,
   KovaPackage,
+  PackageMarketplace,
   LedgerEvent,
   MemoryResponse,
   ProjectCard,
@@ -155,6 +156,26 @@ export async function importPackage(path: string): Promise<KovaPackage> {
   return request<KovaPackage>("/packages/import", {
     method: "POST",
     body: JSON.stringify({ path }),
+  });
+}
+
+export async function getPackageMarketplace(url = ""): Promise<PackageMarketplace> {
+  const query = url.trim() ? `?url=${encodeURIComponent(url.trim())}` : "";
+  return request<PackageMarketplace>(`/packages/marketplace${query}`);
+}
+
+export async function installRemotePackage(input: {
+  packageId: string;
+  url: string;
+  sha256: string;
+}): Promise<KovaPackage> {
+  return request<KovaPackage>("/packages/marketplace/install", {
+    method: "POST",
+    body: JSON.stringify({
+      package_id: input.packageId,
+      url: input.url,
+      sha256: input.sha256,
+    }),
   });
 }
 
@@ -912,6 +933,7 @@ export async function addReviewComment(
     version_id?: string;
     x?: number;
     y?: number;
+    timestamp?: number | null;
   },
 ): Promise<ReviewComment> {
   return request<ReviewComment>(`/review/${encodeURIComponent(reviewId)}/comments`, {

@@ -34,7 +34,7 @@ type Props = {
   onDeleteAsset: (assetId: string) => void;
 };
 
-const TYPE_ORDER = ["model", "texture", "animation", "effect", "audio", "scene", "code", "other"];
+const TYPE_ORDER = ["model", "texture", "animation", "effect", "audio", "video", "scene", "code", "other"];
 
 const TYPE_ICONS = {
   model: Box,
@@ -42,6 +42,7 @@ const TYPE_ICONS = {
   animation: Film,
   effect: Sparkles,
   audio: FileAudio,
+  video: Film,
   scene: Package,
   code: Package,
   other: TriangleAlert,
