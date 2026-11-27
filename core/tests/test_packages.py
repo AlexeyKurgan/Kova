@@ -26,7 +26,17 @@ def test_packages_catalog_and_install(client: TestClient) -> None:
     assert {"kova-core", "blender-core", "roblox-core"} <= set(ids)
     assert ids["kova-core"]["status"] == "installed"
     assert ids["blender-core"]["installed"] is True
-    assert ids["godot-core"]["status"] == "coming_soon"
+    assert ids["godot-core"]["status"] == "available"
+    assert ids["godot-core"]["available"] is True
+    assert "engine_info" in ids["godot-core"]
+    assert ids["unity-core"]["available"] is True
+    assert ids["web-core"]["available"] is True
+
+    installed_godot = client.post("/packages/godot-core/install")
+    assert installed_godot.status_code == 200, installed_godot.text
+    assert installed_godot.json()["status"] == "installed"
+    uninstalled_godot = client.post("/packages/godot-core/uninstall")
+    assert uninstalled_godot.status_code == 200
 
     removed = client.post("/packages/blender-core/uninstall")
     assert removed.status_code == 200, removed.text
@@ -46,8 +56,7 @@ def test_packages_catalog_and_install(client: TestClient) -> None:
     assert enabled.json()["status"] == "installed"
 
 
-def test_packages_reject_core_removal_and_coming_soon(client: TestClient) -> None:
+def test_packages_reject_core_removal_and_unknown(client: TestClient) -> None:
     assert client.post("/packages/kova-core/uninstall").status_code == 400
-    assert client.post("/packages/godot-core/install").status_code == 400
     assert client.get("/packages/nope").status_code == 404
     assert client.post("/packages/nope/install").status_code == 404

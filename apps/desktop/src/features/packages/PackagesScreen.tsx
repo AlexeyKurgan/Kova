@@ -444,6 +444,31 @@ export default function PackagesScreen() {
                       <span><Box size={11} /> {item.templates.length} шаблонов</span>
                     </div>
 
+                    {item.engine_info ? (
+                      <div
+                        className={`pkg-engine-state${
+                          item.engine_info.installed && item.engine_info.project_detected
+                            ? " is-ready"
+                            : item.engine_info.installed
+                              ? " is-partial"
+                              : ""
+                        }`}
+                        title={item.engine_info.message}
+                      >
+                        <i />
+                        <b>
+                          {item.engine_info.installed
+                            ? item.engine_info.version || "Движок найден"
+                            : "Движок не найден"}
+                        </b>
+                        <small>
+                          {item.engine_info.project_detected
+                            ? "проект найден"
+                            : "проект не найден"}
+                        </small>
+                      </div>
+                    ) : null}
+
                     <div className="pkg-actions">
                       {coming ? (
                         <button type="button" className="btn btn-secondary btn-small" disabled>

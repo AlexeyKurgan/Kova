@@ -6,8 +6,10 @@ from pathlib import Path
 from typing import Any
 
 from ..domain.ledger import LedgerEvent
+from ..domain.enums import Engine
 from ..storage.ledger import append_event
 from .catalog import CATALOG, get_catalog_entry
+from ..integrations.engines import detect_engine
 
 STATE_FILE = "installed.json"
 CORE_PACKAGE = "kova-core"
@@ -68,7 +70,7 @@ def _row(hub: Path, item: dict[str, Any], state: dict[str, Any]) -> dict[str, An
         status = "installed"
     else:
         status = "disabled"
-    return {
+    row = {
         **item,
         "installed": installed,
         "enabled": enabled,
@@ -76,6 +78,13 @@ def _row(hub: Path, item: dict[str, Any], state: dict[str, Any]) -> dict[str, An
         "installed_version": item["version"] if installed else "",
         "update_available": False,
     }
+    if item.get("type") == "engine" and item.get("engines"):
+        try:
+            info = detect_engine(Engine(item["engines"][0]), hub.parent)
+            row["engine_info"] = info.model_dump(mode="json")
+        except (OSError, ValueError):
+            row["engine_info"] = None
+    return row
 
 
 def list_packages(hub: Path) -> list[dict[str, Any]]:

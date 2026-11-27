@@ -11,6 +11,7 @@ from .routes import (
     blender,
     chats,
     doctor,
+    engines,
     health,
     ledger,
     memory,
@@ -83,6 +84,7 @@ def create_app() -> FastAPI:
     app.include_router(style.router)
     app.include_router(night.router)
     app.include_router(doctor.router)
+    app.include_router(engines.router)
     app.include_router(ledger.router)
     app.include_router(memory.router)
     app.include_router(summary.router)

@@ -17,6 +17,7 @@ import type {
   DiaryResponse,
   DuplicateProjectInput,
   Engine,
+  EngineInfo,
   ImportAssetInput,
   ImportResponseResult,
   KovaPackage,
@@ -381,6 +382,20 @@ export async function purgeTask(taskId: string): Promise<void> {
 
 export async function listAssets(): Promise<AssetPassport[]> {
   return request<AssetPassport[]>("/assets");
+}
+
+export async function getEngineInfo(engine: Engine): Promise<EngineInfo> {
+  return request<EngineInfo>(`/engines/${encodeURIComponent(engine)}`);
+}
+
+export async function importAssetToEngine(
+  engine: Engine,
+  assetId: string,
+): Promise<{ engine: string; target: string; relative: string; size: number }> {
+  return request<{ engine: string; target: string; relative: string; size: number }>(
+    `/engines/${encodeURIComponent(engine)}/import/${encodeURIComponent(assetId)}`,
+    { method: "POST" },
+  );
 }
 
 export async function getStyle(): Promise<StyleBible> {

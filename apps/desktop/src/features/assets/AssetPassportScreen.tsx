@@ -18,9 +18,15 @@ import {
   ShieldCheck,
   Trash2,
   TriangleAlert,
+  Upload,
 } from "lucide-react";
 import BrandIcon from "../../components/BrandIcon";
-import { getAssetContract, mediaUrl } from "../../lib/coreClient";
+import {
+  getAssetContract,
+  getEngineInfo,
+  importAssetToEngine,
+  mediaUrl,
+} from "../../lib/coreClient";
 import { formatBytes, formatDate, plural } from "../../lib/format";
 import {
   ASSET_TYPE_LABELS,
@@ -36,6 +42,7 @@ import type {
   CheckResult,
   SceneObject,
   ContractReport,
+  EngineInfo,
   CheckStatus,
   Engine,
   ExportProfile,
@@ -193,6 +200,13 @@ export default function AssetPassportScreen({
   const [depTarget, setDepTarget] = useState("");
   const [depKind, setDepKind] = useState("texture");
   const [diffMode, setDiffMode] = useState<"metrics" | "scene">("metrics");
+  const [engineInfo, setEngineInfo] = useState<EngineInfo | null>(null);
+  const [engineImport, setEngineImport] = useState<{
+    relative: string;
+    target: string;
+  } | null>(null);
+  const [engineBusy, setEngineBusy] = useState(false);
+  const [engineError, setEngineError] = useState("");
   const stripRef = useRef<HTMLDivElement | null>(null);
   const currentVersion =
     asset.versions.find((item) => item.id === asset.current_version_id) ??
@@ -232,6 +246,25 @@ export default function AssetPassportScreen({
 
   useEffect(() => {
     setExportEngine(asset.engine === "generic" ? "roblox" : asset.engine);
+  }, [asset.engine, asset.id]);
+
+  useEffect(() => {
+    const supported = ["godot", "unity", "unreal", "rpgmaker", "web"];
+    if (!supported.includes(asset.engine)) {
+      setEngineInfo(null);
+      return;
+    }
+    let alive = true;
+    getEngineInfo(asset.engine)
+      .then((value) => {
+        if (alive) setEngineInfo(value);
+      })
+      .catch(() => {
+        if (alive) setEngineInfo(null);
+      });
+    return () => {
+      alive = false;
+    };
   }, [asset.engine, asset.id]);
 
   useEffect(() => {
@@ -313,6 +346,21 @@ export default function AssetPassportScreen({
   };
   const metricValue = (version: AssetVersion | null, key: keyof AssetMetrics) =>
     version?.metrics?.[key] ?? null;
+  const importToEngine = async () => {
+    if (!engineInfo || engineBusy) return;
+    setEngineBusy(true);
+    setEngineError("");
+    setEngineImport(null);
+    try {
+      const result = await importAssetToEngine(asset.engine, asset.id);
+      setEngineImport({ relative: result.relative, target: result.target });
+    } catch (err) {
+      setEngineError(err instanceof Error ? err.message : "Не удалось импортировать ассет");
+    } finally {
+      setEngineBusy(false);
+    }
+  };
+
   const addDependency = () => {
     if (!depTarget || depTarget === asset.id) return;
     const target = assets.find((item) => item.id === depTarget);
@@ -655,6 +703,48 @@ export default function AssetPassportScreen({
                 <p className="ad3-empty">Связанных ресурсов нет.</p>
               )}
             </article>
+
+            {engineInfo ? (
+              <article className="ad3-card ad3-engine-import">
+                <div className="ad3-card-head">
+                  <h2><Upload size={14} /> Импорт в движок</h2>
+                  <span className={`task-status ${engineInfo.installed && engineInfo.project_detected ? "is-done" : "is-review"}`}>
+                    {engineInfo.installed && engineInfo.project_detected ? "Готов" : "Не готов"}
+                  </span>
+                </div>
+                <div className="ad3-engine-meta">
+                  <div><span>Движок</span><b>{engineInfo.name}</b></div>
+                  <div><span>Версия</span><b>{engineInfo.version || "—"}</b></div>
+                  <div><span>Проект</span><b>{engineInfo.project_detected ? "найден" : "не найден"}</b></div>
+                  <div><span>Папка</span><b>{engineInfo.import_dir || "—"}</b></div>
+                </div>
+                <p className="ad3-engine-message">{engineInfo.message || "Проверь установку движка."}</p>
+                {engineInfo.formats.length > 0 ? (
+                  <div className="ad3-engine-formats">
+                    {engineInfo.formats.map((format) => (
+                      <span key={format}>{format}</span>
+                    ))}
+                  </div>
+                ) : null}
+                {engineInfo.installed && engineInfo.project_detected ? (
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-small"
+                    disabled={engineBusy}
+                    onClick={() => void importToEngine()}
+                  >
+                    <Upload size={13} />
+                    {engineBusy ? "Импорт…" : "Импортировать текущую версию"}
+                  </button>
+                ) : null}
+                {engineError ? <p className="review-opinion-error">{engineError}</p> : null}
+                {engineImport ? (
+                  <p className="ad3-engine-success">
+                    Импортировано: <code>{engineImport.relative}</code>
+                  </p>
+                ) : null}
+              </article>
+            ) : null}
 
             <article className="ad3-card ad3-contract">
               <div className="ad3-card-head">

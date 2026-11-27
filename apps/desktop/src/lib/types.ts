@@ -674,6 +674,19 @@ export type MemoryResponse = {
   };
 };
 
+export type EngineInfo = {
+  engine: Engine;
+  name: string;
+  installed: boolean;
+  executable: string;
+  version: string;
+  project_detected: boolean;
+  project_file: string;
+  import_dir: string;
+  formats: string[];
+  message: string;
+};
+
 export type KovaPackage = {
   id: string;
   name: string;
@@ -695,6 +708,7 @@ export type KovaPackage = {
   status: "installed" | "available" | "disabled" | "coming_soon";
   installed_version: string;
   update_available: boolean;
+  engine_info?: EngineInfo | null;
 };
 
 export type RobloxStatus = {
