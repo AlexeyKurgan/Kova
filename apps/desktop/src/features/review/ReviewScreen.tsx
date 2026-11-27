@@ -458,7 +458,9 @@ export default function ReviewScreen({
               ? filteredChanges
               : filteredChanges.slice(0, 6);
             const reviewAssets = linkedAssets(item.task_id);
-            const stageCandidates = reviewAssets.filter((asset) => assetPreview(asset));
+            const stageCandidates = reviewAssets.filter(
+              (asset) => assetPreview(asset) || asset.type === "video",
+            );
             const stageCandidateId = stageAsset[item.id] ?? stageCandidates[0]?.id ?? "";
             const activeStage =
               stageCandidates.find((asset) => asset.id === stageCandidateId) ??
