@@ -12,6 +12,8 @@ import {
   Wrench,
 } from "lucide-react";
 import type { ChatActivity, ChatEgress } from "../lib/types";
+import { formatBytes } from "../lib/format";
+import { t } from "../lib/i18n";
 
 function formatDuration(value: number): string {
   if (!value) return "";
@@ -34,13 +36,6 @@ function ActivityIcon({ activity }: { activity: ChatActivity }) {
   return <Wrench size={13} />;
 }
 
-function formatBytes(value: number): string {
-  if (!value) return "0 Б";
-  if (value < 1024) return `${value} Б`;
-  if (value < 1024 * 1024) return `${(value / 1024).toFixed(1)} КБ`;
-  return `${(value / (1024 * 1024)).toFixed(2)} МБ`;
-}
-
 function EgressBlock({ egress }: { egress: ChatEgress }) {
   const network = egress.network ?? [];
   if (!egress.files.length && !egress.attachments && !network.length) return null;
@@ -50,23 +45,23 @@ function EgressBlock({ egress }: { egress: ChatEgress }) {
         <Upload size={12} />
         <span>
           {egress.files.length || egress.attachments
-            ? `${egress.remote ? "Отправлено модели" : "Локально прочитано"}:`
-            : "Сеть:"}
+            ? `${egress.remote ? t("Отправлено модели") : t("Локально прочитано")}:`
+            : `${t("Сеть")}:`}
           {egress.files.length
-            ? ` ${egress.files.length} файлов · ${formatBytes(egress.file_bytes)}`
+            ? ` ${egress.files.length} ${t("файлов")} · ${formatBytes(egress.file_bytes)}`
             : ""}
           {egress.attachments
-            ? ` · ${egress.attachments} вложений · ${formatBytes(egress.attachment_bytes)}`
+            ? ` · ${egress.attachments} ${t("вложений")} · ${formatBytes(egress.attachment_bytes)}`
             : ""}
           {!egress.files.length && !egress.attachments
-            ? ` ${network.length} домен(ов)`
+            ? ` ${network.length} ${t("домен(ов)")}`
             : ""}
         </span>
         <span className="chat-egress-provider">{egress.provider_name}</span>
       </div>
       {egress.files.length ? (
         <details className="chat-egress-files">
-          <summary>Файлы</summary>
+          <summary>{t("Файлы")}</summary>
           <ul>
             {egress.files.map((file) => (
               <li key={file.path}>
@@ -79,12 +74,12 @@ function EgressBlock({ egress }: { egress: ChatEgress }) {
       ) : null}
       {network.length ? (
         <details className="chat-egress-files">
-          <summary>Сеть</summary>
+          <summary>{t("Сеть")}</summary>
           <ul>
             {network.map((item) => (
               <li key={item.host}>
                 <span>{item.host}</span>
-                <small>{item.allowed ? `${item.count}×` : "заблокировано"}</small>
+                <small>{item.allowed ? `${item.count}×` : t("заблокировано")}</small>
               </li>
             ))}
           </ul>
@@ -122,7 +117,7 @@ export default function ChatActivityPanel({
       <div className="chat-activity is-running">
         <div className="chat-activity-head">
           <Loader2 size={14} className="chat-activity-spin" />
-          <span>Kova работает</span>
+          <span>{t("Kova работает")}</span>
           <span className="chat-activity-dots">
             <i />
             <i />
@@ -148,11 +143,11 @@ export default function ChatActivityPanel({
         ) : (
           <Wrench size={13} />
         )}
-        <span>{running ? "Kova работает" : `Действия (${activity.length})`}</span>
+        <span>{running ? t("Kova работает") : t("Действия ({count})", { count: activity.length })}</span>
         {flagged ? (
           <span className={`chat-activity-warning${flagged ? " is-visible" : ""}`}>
             <ShieldAlert size={11} />
-            {external ? `${external} вне проекта` : `${flagged} требует внимания`}
+            {external ? t("{count} вне проекта", { count: external }) : t("{count} требует внимания", { count: flagged })}
           </span>
         ) : null}
         {running ? (
@@ -181,7 +176,7 @@ export default function ChatActivityPanel({
                     {item.label}
                     {item.flags?.map((flag) => (
                       <span className={`chat-activity-flag is-${flag}`} key={flag}>
-                        {FLAG_LABELS[flag] || flag}
+                        {t(FLAG_LABELS[flag] || flag)}
                       </span>
                     ))}
                   </b>

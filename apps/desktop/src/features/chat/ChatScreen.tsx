@@ -47,7 +47,9 @@ import {
   sendChatMessage,
   updateChat,
 } from "../../lib/coreClient";
-import { formatDate } from "../../lib/format";
+import { formatBytes, formatDate } from "../../lib/format";
+import { TASK_STATUS_LABELS, TASK_TYPE_LABELS } from "../../lib/labels";
+import { t, tp } from "../../lib/i18n";
 import type { KovaAvatarState } from "../../components/KovaAvatar";
 import type { ChatPreferences } from "../../lib/chatPreferences";
 import type {
@@ -61,21 +63,21 @@ import type {
 } from "../../lib/types";
 
 function actionLabel(action: ChatAction): string {
-  if (action.type === "create_task") return "Создать задачу";
-  if (action.type === "update_task") return "Обновить задачу";
-  if (action.type === "update_project_settings") return "Изменить настройки проекта";
-  return "Запустить агента";
+  if (action.type === "create_task") return t("Создать задачу");
+  if (action.type === "update_task") return t("Обновить задачу");
+  if (action.type === "update_project_settings") return t("Изменить настройки проекта");
+  return t("Запустить агента");
 }
 
 function actionDetail(action: ChatAction): string {
   const payload = action.payload ?? {};
   if (action.type === "create_task") {
-    return String(payload.title ?? "Задача из чата");
+    return String(payload.title ?? t("Задача из чата"));
   }
   if (action.type === "update_task") {
     const parts = [String(payload.task_id ?? "")];
-    if (payload.status) parts.push(`статус: ${String(payload.status)}`);
-    if (payload.next_step) parts.push(`шаг: ${String(payload.next_step)}`);
+    if (payload.status) parts.push(t("статус: {status}", { status: String(payload.status) }));
+    if (payload.next_step) parts.push(t("шаг: {step}", { step: String(payload.next_step) }));
     return parts.filter(Boolean).join(" · ");
   }
   if (action.type === "update_project_settings") {
@@ -85,15 +87,15 @@ function actionDetail(action: ChatAction): string {
         payload.isolation === "worktree"
           ? "worktree"
           : payload.isolation === "sandbox"
-            ? "песочница-копия"
-            : "прямо в проекте",
+            ? t("песочница-копия")
+            : t("прямо в проекте"),
       );
     }
-    if (payload.local_only === true) parts.push("только локальные");
-    if (payload.egress_guard === true) parts.push("сетевой щит");
-    if (payload.max_parallel_runs) parts.push(`запусков: ${String(payload.max_parallel_runs)}`);
-    if (payload.token_budget) parts.push(`лимит: ${String(payload.token_budget)}`);
-    return parts.join(" · ") || "Настройки проекта";
+    if (payload.local_only === true) parts.push(t("только локальные"));
+    if (payload.egress_guard === true) parts.push(t("сетевой щит"));
+    if (payload.max_parallel_runs) parts.push(t("запусков: {count}", { count: String(payload.max_parallel_runs) }));
+    if (payload.token_budget) parts.push(t("лимит: {budget}", { budget: String(payload.token_budget) }));
+    return parts.join(" · ") || t("Настройки проекта");
   }
   const parts = [String(payload.task_id ?? "")];
   if (payload.provider_id) parts.push(String(payload.provider_id));
@@ -136,12 +138,6 @@ function attachmentKind(mime: string): PendingAttachment["kind"] {
   if (mime.startsWith("video/")) return "video";
   if (mime.startsWith("text/") || mime === "application/json") return "text";
   return "file";
-}
-
-function formatBytes(size: number): string {
-  if (size < 1024) return `${size} Б`;
-  if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} КБ`;
-  return `${(size / (1024 * 1024)).toFixed(1)} МБ`;
 }
 
 function renderMarkdown(value: string): string {
@@ -310,55 +306,55 @@ function chatSafety(
 ): { label: string; title: string } {
   if (!provider) {
     return {
-      label: localOnly ? "Локально" : "Без изменений",
+      label: localOnly ? t("Локально") : t("Без изменений"),
       title: localOnly
-        ? "Включён режим только локальных моделей. Внешние провайдеры заблокированы."
-        : "Чат не меняет файлы проекта.",
+        ? t("Включён режим только локальных моделей. Внешние провайдеры заблокированы.")
+        : t("Чат не меняет файлы проекта."),
     };
   }
   const remote = provider.kind === "api" ? !provider.local_api : true;
   if (localOnly && remote) {
     return {
-      label: "Заблокировано",
+      label: t("Заблокировано"),
       title:
-        "Включён режим только локальных моделей. Этот провайдер отправляет данные в интернет, поэтому отправка заблокирована.",
+        t("Включён режим только локальных моделей. Этот провайдер отправляет данные в интернет, поэтому отправка заблокирована."),
     };
   }
   if (localOnly && !remote) {
     return {
-      label: "Локально",
+      label: t("Локально"),
       title:
-        "Локальный API: данные не уходят за пределы этой машины. Чат только читает проект.",
+        t("Локальный API: данные не уходят за пределы этой машины. Чат только читает проект."),
     };
   }
   if (provider.kind === "api") {
     return {
-      label: "Без инструментов",
+      label: t("Без инструментов"),
       title:
-        "API-чат отвечает текстом и не получает доступ к файлам, командам или сети проекта.",
+        t("API-чат отвечает текстом и не получает доступ к файлам, командам или сети проекта."),
     };
   }
   if (provider.id === "opencode") {
     return {
-      label: externalCount ? "Читает + папки" : "Читает проект",
+      label: externalCount ? t("Читает + папки") : t("Читает проект"),
       title: externalCount
-        ? `OpenCode читает проект и ${externalCount} явно разрешённых внешних папок. Изменения, команды, сеть и MCP заблокированы.`
-        : "OpenCode в чате читает только папку проекта. Внешние пути, изменения файлов, команды, сеть и MCP заблокированы.",
+        ? t("OpenCode читает проект и {count} явно разрешённых внешних папок. Изменения, команды, сеть и MCP заблокированы.", { count: externalCount })
+        : t("OpenCode в чате читает только папку проекта. Внешние пути, изменения файлов, команды, сеть и MCP заблокированы."),
     };
   }
   if (provider.chat_args?.length || provider.read_only_args?.length) {
     return {
-      label: externalCount ? "Без изменений + папки" : "Без изменений",
+      label: externalCount ? t("Без изменений + папки") : t("Без изменений"),
       title:
         externalCount
-          ? `Чат работает без правок и команд; разрешено чтение проекта и ${externalCount} внешних папок.`
-          : "Чат работает без правок файлов и без команд. Внешние пути контролируются возможностями CLI.",
+          ? t("Чат работает без правок и команд; разрешено чтение проекта и {count} внешних папок.", { count: externalCount })
+          : t("Чат работает без правок файлов и без команд. Внешние пути контролируются возможностями CLI."),
     };
   }
   return {
-    label: "Не настроен",
+    label: t("Не настроен"),
     title:
-      "Для этого CLI не заданы безопасные аргументы чата. Добавь аргументы «только чтение» в настройках провайдера.",
+      t("Для этого CLI не заданы безопасные аргументы чата. Добавь аргументы «только чтение» в настройках провайдера."),
   };
 }
 
@@ -587,7 +583,7 @@ ${seed.text}` : seed.text));
     chat?.external_paths?.length ?? 0,
     localOnly,
   );
-  const currentModelName = catalogModel?.name ?? (chat?.model ? chat.model.split("/").pop() : "по умолчанию");
+  const currentModelName = catalogModel?.name ?? (chat?.model ? chat.model.split("/").pop() : t("по умолчанию"));
   const activeTaskIds = chat
     ? chat.task_ids?.length
       ? chat.task_ids
@@ -599,10 +595,10 @@ ${seed.text}` : seed.text));
   const shownTasks = tasks.filter((item) => shownTaskIds.includes(item.id));
   const contextText =
     shownTasks.length === 0
-      ? "Весь проект"
+      ? t("Весь проект")
       : shownTasks.length === 1
         ? shownTasks[0].title
-        : `${shownTasks.length} ${shownTasks.length < 5 ? "задачи" : "задач"}`;
+        : `${shownTasks.length} ${tp(shownTasks.length, ["задача", "задачи", "задач"], "task", "tasks")}`;
 
   const filtered = chats.filter((item) =>
     `${item.title} ${item.last_message}`.toLowerCase().includes(query.trim().toLowerCase()),
@@ -615,7 +611,7 @@ ${seed.text}` : seed.text));
     try {
       setChat(await getChat(chatId));
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Не удалось открыть чат");
+      setError(err instanceof Error ? err.message : t("Не удалось открыть чат"));
     } finally {
       setBusy(false);
     }
@@ -623,7 +619,7 @@ ${seed.text}` : seed.text));
 
   const newChat = async () => {
     if (available.length === 0) {
-      setError("Нет доступных провайдеров. Настрой CLI или API-провайдера в разделе «Агенты».");
+      setError(t("Нет доступных провайдеров. Настрой CLI или API-провайдера в разделе «Агенты»."));
       return;
     }
     const first = available.find((item) => item.id === defaultProvider) ?? available[0];
@@ -633,7 +629,7 @@ ${seed.text}` : seed.text));
     setCreatedTask(null);
     try {
       const created = await createChat({
-        title: "Новый чат",
+        title: t("Новый чат"),
         scope: "project",
         provider_id: first.id,
         model,
@@ -642,7 +638,7 @@ ${seed.text}` : seed.text));
       setChat(created);
       setChats(await listChats());
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Не удалось создать чат");
+      setError(err instanceof Error ? err.message : t("Не удалось создать чат"));
     } finally {
       setBusy(false);
     }
@@ -650,10 +646,10 @@ ${seed.text}` : seed.text));
 
   const removeChat = async (item: ChatSummary) => {
     const ok = await confirm({
-      title: "Удалить чат?",
-      message: `Чат «${item.title}» будет удалён.`,
-      details: ["История сообщений этого чата удалится.", "Задачи и файлы не затрагиваются."],
-      confirmLabel: "Удалить",
+      title: t("Удалить чат?"),
+      message: t("Чат «{title}» будет удалён.", { title: item.title }),
+      details: [t("История сообщений этого чата удалится."), t("Задачи и файлы не затрагиваются.")],
+      confirmLabel: t("Удалить"),
       danger: true,
     });
     if (!ok) return;
@@ -678,7 +674,7 @@ ${seed.text}` : seed.text));
       setChats(await listChats());
       return next;
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Не удалось сохранить настройки чата");
+      setError(err instanceof Error ? err.message : t("Не удалось сохранить настройки чата"));
       return null;
     }
   };
@@ -691,7 +687,7 @@ ${seed.text}` : seed.text));
       .filter(Boolean);
     const next = await updateSettings({ external_paths: paths });
     if (next && (next.external_paths?.length ?? 0) !== paths.length) {
-      setError("Некоторые пути пропущены: нужны существующие абсолютные папки.");
+      setError(t("Некоторые пути пропущены: нужны существующие абсолютные папки."));
     }
     setAccessOpen(false);
   };
@@ -715,7 +711,7 @@ ${seed.text}` : seed.text));
       }
     }
     if (!copied) {
-      setError("Не удалось скопировать ответ в буфер обмена.");
+      setError(t("Не удалось скопировать ответ в буфер обмена."));
       return;
     }
     setCopiedMessage(messageId);
@@ -751,7 +747,7 @@ ${seed.text}` : seed.text));
   }, [taskPickerOpen]);
 
   const providerHost = (provider: ProviderInfo): string => {
-    if (provider.kind !== "api") return "внешний CLI-провайдер";
+    if (provider.kind !== "api") return t("внешний CLI-провайдер");
     if (provider.api_url) {
       try {
         return new URL(provider.api_url).host;
@@ -780,7 +776,7 @@ ${seed.text}` : seed.text));
       setPending([]);
       setChats(await listChats());
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Не удалось отправить сообщение");
+      setError(err instanceof Error ? err.message : t("Не удалось отправить сообщение"));
       setText(message);
     } finally {
       setBusy(false);
@@ -800,7 +796,7 @@ ${seed.text}` : seed.text));
       providers.find((item) => item.id === chat.provider_id) ?? currentProvider;
     if (provider && localOnly && providerIsRemote(provider)) {
       setError(
-        "Включён режим только локальных моделей. Выбери локальный API в настройках провайдера.",
+        t("Включён режим только локальных моделей. Выбери локальный API в настройках провайдера."),
       );
       return;
     }
@@ -825,7 +821,7 @@ ${seed.text}` : seed.text));
       await onGrantConsent(request.provider.id);
     } catch (err) {
       setBusy(false);
-      setError(err instanceof Error ? err.message : "Не удалось сохранить согласие");
+      setError(err instanceof Error ? err.message : t("Не удалось сохранить согласие"));
       return;
     }
     setConsentRequest(null);
@@ -836,13 +832,13 @@ ${seed.text}` : seed.text));
     if (!files?.length) return;
     const room = 4 - pending.length;
     if (room <= 0) {
-      setError("Можно прикрепить не больше 4 файлов к одному сообщению.");
+      setError(t("Можно прикрепить не больше 4 файлов к одному сообщению."));
       return;
     }
     const rows: PendingAttachment[] = [];
     for (const file of Array.from(files).slice(0, room)) {
       if (file.size > 12_000_000) {
-        setError(`${file.name}: файл больше 12 МБ.`);
+        setError(t("{file}: файл больше 12 МБ.", { file: file.name }));
         continue;
       }
       const dataUrl = await new Promise<string>((resolve) => {
@@ -901,7 +897,7 @@ ${seed.text}` : seed.text));
       }
       setChats(await listChats());
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Не удалось выполнить действие");
+      setError(err instanceof Error ? err.message : t("Не удалось выполнить действие"));
     } finally {
       setDeciding(null);
     }
@@ -912,7 +908,7 @@ ${seed.text}` : seed.text));
     try {
       setChat(await cancelChat(chat.id));
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Не удалось остановить ответ");
+      setError(err instanceof Error ? err.message : t("Не удалось остановить ответ"));
     }
   };
 
@@ -922,7 +918,7 @@ ${seed.text}` : seed.text));
         .split("\n")
         .map((line) => line.replace(/^#+\s*/, "").trim())
         .find(Boolean)
-        ?.slice(0, 80) || "Задача из чата";
+        ?.slice(0, 80) || t("Задача из чата");
     setBusy(true);
     try {
       const task = await createTask({
@@ -935,7 +931,7 @@ ${seed.text}` : seed.text));
       setCreatedTask(task.id);
       onTasksChanged();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Не удалось создать задачу");
+      setError(err instanceof Error ? err.message : t("Не удалось создать задачу"));
     } finally {
       setBusy(false);
     }
@@ -946,12 +942,12 @@ ${seed.text}` : seed.text));
       <aside className="chat-sidebar">
         <div className="chat-side-head">
           <div>
-            <h1>Чат</h1>
-            <p>Проект, задачи и агенты</p>
+            <h1>{t("Чат")}</h1>
+            <p>{t("Проект, задачи и агенты")}</p>
           </div>
           <button type="button" className="btn btn-primary btn-small" onClick={() => void newChat()}>
             <Plus size={13} />
-            Новый
+            {t("Новый")}
           </button>
         </div>
         <label className="resource-search chat-search">
@@ -959,14 +955,14 @@ ${seed.text}` : seed.text));
           <input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Поиск чатов…"
+            placeholder={t("Поиск чатов…")}
           />
         </label>
         <div className="chat-list">
           {filtered.length === 0 ? (
             <div className="chat-list-empty">
               <MessageSquare size={18} />
-              <span>Чатов пока нет</span>
+              <span>{t("Чатов пока нет")}</span>
             </div>
           ) : (
             filtered.map((item) => (
@@ -980,14 +976,14 @@ ${seed.text}` : seed.text));
                 </span>
                 <span className="chat-list-copy">
                   <b>{item.title}</b>
-                  <small>{item.last_message || "Пустой чат"}</small>
+                  <small>{item.last_message || t("Пустой чат")}</small>
                 </span>
                 <span className="chat-list-meta">
                   {item.status === "running" ? <i className="chat-live-dot" /> : null}
                   <button
                     type="button"
                     className="tk-icon-btn"
-                    title="Удалить чат"
+                    title={t("Удалить чат")}
                     onClick={(event) => {
                       event.stopPropagation();
                       void removeChat(item);
@@ -1008,14 +1004,13 @@ ${seed.text}` : seed.text));
             <span className="chat-empty-icon">
               <KovaAvatar size={104} />
             </span>
-            <h2>Мяу, я Kova</h2>
+            <h2>{t("Мяу, я Kova")}</h2>
             <p>
-              Спроси про проект, задачи, ассеты или следующий шаг. Контекст проекта уже со
-              мной.
+              {t("Спроси про проект, задачи, ассеты или следующий шаг. Контекст проекта уже со мной.")}
             </p>
             <button type="button" className="btn btn-primary" onClick={() => void newChat()}>
               <Plus size={14} />
-              Начать чат
+              {t("Начать чат")}
             </button>
           </div>
         ) : (
@@ -1023,12 +1018,12 @@ ${seed.text}` : seed.text));
             <header className="chat-head">
               <div className="chat-title">
                 <b>{chat.title}</b>
-                <span>{task ? task.title : "Весь проект"}</span>
+                <span>{task ? task.title : t("Весь проект")}</span>
               </div>
               <button
                 type="button"
                 className="chat-safety-badge"
-                title={`${safety.title} Нажми, чтобы настроить внешние папки.`}
+                title={`${safety.title} ${t("Нажми, чтобы настроить внешние папки.")}`}
                 onClick={() => {
                   setPathsDraft((chat.external_paths ?? []).join("\n"));
                   setAccessOpen((value) => !value);
@@ -1044,7 +1039,7 @@ ${seed.text}` : seed.text));
                   className="btn btn-secondary btn-small"
                   onClick={() => onOpenTask(task.id)}
                 >
-                  Открыть задачу
+                  {t("Открыть задачу")}
                 </button>
               ) : null}
             </header>
@@ -1054,20 +1049,19 @@ ${seed.text}` : seed.text));
                 <div className="chat-access-head">
                   <b>
                     <FolderLock size={13} />
-                    Внешние папки
+                    {t("Внешние папки")}
                   </b>
                   <button
                     type="button"
                     className="tk-icon-btn"
-                    title="Закрыть"
+                    title={t("Закрыть")}
                     onClick={() => setAccessOpen(false)}
                   >
                     <X size={13} />
                   </button>
                 </div>
                 <p>
-                  Разрешить чтение вне проекта для этого чата. Изменения файлов,
-                  команды и сеть остаются заблокированы.
+                  {t("Разрешить чтение вне проекта для этого чата. Изменения файлов, команды и сеть остаются заблокированы.")}
                 </p>
                 <textarea
                   value={pathsDraft}
@@ -1078,13 +1072,13 @@ ${seed.text}` : seed.text));
                   rows={3}
                 />
                 <div className="chat-access-actions">
-                  <small>По одной абсолютной папке на строку</small>
+                  <small>{t("По одной абсолютной папке на строку")}</small>
                   <button
                     type="button"
                     className="btn btn-primary btn-small"
                     onClick={() => void saveExternalPaths()}
                   >
-                    Сохранить
+                    {t("Сохранить")}
                   </button>
                 </div>
               </div>
@@ -1093,10 +1087,9 @@ ${seed.text}` : seed.text));
             {consentRequest ? (
               <div className="chat-consent-overlay" role="dialog" aria-modal="true">
                 <div className="chat-consent-card">
-                  <b>Отправить данные провайдеру?</b>
+                  <b>{t("Отправить данные провайдеру?")}</b>
                   <p>
-                    Kova отправит текст запроса и файлы, которые прочитает агент,
-                    в этот сервис. Без этого он не сможет ответить.
+                    {t("Kova отправит текст запроса и файлы, которые прочитает агент, в этот сервис. Без этого он не сможет ответить.")}
                   </p>
                   <div className="chat-consent-target">
                     <strong>{consentRequest.provider.name}</strong>
@@ -1104,10 +1097,9 @@ ${seed.text}` : seed.text));
                   </div>
                   <small>
                     {consentRequest.pending.length
-                      ? `Вложений: ${consentRequest.pending.length}. `
+                      ? t("Вложений: {count}. ", { count: consentRequest.pending.length })
                       : ""}
-                    Согласие запоминается для проекта и провайдера — повторно спрашивать
-                    не будем.
+                    {t("Согласие запоминается для проекта и провайдера — повторно спрашивать не будем.")}
                   </small>
                   <div className="chat-consent-actions">
                     <button
@@ -1115,7 +1107,7 @@ ${seed.text}` : seed.text));
                       className="btn btn-secondary btn-small"
                       onClick={() => setConsentRequest(null)}
                     >
-                      Отмена
+                      {t("Отмена")}
                     </button>
                     <button
                       type="button"
@@ -1123,7 +1115,7 @@ ${seed.text}` : seed.text));
                       disabled={busy}
                       onClick={() => void confirmConsent()}
                     >
-                      Разрешить и отправить
+                      {t("Разрешить и отправить")}
                     </button>
                   </div>
                 </div>
@@ -1135,19 +1127,19 @@ ${seed.text}` : seed.text));
                 <div className="chat-hint">
                   <KovaAvatar size={84} />
                   <div className="chat-hint-copy">
-                    <b>Мяу, я Kova</b>
-                    <span>Напиши первый вопрос. Контекст проекта уже передан; чат только читает и не меняет файлы.</span>
+                    <b>{t("Мяу, я Kova")}</b>
+                    <span>{t("Напиши первый вопрос. Контекст проекта уже передан; чат только читает и не меняет файлы.")}</span>
                     <button
                       type="button"
                       className="chat-hint-action"
                       onClick={() => {
                         setText(
-                          "Расскажи, что умеет Kova: какие разделы есть, какие настройки важны и с чего начать работу.",
+                          t("Расскажи, что умеет Kova: какие разделы есть, какие настройки важны и с чего начать работу."),
                         );
                         composerRef.current?.focus();
                       }}
                     >
-                      Что умеет Kova?
+                      {t("Что умеет Kova?")}
                     </button>
                   </div>
                 </div>
@@ -1159,7 +1151,7 @@ ${seed.text}` : seed.text));
                       <User size={14} />
                     ) : (
                       <KovaAvatar
-                        state={activityAvatarState(message.activity ?? [], false, message.content.startsWith("Ошибка"))}
+                        state={activityAvatarState(message.activity ?? [], false, /^(Ошибка|Error)/.test(message.content))}
                         size={24}
                       />
                     )}
@@ -1247,7 +1239,7 @@ ${seed.text}` : seed.text));
                                     onClick={() => void handleAction(action, "approve")}
                                   >
                                     <Check size={11} />
-                                    {action.type === "start_agent_run" ? "Запустить" : "Подтвердить"}
+                                    {action.type === "start_agent_run" ? t("Запустить") : t("Подтвердить")}
                                   </button>
                                   <button
                                     type="button"
@@ -1256,16 +1248,16 @@ ${seed.text}` : seed.text));
                                     onClick={() => void handleAction(action, "reject")}
                                   >
                                     <X size={11} />
-                                    Отклонить
+                                    {t("Отклонить")}
                                   </button>
                                 </div>
                               ) : (
                                 <small className={`chat-action-state is-${action.status}`}>
                                   {action.status === "approved"
-                                    ? "Выполнено"
+                                    ? t("Выполнено")
                                     : action.status === "rejected"
-                                      ? "Отклонено"
-                                      : "Ошибка"}
+                                      ? t("Отклонено")
+                                      : t("Ошибка")}
                                 </small>
                               )}
                               {action.error ? (
@@ -1277,7 +1269,7 @@ ${seed.text}` : seed.text));
                                   className="agent-link"
                                   onClick={() => onOpenTask(resultTask)}
                                 >
-                                  Открыть задачу →
+                                  {t("Открыть задачу")} →
                                 </button>
                               ) : null}
                             </div>
@@ -1299,7 +1291,7 @@ ${seed.text}` : seed.text));
                             onClick={() => void copyMessage(message.id, message.content)}
                           >
                             <Copy size={11} />
-                            {copiedMessage === message.id ? "Скопировано" : "Копировать"}
+                            {copiedMessage === message.id ? t("Скопировано") : t("Копировать")}
                           </button>
                           {!message.actions?.length ? (
                             <button
@@ -1308,7 +1300,7 @@ ${seed.text}` : seed.text));
                               onClick={() => void makeTask(message.content)}
                             >
                               <ClipboardPlus size={11} />
-                              Создать задачу
+                              {t("Создать задачу")}
                             </button>
                           ) : null}
                         </span>
@@ -1336,7 +1328,7 @@ ${seed.text}` : seed.text));
                   className="chat-task-link"
                   onClick={() => onOpenTask(createdTask)}
                 >
-                  Задача создана. Открыть →
+                  {t("Задача создана. Открыть →")}
                 </button>
               ) : null}
             </div>
@@ -1360,7 +1352,7 @@ ${seed.text}` : seed.text));
                     </span>
                     <button
                       type="button"
-                      title="Убрать файл"
+                      title={t("Убрать файл")}
                       onClick={() =>
                         setPending((prev) => prev.filter((_, itemIndex) => itemIndex !== index))
                       }
@@ -1377,19 +1369,19 @@ ${seed.text}` : seed.text));
                 <div className="chat-attach-menu">
                   <button type="button" onClick={() => fileRef.current?.click()}>
                     <FileText size={15} />
-                    Загрузить файлы
+                    {t("Загрузить файлы")}
                   </button>
                   <button type="button" onClick={() => fileRef.current?.click()}>
                     <ImageIcon size={15} />
-                    Изображение или скриншот
+                    {t("Изображение или скриншот")}
                   </button>
                   <button type="button" onClick={() => fileRef.current?.click()}>
                     <Video size={15} />
-                    Видео
+                    {t("Видео")}
                   </button>
                   <div className="chat-attach-hint">
                     <ClipboardPaste size={14} />
-                    Ctrl+V — вставить скриншот из буфера
+                    {t("Ctrl+V — вставить скриншот из буфера")}
                   </div>
                 </div>
               ) : null}
@@ -1397,13 +1389,13 @@ ${seed.text}` : seed.text));
               {pickerOpen ? (
                 <div className="chat-picker">
                   <div className="chat-picker-head">
-                    <b>Модель и рассуждение</b>
-                    <button type="button" onClick={() => setPickerOpen(false)} title="Закрыть">
+                    <b>{t("Модель и рассуждение")}</b>
+                    <button type="button" onClick={() => setPickerOpen(false)} title={t("Закрыть")}>
                       <X size={15} />
                     </button>
                   </div>
                   <label className="chat-picker-label">
-                    Провайдер
+                    {t("Провайдер")}
                     <select
                       value={chat.provider_id}
                       onChange={(event) => {
@@ -1423,16 +1415,16 @@ ${seed.text}` : seed.text));
                     </select>
                   </label>
                   <label className="chat-picker-label">
-                    Модель
+                    {t("Модель")}
                     <input
                       type="search"
                       value={modelQuery}
-                      placeholder="Поиск модели…"
+                      placeholder={t("Поиск модели…")}
                       onChange={(event) => setModelQuery(event.target.value)}
                     />
                   </label>
                   <div className="chat-model-list">
-                    {catalogLoading ? <small>Загрузка моделей…</small> : null}
+                    {catalogLoading ? <small>{t("Загрузка моделей…")}</small> : null}
                     {!catalogLoading &&
                       filteredCatalog.map((group) => (
                         <div className="chat-model-group" key={group.id}>
@@ -1466,8 +1458,8 @@ ${seed.text}` : seed.text));
                     {!catalogLoading && filteredCatalog.length === 0 ? (
                       <small>
                         {catalog.length === 0
-                          ? "У провайдера нет списка моделей — используется модель по умолчанию."
-                          : "Ничего не найдено."}
+                          ? t("У провайдера нет списка моделей — используется модель по умолчанию.")
+                          : t("Ничего не найдено.")}
                       </small>
                     ) : null}
                   </div>
@@ -1488,7 +1480,7 @@ ${seed.text}` : seed.text));
                       </div>
                     ) : (
                       <small className="chat-effort-note">
-                        У этой модели нет отдельных уровней effort — используется Auto.
+                        {t("У этой модели нет отдельных уровней effort — используется Auto.")}
                       </small>
                     )}
                   </div>
@@ -1507,7 +1499,7 @@ ${seed.text}` : seed.text));
                       setPickerOpen(false);
                     }}
                   >
-                    Сбросить к настройкам по умолчанию
+                    {t("Сбросить к настройкам по умолчанию")}
                   </button>
                 </div>
               ) : null}
@@ -1517,7 +1509,7 @@ ${seed.text}` : seed.text));
                   <input
                     type="search"
                     value={taskQuery}
-                    placeholder="Поиск задач…"
+                    placeholder={t("Поиск задач…")}
                     onChange={(event) => setTaskQuery(event.target.value)}
                     autoFocus
                   />
@@ -1529,8 +1521,8 @@ ${seed.text}` : seed.text));
                     >
                       <span className="chat-task-check">{taskSelection.length === 0 ? "✓" : ""}</span>
                       <span className="chat-task-copy">
-                        <b>Весь проект</b>
-                        <small>Общий контекст проекта</small>
+                        <b>{t("Весь проект")}</b>
+                        <small>{t("Общий контекст проекта")}</small>
                       </span>
                     </button>
                     {tasks
@@ -1560,18 +1552,18 @@ ${seed.text}` : seed.text));
                               <small>
                                 <span className="chat-task-kind">
                                   <TaskTypeIcon type={item.type} />
-                                  {item.type}
+                                  {TASK_TYPE_LABELS[item.type]}
                                 </span>
                                 <span className="chat-task-engine">
                                   <EngineIcon engine={item.engine} />
                                 </span>
-                                <span>{item.status}</span>
+                                <span>{TASK_STATUS_LABELS[item.status]}</span>
                               </small>
                             </span>
                           </button>
                         );
                       })}
-                    {tasks.length === 0 ? <small className="chat-task-empty">Задач пока нет</small> : null}
+                    {tasks.length === 0 ? <small className="chat-task-empty">{t("Задач пока нет")}</small> : null}
                   </div>
                 </div>
               ) : null}
@@ -1596,7 +1588,7 @@ ${seed.text}` : seed.text));
                 <button
                   type="button"
                   className="chat-plus"
-                  title="Добавить файл"
+                  title={t("Добавить файл")}
                   onClick={() => {
                     setAttachOpen((value) => !value);
                     setPickerOpen(false);
@@ -1608,7 +1600,7 @@ ${seed.text}` : seed.text));
                   ref={composerRef}
                   rows={1}
                   value={text}
-                  placeholder="Спроси про проект, задачу или следующий шаг…"
+                  placeholder={t("Спроси про проект, задачу или следующий шаг…")}
                   onChange={(event) => setText(event.target.value)}
                   onKeyDown={(event) => {
                     const sendKey =
@@ -1630,7 +1622,7 @@ ${seed.text}` : seed.text));
                     setAttachOpen(false);
                   }}
                 >
-                  <span>{currentProvider?.name ?? "Модель"}</span>
+                  <span>{currentProvider?.name ?? t("Модель")}</span>
                   <small>
                     {currentModelName} · {effortLabel(chat.effort)}
                   </small>
@@ -1640,7 +1632,7 @@ ${seed.text}` : seed.text));
                   <button
                     type="button"
                     className="chat-stop-button"
-                    title="Остановить ответ"
+                    title={t("Остановить ответ")}
                     onClick={() => void stop()}
                   >
                     <CircleStop size={16} />
@@ -1650,7 +1642,7 @@ ${seed.text}` : seed.text));
                     type="button"
                     className="chat-send-button"
                     disabled={busy || (!text.trim() && pending.length === 0)}
-                    title="Отправить"
+                    title={t("Отправить")}
                     onClick={() => void send()}
                   >
                     <Send size={16} />
@@ -1659,8 +1651,8 @@ ${seed.text}` : seed.text));
               </div>
               <div className="chat-composer-hint">
                 {chatPreferences.enterToSend
-                  ? "Enter — отправить · Shift+Enter — новая строка"
-                  : "Ctrl+Enter — отправить · Enter — новая строка"}
+                  ? t("Enter — отправить · Shift+Enter — новая строка")
+                  : t("Ctrl+Enter — отправить · Enter — новая строка")}
               </div>
               <input
                 ref={fileRef}

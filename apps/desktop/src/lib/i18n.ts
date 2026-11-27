@@ -170,7 +170,6 @@ const EN: Record<string, string> = {
   "Все задачи": "All tasks",
   "Цель пока не задана": "No goal yet",
   "Критерии {done}/{total}": "Criteria {done}/{total}",
-  "Открыть задачу": "Open task",
   "Активных задач нет": "No active tasks",
   "Создай новую или открой готовые в разделе «Задачи».":
     "Create a new one or browse completed tasks.",
@@ -195,7 +194,6 @@ const EN: Record<string, string> = {
   Активные: "Active",
   Готовые: "Done",
   Корзина: "Trash",
-  "Поиск задач…": "Search tasks…",
   "Поиск задач": "Search tasks",
   "Статус задач": "Task status",
   "Тип задачи": "Task type",
@@ -414,7 +412,6 @@ const EN: Record<string, string> = {
   "Нужен аддон": "Addon required",
   "Нажми, чтобы подключить": "Click to connect",
   "Плагин не запущен": "Plugin not running",
-  "Не настроен": "Not configured",
   "Roblox Studio подключён": "Roblox Studio connected",
   "Настроить Roblox Studio": "Set up Roblox Studio",
   "Проверка Git": "Git check",
@@ -697,7 +694,6 @@ const EN: Record<string, string> = {
   "Удалить связь": "Remove link",
   "Ассет-зависимость": "Asset dependency",
   "Тип зависимости": "Dependency type",
-  "по умолчанию": "default",
   "Удалить профиль": "Delete profile",
   "Движок профиля": "Profile engine",
   "Формат экспорта": "Export format",
@@ -809,7 +805,6 @@ const EN: Record<string, string> = {
     "Project moved to trash. Restore it in Projects → Trash.",
   "Проект убран из Kova. Папка осталась на диске.":
     "Project removed from Kova. The folder remains on disk.",
-  "Не удалось выполнить действие": "Could not complete the action",
   "Не удалось загрузить корзину": "Could not load trash",
   "Не удалось восстановить проект": "Could not restore the project",
   "Удалить из корзины проекты старше 30 дней?": "Delete trashed projects older than 30 days?",
@@ -834,7 +829,6 @@ const EN: Record<string, string> = {
   "ассета": "assets",
   "ассетов": "assets",
   "Новый проект": "New project",
-  "Настройки проекта": "Project settings",
   "Дублировать проект": "Duplicate project",
   "Удалить проект": "Delete project",
   "Например: Blade Evolve": "For example: Blade Evolve",
@@ -1200,7 +1194,6 @@ const EN: Record<string, string> = {
   Расписание: "Schedule",
   Включена: "Enabled",
   "Время старта": "Start time",
-  Провайдер: "Provider",
   "Максимум задач": "Max tasks",
   "Останавливаться при ошибке": "Stop on error",
   "Нужен установленный AI-провайдер в разделе «Агенты».":
@@ -1241,6 +1234,149 @@ const EN: Record<string, string> = {
   "Удалить набор": "Remove pack",
   "Установить набор": "Install pack",
   "Удаление…": "Removing…",
+
+  // Chat
+  "Создать задачу": "Create task",
+  "Обновить задачу": "Update task",
+  "Изменить настройки проекта": "Change project settings",
+  "Запустить агента": "Start agent",
+  "Задача из чата": "Task from chat",
+  "песочница-копия": "sandbox copy",
+  "прямо в проекте": "directly in the project",
+  "только локальные": "local only",
+  "сетевой щит": "network guard",
+  "Настройки проекта": "Project settings",
+  "Без изменений": "No changes",
+  "Включён режим только локальных моделей. Внешние провайдеры заблокированы.":
+    "Local-only mode is on. External providers are blocked.",
+  "Чат не меняет файлы проекта.": "Chat does not modify project files.",
+  "Заблокировано": "Blocked",
+  "Включён режим только локальных моделей. Этот провайдер отправляет данные в интернет, поэтому отправка заблокирована.":
+    "Local-only mode is on. This provider sends data to the internet, so sending is blocked.",
+  "Локальный API: данные не уходят за пределы этой машины. Чат только читает проект.":
+    "Local API: data does not leave this machine. Chat only reads the project.",
+  "Без инструментов": "No tools",
+  "Читает + папки": "Reads + folders",
+  "Читает проект": "Reads project",
+  "Без изменений + папки": "No changes + folders",
+  "Чат работает без правок файлов и без команд. Внешние пути контролируются возможностями CLI.":
+    "Chat works without file edits or commands. External paths depend on the CLI capabilities.",
+  "Не настроен": "Not configured",
+  "Для этого CLI не заданы безопасные аргументы чата. Добавь аргументы «только чтение» в настройках провайдера.":
+    "Safe chat arguments are not configured for this CLI. Add read-only arguments in provider settings.",
+  "по умолчанию": "default",
+  "Весь проект": "Entire project",
+  "Не удалось открыть чат": "Could not open the chat",
+  "Нет доступных провайдеров. Настрой CLI или API-провайдера в разделе «Агенты».":
+    "No providers available. Configure a CLI or API provider in Agents.",
+  "Новый чат": "New chat",
+  "Не удалось создать чат": "Could not create the chat",
+  "Удалить чат?": "Delete chat?",
+  "История сообщений этого чата удалится.": "This chat's message history will be deleted.",
+  "Задачи и файлы не затрагиваются.": "Tasks and files are not affected.",
+  "Не удалось сохранить настройки чата": "Could not save chat settings",
+  "Некоторые пути пропущены: нужны существующие абсолютные папки.":
+    "Some paths were skipped: existing absolute folders are required.",
+  "Не удалось скопировать ответ в буфер обмена.": "Could not copy the response.",
+  "внешний CLI-провайдер": "external CLI provider",
+  "Не удалось отправить сообщение": "Could not send the message",
+  "Включён режим только локальных моделей. Выбери локальный API в настройках провайдера.":
+    "Local-only mode is on. Choose a local API in provider settings.",
+  "Не удалось сохранить согласие": "Could not save consent",
+  "Можно прикрепить не больше 4 файлов к одному сообщению.":
+    "You can attach at most 4 files to one message.",
+  "Не удалось выполнить действие": "Could not complete the action",
+  "Не удалось остановить ответ": "Could not stop the response",
+  "Не удалось создать задачу": "Could not create the task",
+  "Поиск чатов…": "Search chats…",
+  "Пустой чат": "Empty chat",
+  "Удалить чат": "Delete chat",
+  "Проект, задачи и агенты": "Project, tasks and agents",
+  "Новый": "New",
+  "Чатов пока нет": "No chats yet",
+  "Мяу, я Kova": "Meow, I am Kova",
+  "Спроси про проект, задачи, ассеты или следующий шаг. Контекст проекта уже со мной.":
+    "Ask about the project, tasks, assets or the next step. Project context is already here.",
+  "Начать чат": "Start chat",
+  "Открыть задачу": "Open task",
+  "Внешние папки": "External folders",
+  "Разрешить чтение вне проекта для этого чата. Изменения файлов, команды и сеть остаются заблокированы.":
+    "Allow reading outside the project for this chat. File edits, commands and network stay blocked.",
+  "По одной абсолютной папке на строку": "One absolute folder per line",
+  "Отправить данные провайдеру?": "Send data to the provider?",
+  "Kova отправит текст запроса и файлы, которые прочитает агент, в этот сервис. Без этого он не сможет ответить.":
+    "Kova will send the request text and files the agent reads to this service. Without it the agent cannot answer.",
+  "Вложений: {count}. ": "Attachments: {count}. ",
+  "Согласие запоминается для проекта и провайдера — повторно спрашивать не будем.":
+    "Consent is remembered for the project and provider — you will not be asked again.",
+  "Разрешить и отправить": "Allow and send",
+  "Напиши первый вопрос. Контекст проекта уже передан; чат только читает и не меняет файлы.":
+    "Write your first question. Project context is already provided; chat only reads and does not modify files.",
+  "Что умеет Kova?": "What can Kova do?",
+  "Расскажи, что умеет Kova: какие разделы есть, какие настройки важны и с чего начать работу.":
+    "Tell me what Kova can do: which sections exist, which settings matter and where to start.",
+  "Подтвердить": "Approve",
+  "Отклонить": "Reject",
+  "Выполнено": "Done",
+  "Отклонено": "Rejected",
+  "Открыть задачу →": "Open task →",
+  "Скопировано": "Copied",
+  "Копировать": "Copy",
+  "Задача создана. Открыть →": "Task created. Open →",
+  "Убрать файл": "Remove file",
+  "Загрузить файлы": "Upload files",
+  "Изображение или скриншот": "Image or screenshot",
+  "Ctrl+V — вставить скриншот из буфера": "Ctrl+V — paste a screenshot",
+  "Модель и рассуждение": "Model and reasoning",
+  "Провайдер": "Provider",
+  "Поиск модели…": "Search models…",
+  "Загрузка моделей…": "Loading models…",
+  "У провайдера нет списка моделей — используется модель по умолчанию.":
+    "The provider has no model list — the default model is used.",
+  "Ничего не найдено.": "Nothing found.",
+  "У этой модели нет отдельных уровней effort — используется Auto.":
+    "This model has no separate effort levels — Auto is used.",
+  "Сбросить к настройкам по умолчанию": "Reset to defaults",
+  "Поиск задач…": "Search tasks…",
+  "Общий контекст проекта": "General project context",
+  "Задач пока нет": "No tasks yet",
+  "Добавить файл": "Add file",
+  "Спроси про проект, задачу или следующий шаг…": "Ask about the project, a task or the next step…",
+  "Остановить ответ": "Stop response",
+  "Отправить": "Send",
+  "Enter — отправить · Shift+Enter — новая строка":
+    "Enter to send · Shift+Enter for a new line",
+  "Ctrl+Enter — отправить · Enter — новая строка":
+    "Ctrl+Enter to send · Enter for a new line",
+
+  "статус: {status}": "status: {status}",
+  "шаг: {step}": "step: {step}",
+  "запусков: {count}": "runs: {count}",
+  "лимит: {budget}": "limit: {budget}",
+  "API-чат отвечает текстом и не получает доступ к файлам, командам или сети проекта.":
+    "API chat responds with text and has no access to project files, commands or network.",
+  "OpenCode читает проект и {count} явно разрешённых внешних папок. Изменения, команды, сеть и MCP заблокированы.":
+    "OpenCode reads the project and {count} explicitly allowed external folders. Edits, commands, network and MCP are blocked.",
+  "OpenCode в чате читает только папку проекта. Внешние пути, изменения файлов, команды, сеть и MCP заблокированы.":
+    "OpenCode chat reads only the project folder. External paths, file edits, commands, network and MCP are blocked.",
+  "Чат работает без правок и команд; разрешено чтение проекта и {count} внешних папок.":
+    "Chat works without edits or commands; reading the project and {count} external folders is allowed.",
+  "Чат «{title}» будет удалён.": "Chat “{title}” will be deleted.",
+  "{file}: файл больше 12 МБ.": "{file}: file is larger than 12 MB.",
+  "Нажми, чтобы настроить внешние папки.": "Click to configure external folders.",
+
+  // Chat activity
+  "вне проекта": "outside project",
+  "секрет": "secret",
+  "Отправлено модели": "Sent to model",
+  "Локально прочитано": "Read locally",
+  "домен(ов)": "domains",
+  "вложений": "attachments",
+  "файлов": "files",
+  " Kova работает": "Kova is working",
+  "Действия ({count})": "Actions ({count})",
+  "{count} вне проекта": "{count} outside project",
+  "{count} требует внимания": "{count} need attention",
 
   // Sandbox card
   Песочница: "Sandbox",
