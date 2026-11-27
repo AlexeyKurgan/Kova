@@ -11,6 +11,7 @@ import {
 } from "../../lib/coreClient";
 import { useConfirm } from "../../components/ConfirmProvider";
 import { formatDate } from "../../lib/format";
+import { t } from "../../lib/i18n";
 import type {
   Task,
   ValidationMode,
@@ -115,7 +116,7 @@ export default function TaskValidationPanel({
         onNotify(`Проверки: ${failed} с ошибками`);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Не удалось выполнить проверку");
+      setError(err instanceof Error ? err.message : t("Не удалось выполнить проверку"));
     } finally {
       setBusy(null);
       setRunningAll(false);
@@ -134,12 +135,17 @@ export default function TaskValidationPanel({
       onTaskChanged();
       onNotify(
         data.same_status
-          ? `Повтор: статус не изменился (${STATUS_LABELS[data.current.status]})`
-          : `Повтор: ${STATUS_LABELS[data.previous.status]} → ${STATUS_LABELS[data.current.status]}`,
+          ? t("Повтор: статус не изменился ({status})", {
+              status: t(STATUS_LABELS[data.current.status]),
+            })
+          : t("Повтор: {previous} → {current}", {
+              previous: t(STATUS_LABELS[data.previous.status]),
+              current: t(STATUS_LABELS[data.current.status]),
+            }),
         data.current.status === "passed" ? undefined : "warning",
       );
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Не удалось повторить проверку");
+      setError(err instanceof Error ? err.message : t("Не удалось повторить проверку"));
     } finally {
       setReplayBusy(null);
     }
@@ -168,7 +174,7 @@ export default function TaskValidationPanel({
       });
       onTaskChanged();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Не удалось добавить проверку");
+      setError(err instanceof Error ? err.message : t("Не удалось добавить проверку"));
     } finally {
       setSaving(false);
     }
@@ -187,7 +193,7 @@ export default function TaskValidationPanel({
       setDialog(false);
       onTaskChanged();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Не удалось добавить проверку");
+      setError(err instanceof Error ? err.message : t("Не удалось добавить проверку"));
     } finally {
       setSaving(false);
     }
@@ -199,16 +205,16 @@ export default function TaskValidationPanel({
       await updateTask(task.id, { validation_mode: mode });
       onTaskChanged();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Не удалось сохранить режим проверок");
+      setError(err instanceof Error ? err.message : t("Не удалось сохранить режим проверок"));
     }
   };
 
   const remove = async (commandId: string, name: string) => {
     const ok = await confirm({
-      title: "Удалить проверку?",
-      message: `Команда «${name}» будет удалена из задачи.`,
-      details: ["История уже выполненных проверок останется в задаче."],
-      confirmLabel: "Удалить",
+      title: t("Удалить проверку?"),
+      message: t("Команда «{name}» будет удалена из задачи.", { name }),
+      details: [t("История уже выполненных проверок останется в задаче.")],
+      confirmLabel: t("Удалить"),
       danger: true,
     });
     if (!ok) return;
@@ -217,7 +223,7 @@ export default function TaskValidationPanel({
       await deleteValidationCommand(task.id, commandId);
       onTaskChanged();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Не удалось удалить проверку");
+      setError(err instanceof Error ? err.message : t("Не удалось удалить проверку"));
     }
   };
 
@@ -225,19 +231,19 @@ export default function TaskValidationPanel({
     <section className="task-validation">
       <div className="task-validation-head">
         <div className="task-validation-title">
-          <h2>Проверки</h2>
-          <span>Команды выполняются в папке проекта.</span>
+          <h2>{t("Проверки")}</h2>
+          <span>{t("Команды выполняются в папке проекта.")}</span>
         </div>
         <div className="task-validation-actions">
-          <label className="validation-mode" title="Что делать после завершения агента">
-            <span>После агента</span>
+          <label className="validation-mode" title={t("Что делать после завершения агента")}>
+            <span>{t("После агента")}</span>
             <select
               value={task.validation_mode}
               onChange={(event) => void saveMode(event.target.value as ValidationMode)}
             >
-              <option value="ask">Спрашивать</option>
-              <option value="always">Запускать сразу</option>
-              <option value="never">Не предлагать</option>
+              <option value="ask">{t("Спрашивать")}</option>
+              <option value="always">{t("Запускать сразу")}</option>
+              <option value="never">{t("Не предлагать")}</option>
             </select>
           </label>
           <button
@@ -247,11 +253,11 @@ export default function TaskValidationPanel({
             onClick={() => void run()}
           >
             <Play size={11} />
-            {runningAll ? "Проверка…" : "Запустить все"}
+            {runningAll ? t("Проверка…") : t("Запустить все")}
           </button>
           <button type="button" className="agent-link" onClick={openAdd}>
             <Plus size={11} />
-            Добавить
+            {t("Добавить")}
           </button>
         </div>
       </div>
@@ -311,7 +317,7 @@ export default function TaskValidationPanel({
                     <code>{item.command}</code>
                     <small>
                       {result
-                        ? `${STATUS_LABELS[result.status]} · ${duration(
+                        ? `${t(STATUS_LABELS[result.status])} · ${duration(
                             result.duration_ms,
                           )} · ${formatDate(result.created_at)}`
                         : `лимит ${item.timeout} сек`}
@@ -325,25 +331,25 @@ export default function TaskValidationPanel({
                       onClick={() => void run(item.id)}
                     >
                       <Play size={11} />
-                      {isBusy ? "…" : "Запустить"}
+                      {isBusy ? "…" : t("Запустить")}
                     </button>
                     {result ? (
                       <button
                         type="button"
                         className="agent-link"
                         disabled={replayBusy === result.id}
-                        title="Повторить с текущим окружением и сравнить"
+                        title={t("Повторить с текущим окружением и сравнить")}
                         onClick={() => void replay(result)}
                       >
                         <RotateCcw size={11} />
-                        {replayBusy === result.id ? "…" : "Повтор"}
+                        {replayBusy === result.id ? "…" : t("Повтор")}
                       </button>
                     ) : null}
                     <button
                       type="button"
                       className="agent-link is-danger"
-                      title="Удалить проверку"
-                      aria-label="Удалить проверку"
+                      title={t("Удалить проверку")}
+                      aria-label={t("Удалить проверку")}
                       onClick={() => void remove(item.id, item.label)}
                     >
                       <Trash2 size={12} />
@@ -352,8 +358,8 @@ export default function TaskValidationPanel({
                       <button
                         type="button"
                         className="agent-link"
-                        title="Показать вывод"
-                        aria-label="Показать вывод"
+                        title={t("Показать вывод")}
+                        aria-label={t("Показать вывод")}
                         onClick={() => setExpanded(open ? null : result.id)}
                       >
                         {open ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
@@ -371,14 +377,14 @@ export default function TaskValidationPanel({
                       >
                         <b>Повтор проверки</b>
                         <span>
-                          {STATUS_LABELS[replays[result.command_id].previous.status]}
+                          {t(STATUS_LABELS[replays[result.command_id].previous.status])}
                           {" → "}
-                          {STATUS_LABELS[replays[result.command_id].current.status]}
+                          {t(STATUS_LABELS[replays[result.command_id].current.status])}
                         </span>
                         <small>
                           {replays[result.command_id].output_changed
-                            ? "вывод изменился"
-                            : "вывод не изменился"}
+                            ? t("вывод изменился")
+                            : t("вывод не изменился")}
                         </small>
                       </div>
                     ) : null}
@@ -421,7 +427,7 @@ export default function TaskValidationPanel({
                 type="button"
                 className="icon-btn"
                 onClick={() => !saving && setDialog(false)}
-                aria-label="Закрыть"
+                aria-label={t("Закрыть")}
               >
                 <X size={14} />
               </button>
@@ -444,16 +450,16 @@ export default function TaskValidationPanel({
                 </div>
               ) : null}
               <div className="field">
-                <label htmlFor="validation-label">Название</label>
+                <label htmlFor="validation-label">{t("Название")}</label>
                 <input
                   id="validation-label"
                   value={label}
                   onChange={(event) => setLabel(event.target.value)}
-                  placeholder="Например: тесты"
+                  placeholder={t("Например: тесты")}
                 />
               </div>
               <div className="field">
-                <label htmlFor="validation-command">Команда</label>
+                <label htmlFor="validation-command">{t("Команда")}</label>
                 <input
                   id="validation-command"
                   value={command}
@@ -461,12 +467,11 @@ export default function TaskValidationPanel({
                   placeholder="pytest -q"
                 />
                 <span className="field-hint">
-                  Выполняется в папке проекта от твоего имени. Не добавляй команды, которым не
-                  доверяешь.
+                  {t("Выполняется в папке проекта от твоего имени. Не добавляй команды, которым не доверяешь.")}
                 </span>
               </div>
               <div className="field">
-                <label htmlFor="validation-timeout">Лимит, сек</label>
+                <label htmlFor="validation-timeout">{t("Лимит, сек")}</label>
                 <input
                   id="validation-timeout"
                   type="number"
@@ -485,7 +490,7 @@ export default function TaskValidationPanel({
                 disabled={saving}
                 onClick={() => setDialog(false)}
               >
-                Отмена
+                {t("Отмена")}
               </button>
               <span className="modal-footer-spacer" />
               <button
@@ -494,7 +499,7 @@ export default function TaskValidationPanel({
                 disabled={saving || !label.trim() || !command.trim()}
                 onClick={() => void submit()}
               >
-                {saving ? "Сохранение…" : "Добавить"}
+                {saving ? t("Сохранение…") : t("Добавить")}
               </button>
             </div>
           </div>

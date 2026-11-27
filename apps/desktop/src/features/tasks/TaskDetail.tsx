@@ -30,6 +30,7 @@ import {
 } from "../../lib/labels";
 import { getTaskExplanation, listAiRuns } from "../../lib/coreClient";
 import { RUN_DOT, RUN_LABELS } from "../../lib/runLabels";
+import { t } from "../../lib/i18n";
 import TaskValidationPanel from "./TaskValidationPanel";
 import TaskWorkPanel from "./TaskWorkPanel";
 import ExplanationModal from "./ExplanationModal";
@@ -117,7 +118,7 @@ export default function TaskDetail({
       setExplanation(await getTaskExplanation(task.id));
     } catch (err) {
       setExplainError(
-        err instanceof Error ? err.message : "Не удалось подготовить объяснение",
+        err instanceof Error ? err.message : t("Не удалось подготовить объяснение"),
       );
     } finally {
       setExplaining(false);
@@ -131,32 +132,32 @@ export default function TaskDetail({
   const recentEvents = taskEvents.slice(0, 6);
   const latestRun = runs[0] ?? null;
   const runTone = latestRun ? RUN_DOT[latestRun.status] : "is-idle";
-  const runLabel = latestRun ? RUN_LABELS[latestRun.status] : "Нет запусков";
+  const runLabel = latestRun ? RUN_LABELS[latestRun.status] : t("Нет запусков");
 
   const runTitle =
     latestRun?.status === "succeeded"
-      ? "Задача выполнена успешно"
+      ? t("Задача выполнена успешно")
       : latestRun?.status === "failed"
-        ? "Запуск завершился ошибкой"
+        ? t("Запуск завершился ошибкой")
         : latestRun?.status === "cancelled"
-          ? "Запуск отменён"
+          ? t("Запуск отменён")
           : latestRun?.status === "interrupted"
-            ? "Запуск прерван"
+            ? t("Запуск прерван")
             : latestRun
-              ? "Агент работает"
-              : "Запусков ещё не было";
+              ? t("Агент работает")
+              : t("Запусков ещё не было");
   const runText =
     latestRun?.status === "succeeded"
-      ? "Агент завершил работу. Результат сохранён в задаче."
+      ? t("Агент завершил работу. Результат сохранён в задаче.")
       : latestRun?.status === "failed"
-        ? latestRun.error || "Проверь вывод запуска."
+        ? latestRun.error || t("Проверь вывод запуска.")
         : latestRun?.status === "cancelled"
-          ? "Запуск был отменён."
+          ? t("Запуск был отменён.")
           : latestRun?.status === "interrupted"
-            ? latestRun.interrupted_reason || "Запуск не был завершён."
+            ? latestRun.interrupted_reason || t("Запуск не был завершён.")
             : latestRun
-              ? "Следи за прогрессом на вкладке «Работа»."
-              : "Открой вкладку «Работа», чтобы запустить агента.";
+              ? t("Следи за прогрессом на вкладке «Работа».")
+              : t("Открой вкладку «Работа», чтобы запустить агента.");
 
   const eventTone = (type: string) => {
     if (type.includes("check") || type.includes("validation")) return "ok";
@@ -171,11 +172,11 @@ export default function TaskDetail({
   };
 
   const tabs: Array<{ id: Tab; label: string; count?: number }> = [
-    { id: "overview", label: "Бриф" },
-    { id: "work", label: "Работа" },
-    { id: "checks", label: "Проверки", count: task.validation.length },
-    { id: "artifacts", label: "Результат", count: task.artifacts.length + assets.length },
-    { id: "activity", label: "История" },
+    { id: "overview", label: t("Бриф") },
+    { id: "work", label: t("Работа") },
+    { id: "checks", label: t("Проверки"), count: task.validation.length },
+    { id: "artifacts", label: t("Результат"), count: task.artifacts.length + assets.length },
+    { id: "activity", label: t("История") },
   ];
 
   return (
@@ -183,26 +184,26 @@ export default function TaskDetail({
       <div className="td2-topbar">
         <button type="button" className="btn btn-secondary btn-small" onClick={onBack}>
           <ArrowLeft size={14} />
-          Назад
+          {t("Назад")}
         </button>
         <span className="td2-spacer" />
         <span className="td2-id">ID: {task.id}</span>
         {task.status === "archived" ? (
           <button type="button" className="btn btn-secondary btn-small" onClick={onRestore}>
             <ArchiveRestore size={14} />
-            Вернуть
+            {t("Вернуть")}
           </button>
         ) : (
           <button type="button" className="btn btn-secondary btn-small" onClick={onArchive}>
             <Archive size={14} />
-            В архив
+            {t("В архив")}
           </button>
         )}
         <button
           type="button"
           className="icon-btn is-danger"
-          title="Удалить задачу"
-          aria-label="Удалить задачу"
+          title={t("Удалить задачу")}
+          aria-label={t("Удалить задачу")}
           onClick={onDelete}
         >
           <Trash2 size={15} />
@@ -222,7 +223,7 @@ export default function TaskDetail({
               onChange={(event) =>
                 onStatusChange(task.id, event.target.value as TaskStatus)
               }
-              aria-label="Статус задачи"
+              aria-label={t("Статус задачи")}
             >
               {(Object.keys(TASK_STATUS_LABELS) as TaskStatus[]).map((status) => (
                 <option key={status} value={status}>
@@ -232,18 +233,18 @@ export default function TaskDetail({
             </select>
           </div>
           <p>
-            {TASK_TYPE_LABELS[task.type]} · {ENGINE_LABELS[task.engine]} · создана{" "}
-            {formatDate(task.created_at)}
+            {TASK_TYPE_LABELS[task.type]} · {ENGINE_LABELS[task.engine]} ·{" "}
+            {t("создана")} {formatDate(task.created_at)}
           </p>
         </div>
         <div className="td2-head-actions">
           <button type="button" className="btn btn-primary btn-small" onClick={onCapsule}>
             <ClipboardCopy size={14} />
-            Капсула
+            {t("Капсула")}
           </button>
           <button type="button" className="btn btn-secondary btn-small" onClick={onResponse}>
             <Inbox size={14} />
-            Вставить ответ
+            {t("Вставить ответ")}
           </button>
         </div>
       </header>
@@ -268,15 +269,15 @@ export default function TaskDetail({
             <article className="td2-stat">
               <Target size={16} />
               <div>
-                <span>Цель</span>
-                <b>{task.goal || "Не указана"}</b>
+                <span>{t("Цель")}</span>
+                <b>{task.goal || t("Не указана")}</b>
               </div>
             </article>
             <article className="td2-stat">
               <CheckCircle2 size={16} />
               <div>
-                <span>Критерии</span>
-                <b>{total === 0 ? "Критерии не заданы" : `${doneCount}/${total}`}</b>
+                <span>{t("Критерии")}</span>
+                <b>{total === 0 ? t("Критерии не заданы") : `${doneCount}/${total}`}</b>
                 {total > 0 ? (
                   <i className="td2-stat-bar">
                     <i style={{ width: `${percent}%` }} />
@@ -287,14 +288,14 @@ export default function TaskDetail({
             <article className="td2-stat">
               <Play size={16} />
               <div>
-                <span>Режим</span>
+                <span>{t("Режим")}</span>
                 <b>{task.mode === "clipboard" ? "Clipboard" : task.mode}</b>
               </div>
             </article>
             <article className="td2-stat">
               <Calendar size={16} />
               <div>
-                <span>Обновлена</span>
+                <span>{t("Обновлена")}</span>
                 <b>{formatDate(task.updated_at)}</b>
               </div>
             </article>
@@ -304,7 +305,7 @@ export default function TaskDetail({
             <div className="td2-panel-head">
               <h2>
                 <Sparkles size={14} />
-                Результат запуска
+                {t("Результат запуска")}
               </h2>
               <span className={`td2-run-pill ${runTone}`}>
                 <i />
@@ -317,7 +318,7 @@ export default function TaskDetail({
                 type="button"
                 className={`td2-chevron${showResult ? " is-open" : ""}`}
                 onClick={() => setShowResult((value) => !value)}
-                aria-label="Показать результат"
+                aria-label={t("Показать результат")}
               >
                 <ChevronDown size={14} />
               </button>
@@ -343,11 +344,11 @@ export default function TaskDetail({
                   onClick={() => setShowResult((value) => !value)}
                 >
                   <ChevronDown size={13} />
-                  {showResult ? "Скрыть детали" : "Показать детали"}
+                  {showResult ? t("Скрыть детали") : t("Показать детали")}
                 </button>
                 {showResult ? (
                   <pre className="td2-result-output">
-                    {latestRun.output || latestRun.error || "Вывод пуст"}
+                    {latestRun.output || latestRun.error || t("Вывод пуст")}
                   </pre>
                 ) : null}
               </>
@@ -357,7 +358,7 @@ export default function TaskDetail({
                 className="btn btn-secondary btn-small td2-to-work"
                 onClick={() => setTab("work")}
               >
-                Перейти к работе
+                {t("Перейти к работе")}
               </button>
             )}
           </article>
@@ -366,61 +367,60 @@ export default function TaskDetail({
             <div className="td2-panel-head">
               <h2>
                 <Sparkles size={14} />
-                Почему так вышло?
+                {t("Почему так вышло?")}
               </h2>
               <button type="button" className="agent-link" onClick={() => setTab("work")}>
-                К запуску →
+                {t("К запуску →")}
               </button>
             </div>
             <div className="td2-why-grid">
               <div>
-                <span>Исполнитель</span>
+                <span>{t("Исполнитель")}</span>
                 <b>{latestRun?.provider_name || (task.mode === "clipboard" ? "Clipboard" : task.mode)}</b>
-                <small>{latestRun?.model || "модель не указана"}</small>
+                <small>{latestRun?.model || t("модель не указана")}</small>
               </div>
               <div>
-                <span>Изменения</span>
+                <span>{t("Изменения")}</span>
                 <b>{latestRun ? latestRun.changes.length : 0}</b>
                 <small>
                   {latestRun?.review_id
-                    ? "результат ждёт приёмки в Review"
+                    ? t("результат ждёт приёмки в Review")
                     : latestRun
-                      ? "файлы и вывод сохранены в запуске"
-                      : "запусков ещё не было"}
+                      ? t("файлы и вывод сохранены в запуске")
+                      : t("запусков ещё не было")}
                 </small>
               </div>
               <div>
-                <span>Проверки</span>
+                <span>{t("Проверки")}</span>
                 <b>{task.validation.length}</b>
                 <small>
                   {task.validation.length > 0
                     ? task.validation.map((item) => item.label).join(" · ")
-                    : "команды не настроены"}
+                    : t("команды не настроены")}
                 </small>
               </div>
               <div>
-                <span>Страховка</span>
-                <b>{latestRun?.snapshot_id ? "Снапшот" : latestRun ? "Без снапшота" : "—"}</b>
+                <span>{t("Страховка")}</span>
+                <b>{latestRun?.snapshot_id ? t("Снапшот") : latestRun ? t("Без снапшота") : "—"}</b>
                 <small>
                   {latestRun?.snapshot_id
                     ? latestRun.snapshot_id
-                    : "Kova создаёт снапшот перед применением worktree"}
+                    : t("Kova создаёт снапшот перед применением worktree")}
                 </small>
               </div>
             </div>
             <p className="td2-why-note">
-              Объяснение собрано из журнала: кто выполнял задачу, что изменилось,
-              какие проверки настроены и где сохранён результат. Это не догадка модели.
+              {t("Объяснение собрано из журнала: кто выполнял задачу, что изменилось, какие проверки настроены и где сохранён результат. Это не догадка модели.")}
             </p>
             <div className="td2-why-actions">
               <button type="button" className="btn btn-secondary btn-small" onClick={() => setTab("checks")}>
-                Проверки
+                {t("Проверки")}
               </button>
               <button type="button" className="btn btn-secondary btn-small" onClick={() => setTab("artifacts")}>
-                Результат
+                {t("Результат")}
               </button>
               <button type="button" className="btn btn-secondary btn-small" onClick={() => setTab("activity")}>
-                История
+                {t("История")}
               </button>
               <button
                 type="button"
@@ -429,7 +429,7 @@ export default function TaskDetail({
                 onClick={() => void openExplanation()}
               >
                 <GraduationCap size={13} />
-                {explaining ? "Готовлю…" : "Объяснить простыми словами"}
+                {explaining ? t("Готовлю…") : t("Объяснить простыми словами")}
               </button>
             </div>
             {explainError ? <p className="review-opinion-error">{explainError}</p> : null}
@@ -439,16 +439,16 @@ export default function TaskDetail({
             <div className="td2-panel-head">
               <h2>
                 <ClipboardList size={14} />
-                Контекст задачи
+                {t("Контекст задачи")}
               </h2>
             </div>
             <div className="td2-context-grid">
               <div>
-                <span>Цель</span>
-                <p>{task.goal || "Не указана"}</p>
+                <span>{t("Цель")}</span>
+                <p>{task.goal || t("Не указана")}</p>
                 {task.constraints.length > 0 ? (
                   <>
-                    <span>Ограничения</span>
+                    <span>{t("Ограничения")}</span>
                     <ul className="td2-list">
                       {task.constraints.map((constraint) => (
                         <li key={constraint}>{constraint}</li>
@@ -458,9 +458,9 @@ export default function TaskDetail({
                 ) : null}
               </div>
               <div>
-                <span>Критерии готовности</span>
+                <span>{t("Критерии готовности")}</span>
                 {task.criteria.length === 0 ? (
-                  <p className="detail-muted">Критерии не заданы</p>
+                  <p className="detail-muted">{t("Критерии не заданы")}</p>
                 ) : (
                   <ul className="criteria-list td-criteria">
                     {task.criteria.map((criterion) => (
@@ -473,9 +473,9 @@ export default function TaskDetail({
                     ))}
                   </ul>
                 )}
-                <span>Скиллы</span>
+                <span>{t("Скиллы")}</span>
                 {task.skills.length === 0 ? (
-                  <p className="detail-muted">Не выбраны — Kova подберёт по задаче</p>
+                  <p className="detail-muted">{t("Не выбраны — Kova подберёт по задаче")}</p>
                 ) : (
                   <div className="blender-chips task-skills">
                     {task.skills.map((name) => (
@@ -491,7 +491,7 @@ export default function TaskDetail({
                   onClick={onEditSkills}
                 >
                   <BookOpen size={13} />
-                  Выбрать скиллы
+                  {t("Выбрать скиллы")}
                 </button>
               </div>
             </div>
@@ -501,14 +501,14 @@ export default function TaskDetail({
             <div className="td2-panel-head">
               <h2>
                 <Clock size={14} />
-                Последняя активность
+                {t("Последняя активность")}
               </h2>
               <button type="button" className="agent-link" onClick={() => setTab("activity")}>
-                Все события →
+                {t("Все события →")}
               </button>
             </div>
             {recentEvents.length === 0 ? (
-              <p className="td2-empty">Событий пока нет.</p>
+              <p className="td2-empty">{t("Событий пока нет.")}</p>
             ) : (
               <ul className="td2-events">
                 {recentEvents.map((event) => (
@@ -552,15 +552,15 @@ export default function TaskDetail({
         <div className="td2-stack">
           <article className="td2-panel">
             <div className="td2-panel-head">
-              <h2>Артефакты</h2>
+              <h2>{t("Артефакты")}</h2>
             </div>
             {task.artifacts.length === 0 ? (
-              <p className="td2-empty">Пока нет ответов и файлов.</p>
+              <p className="td2-empty">{t("Пока нет ответов и файлов.")}</p>
             ) : (
               <ul className="td2-list td2-artifacts">
                 {task.artifacts.map((artifact) => (
                   <li key={artifact.id}>
-                    <span>{artifact.kind === "response" ? "Ответ AI" : artifact.kind}</span>
+                    <span>{artifact.kind === "response" ? t("Ответ AI") : artifact.kind}</span>
                     <small>
                       {artifact.path.split("/").pop()} · {formatDate(artifact.created_at)}
                     </small>
@@ -571,7 +571,7 @@ export default function TaskDetail({
           </article>
           <article className="td2-panel">
             <div className="td2-panel-head">
-              <h2>Ассеты</h2>
+              <h2>{t("Ассеты")}</h2>
               <button
                 type="button"
                 className="btn btn-secondary btn-small"
@@ -579,11 +579,11 @@ export default function TaskDetail({
                 onClick={onImportAsset}
               >
                 <Plus size={13} />
-                {importing ? "Импорт…" : "Импортировать"}
+                {importing ? t("Импорт…") : t("Импортировать")}
               </button>
             </div>
             {assets.length === 0 ? (
-              <p className="td2-empty">Нет привязанных ассетов.</p>
+              <p className="td2-empty">{t("Нет привязанных ассетов.")}</p>
             ) : (
               <ul className="td2-list td2-artifacts">
                 {assets.map((asset) => {
@@ -617,12 +617,12 @@ export default function TaskDetail({
           <div className="td2-panel-head">
             <h2>
               <Activity size={14} />
-              Активность задачи
+              {t("Активность задачи")}
             </h2>
             <small>{taskEvents.length}</small>
           </div>
           {taskEvents.length === 0 ? (
-            <p className="td2-empty">Событий пока нет.</p>
+            <p className="td2-empty">{t("Событий пока нет.")}</p>
           ) : (
             <ul className="td2-events is-full">
               {taskEvents.map((event) => (

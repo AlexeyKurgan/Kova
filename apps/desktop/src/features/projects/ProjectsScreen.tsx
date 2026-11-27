@@ -26,7 +26,7 @@ import {
   purgeProjectTrash,
   restoreProjectTrash,
 } from "../../lib/coreClient";
-import { plural } from "../../lib/format";
+import { t, tp } from "../../lib/i18n";
 import { pickFolder, pickImage } from "../../lib/dialogs";
 import { ENGINE_LABELS } from "../../lib/labels";
 import type {
@@ -182,20 +182,20 @@ export default function ProjectsScreen({
   };
 
   const chooseParent = async () => {
-    const selected = await pickFolder("Куда сохранить проект");
+    const selected = await pickFolder(t("Куда сохранить проект"));
     if (selected) setParent(selected);
   };
 
   const chooseCover = async (project: ProjectCard) => {
     setMenuFor(null);
-    const selected = await pickImage("Обложка проекта");
+    const selected = await pickImage(t("Обложка проекта"));
     if (!selected) return;
     setBusy(true);
     setError(null);
     try {
       await onCover(project.id, selected);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Не удалось обновить обложку");
+      setError(err instanceof Error ? err.message : t("Не удалось обновить обложку"));
     } finally {
       setBusy(false);
     }
@@ -219,13 +219,13 @@ export default function ProjectsScreen({
         await onDelete(dialog.project.id, deleteFiles);
         setNotice(
           deleteFiles
-            ? "Проект перемещён в корзину. Восстановить можно в «Проектах → Корзина»."
-            : "Проект убран из Kova. Папка осталась на диске.",
+            ? t("Проект перемещён в корзину. Восстановить можно в «Проектах → Корзина».")
+            : t("Проект убран из Kova. Папка осталась на диске."),
         );
       }
       setDialog(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Не удалось выполнить действие");
+      setError(err instanceof Error ? err.message : t("Не удалось выполнить действие"));
     } finally {
       setBusy(false);
     }
@@ -238,7 +238,7 @@ export default function ProjectsScreen({
       const data = await listProjectTrash();
       setTrashItems(data.items);
     } catch (err) {
-      setTrashError(err instanceof Error ? err.message : "Не удалось загрузить корзину");
+      setTrashError(err instanceof Error ? err.message : t("Не удалось загрузить корзину"));
     } finally {
       setTrashLoading(false);
     }
@@ -257,36 +257,36 @@ export default function ProjectsScreen({
       await loadTrash();
       onRefresh();
     } catch (err) {
-      setTrashError(err instanceof Error ? err.message : "Не удалось восстановить проект");
+      setTrashError(err instanceof Error ? err.message : t("Не удалось восстановить проект"));
     } finally {
       setTrashBusy(null);
     }
   };
 
   const cleanupTrash = async () => {
-    if (!window.confirm("Удалить из корзины проекты старше 30 дней?")) return;
+    if (!window.confirm(t("Удалить из корзины проекты старше 30 дней?"))) return;
     setTrashBusy("cleanup");
     setTrashError(null);
     try {
       const result = await cleanupProjectTrash(30);
       await loadTrash();
-      if (!result.removed) setTrashError("Старых записей нет.");
+      if (!result.removed) setTrashError(t("Старых записей нет."));
     } catch (err) {
-      setTrashError(err instanceof Error ? err.message : "Не удалось очистить корзину");
+      setTrashError(err instanceof Error ? err.message : t("Не удалось очистить корзину"));
     } finally {
       setTrashBusy(null);
     }
   };
 
   const purgeTrash = async (item: TrashProject) => {
-    if (!window.confirm(`Удалить «${item.name}» из корзины навсегда?`)) return;
+    if (!window.confirm(t("Удалить «{name}» из корзины навсегда?", { name: item.name }))) return;
     setTrashBusy(item.id);
     setTrashError(null);
     try {
       await purgeProjectTrash(item.id);
       await loadTrash();
     } catch (err) {
-      setTrashError(err instanceof Error ? err.message : "Не удалось очистить корзину");
+      setTrashError(err instanceof Error ? err.message : t("Не удалось очистить корзину"));
     } finally {
       setTrashBusy(null);
     }
@@ -299,7 +299,7 @@ export default function ProjectsScreen({
     try {
       await onOpen(project.id);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Не удалось открыть проект");
+      setError(err instanceof Error ? err.message : t("Не удалось открыть проект"));
     } finally {
       setBusy(false);
     }
@@ -312,19 +312,19 @@ export default function ProjectsScreen({
       <div className="assets-heading">
         <FolderKanban size={42} strokeWidth={1.15} className="assets-heading-icon" />
         <div className="assets-heading-copy">
-          <h1>Проекты</h1>
+          <h1>{t("Проекты")}</h1>
           <p className="subtitle">
-            Все игры Kova в одном месте: создавай, дублируй, меняй обложку и папку хранения.
+            {t("Все игры Kova в одном месте: создавай, дублируй, меняй обложку и папку хранения.")}
           </p>
         </div>
         <div className="header-actions">
           <button type="button" className="btn btn-secondary" onClick={openTrash}>
             <Trash2 size={15} />
-            Корзина
+            {t("Корзина")}
           </button>
           <button type="button" className="btn btn-primary" onClick={openCreate}>
             <Plus size={15} />
-            Новый проект
+            {t("Новый проект")}
           </button>
         </div>
       </div>
@@ -336,17 +336,17 @@ export default function ProjectsScreen({
             type="search"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Поиск проектов…"
-            aria-label="Поиск проектов"
+            placeholder={t("Поиск проектов…")}
+            aria-label={t("Поиск проектов")}
           />
         </label>
         <select
           className="filter-select"
           value={engineFilter}
           onChange={(event) => setEngineFilter(event.target.value)}
-          aria-label="Движок"
+          aria-label={t("Движок")}
         >
-          <option value="all">Все движки</option>
+          <option value="all">{t("Все движки")}</option>
           {ENGINE_OPTIONS.map((option) => (
             <option key={option.value} value={option.value}>
               {option.label}
@@ -357,30 +357,30 @@ export default function ProjectsScreen({
           className="filter-select"
           value={statusFilter}
           onChange={(event) => setStatusFilter(event.target.value)}
-          aria-label="Статус проекта"
+          aria-label={t("Статус проекта")}
         >
-          <option value="all">Все статусы</option>
-          <option value="active">Активный</option>
-          <option value="other">Не открыт</option>
-          <option value="missing">Папка не найдена</option>
+          <option value="all">{t("Все статусы")}</option>
+          <option value="active">{t("Активный")}</option>
+          <option value="other">{t("Не открыт")}</option>
+          <option value="missing">{t("Папка не найдена")}</option>
         </select>
         <select
           className="filter-select"
           value={sort}
           onChange={(event) => setSort(event.target.value)}
-          aria-label="Сортировка"
+          aria-label={t("Сортировка")}
         >
-          <option value="recent">Последние</option>
-          <option value="name">По имени</option>
-          <option value="tasks">По задачам</option>
+          <option value="recent">{t("Последние")}</option>
+          <option value="name">{t("По имени")}</option>
+          <option value="tasks">{t("По задачам")}</option>
         </select>
         <div className="view-toggle">
           <button
             type="button"
             className={view === "grid" ? "is-active" : ""}
             onClick={() => setView("grid")}
-            title="Сетка"
-            aria-label="Сетка"
+            title={t("Сетка")}
+            aria-label={t("Сетка")}
           >
             <LayoutGrid size={15} />
           </button>
@@ -388,8 +388,8 @@ export default function ProjectsScreen({
             type="button"
             className={view === "list" ? "is-active" : ""}
             onClick={() => setView("list")}
-            title="Список"
-            aria-label="Список"
+            title={t("Список")}
+            aria-label={t("Список")}
           >
             <List size={15} />
           </button>
@@ -398,8 +398,8 @@ export default function ProjectsScreen({
           type="button"
           className="icon-btn"
           onClick={onRefresh}
-          title="Обновить список"
-          aria-label="Обновить список"
+          title={t("Обновить список")}
+          aria-label={t("Обновить список")}
         >
           <RefreshCw size={14} />
         </button>
@@ -414,17 +414,17 @@ export default function ProjectsScreen({
             <FolderKanban size={26} />
           </div>
           <h2 className="empty-title">
-            {projects.length === 0 ? "Пока нет проектов" : "Ничего не найдено"}
+            {projects.length === 0 ? t("Пока нет проектов") : t("Ничего не найдено")}
           </h2>
           <p className="empty-text">
             {projects.length === 0
-              ? "Создай первый проект Kova — папку можно выбрать вручную."
-              : "Попробуй другой запрос или сбрось фильтры."}
+              ? t("Создай первый проект Kova — папку можно выбрать вручную.")
+              : t("Попробуй другой запрос или сбрось фильтры.")}
           </p>
           {projects.length === 0 ? (
             <button type="button" className="btn btn-primary" onClick={openCreate}>
               <Plus size={15} />
-              Создать проект
+              {t("Создать проект")}
             </button>
           ) : null}
         </div>
@@ -457,15 +457,15 @@ export default function ProjectsScreen({
                 <div className="project-body2">
                   <div className="project-top2">
                     {project.active ? (
-                      <span className="project-active2">Активный проект</span>
+                      <span className="project-active2">{t("Активный проект")}</span>
                     ) : null}
                     <div className="project-menu-wrap">
                       <button
                         type="button"
                         className="icon-btn"
                         onClick={() => setMenuFor(menuFor === project.id ? null : project.id)}
-                        aria-label="Действия с проектом"
-                        title="Действия"
+                        aria-label={t("Действия с проектом")}
+                        title={t("Действия")}
                       >
                         <Ellipsis size={16} />
                       </button>
@@ -473,15 +473,15 @@ export default function ProjectsScreen({
                         <div className="project-menu">
                           <button type="button" onClick={() => openEdit(project)}>
                             <Pencil size={13} />
-                            Переименовать
+                            {t("Переименовать")}
                           </button>
                           <button type="button" onClick={() => void chooseCover(project)}>
                             <ImagePlus size={13} />
-                            Обложка
+                            {t("Обложка")}
                           </button>
                           <button type="button" onClick={() => openDuplicate(project)}>
                             <Copy size={13} />
-                            Дублировать
+                            {t("Дублировать")}
                           </button>
                           <button
                             type="button"
@@ -489,7 +489,7 @@ export default function ProjectsScreen({
                             onClick={() => openDelete(project)}
                           >
                             <Trash2 size={13} />
-                            Удалить
+                            {t("Удалить")}
                           </button>
                         </div>
                       ) : null}
@@ -501,16 +501,18 @@ export default function ProjectsScreen({
                     {shortPath(project.path)}
                   </div>
                   {!project.exists ? (
-                    <div className="project-missing2">Папка проекта не найдена</div>
+                    <div className="project-missing2">{t("Папка проекта не найдена")}</div>
                   ) : (
                     <div className="project-stats2">
                       <span>
                         <ClipboardList size={13} />
-                        <b>{project.tasks_total}</b> {plural(project.tasks_total, ["задача", "задачи", "задач"])}
+                        <b>{project.tasks_total}</b>{" "}
+                        {tp(project.tasks_total, ["задача", "задачи", "задач"], "task", "tasks")}
                       </span>
                       <span>
                         <Box size={13} />
-                        <b>{project.assets_total}</b> {plural(project.assets_total, ["ассет", "ассета", "ассетов"])}
+                        <b>{project.assets_total}</b>{" "}
+                        {tp(project.assets_total, ["ассет", "ассета", "ассетов"], "asset", "assets")}
                       </span>
                     </div>
                   )}
@@ -522,7 +524,7 @@ export default function ProjectsScreen({
                       onClick={() => void openProject(project)}
                     >
                       <FolderOpen size={14} />
-                      {project.active ? "Открыт" : "Открыть"}
+                      {project.active ? t("Открыт") : t("Открыть")}
                     </button>
                     <span className="project-engine2">
                       {brand ? <BrandIcon name={brand} size={12} /> : null}
@@ -536,7 +538,7 @@ export default function ProjectsScreen({
         </div>
       )}
 
-      {loading ? <p className="projects-loading">Загрузка проектов…</p> : null}
+      {loading ? <p className="projects-loading">{t("Загрузка проектов…")}</p> : null}
 
       {dialog ? (
         <div
@@ -549,18 +551,18 @@ export default function ProjectsScreen({
             <div className="modal-header">
               <span className="modal-title">
                 {dialog.kind === "create"
-                  ? "Новый проект"
+                  ? t("Новый проект")
                   : dialog.kind === "edit"
-                    ? "Настройки проекта"
+                    ? t("Настройки проекта")
                     : dialog.kind === "duplicate"
-                      ? "Дублировать проект"
-                      : "Удалить проект"}
+                      ? t("Дублировать проект")
+                      : t("Удалить проект")}
               </span>
               <button
                 type="button"
                 className="icon-btn"
                 onClick={() => !busy && setDialog(null)}
-                aria-label="Закрыть"
+                aria-label={t("Закрыть")}
               >
                 <X size={14} />
               </button>
@@ -570,7 +572,7 @@ export default function ProjectsScreen({
               {dialog.kind === "delete" ? (
                 <>
                   <p className="project-delete-title">
-                    Что сделать с «{dialog.project.name}»?
+                    {t("Что сделать с «{name}»?", { name: dialog.project.name })}
                   </p>
                   <div className="project-delete-options">
                     <label className={`project-delete-option${deleteFiles ? " is-selected" : ""}`}>
@@ -580,8 +582,8 @@ export default function ProjectsScreen({
                         onChange={() => setDeleteFiles(true)}
                       />
                       <span>
-                        <b>Переместить в корзину</b>
-                        <small>Проект исчезнет из Kova, папку можно восстановить из корзины.</small>
+                        <b>{t("Переместить в корзину")}</b>
+                        <small>{t("Проект исчезнет из Kova, папку можно восстановить из корзины.")}</small>
                       </span>
                     </label>
                     <label className={`project-delete-option${!deleteFiles ? " is-selected" : ""}`}>
@@ -591,8 +593,8 @@ export default function ProjectsScreen({
                         onChange={() => setDeleteFiles(false)}
                       />
                       <span>
-                        <b>Оставить папку на диске</b>
-                        <small>Убрать только из списка Kova. В корзину не попадёт.</small>
+                        <b>{t("Оставить папку на диске")}</b>
+                        <small>{t("Убрать только из списка Kova. В корзину не попадёт.")}</small>
                       </span>
                     </label>
                   </div>
@@ -601,12 +603,12 @@ export default function ProjectsScreen({
               ) : (
                 <>
                   <div className="field">
-                    <label htmlFor="project-name">Название</label>
+                    <label htmlFor="project-name">{t("Название")}</label>
                     <input
                       id="project-name"
                       value={name}
                       onChange={(event) => setName(event.target.value)}
-                      placeholder="Например: Blade Evolve"
+                      placeholder={t("Например: Blade Evolve")}
                       maxLength={120}
                       autoFocus
                     />
@@ -614,7 +616,7 @@ export default function ProjectsScreen({
 
                   {dialog.kind !== "duplicate" ? (
                     <div className="field">
-                      <label htmlFor="project-engine">Движок</label>
+                      <label htmlFor="project-engine">{t("Движок")}</label>
                       <select
                         id="project-engine"
                         value={engine}
@@ -631,7 +633,7 @@ export default function ProjectsScreen({
 
                   {dialog.kind !== "edit" ? (
                     <div className="field">
-                      <label htmlFor="project-parent">Папка хранения</label>
+                      <label htmlFor="project-parent">{t("Папка хранения")}</label>
                       <div className="project-parent-row">
                         <input
                           id="project-parent"
@@ -643,8 +645,8 @@ export default function ProjectsScreen({
                           type="button"
                           className="icon-btn"
                           onClick={() => void chooseParent()}
-                          title="Выбрать папку"
-                          aria-label="Выбрать папку"
+                          title={t("Выбрать папку")}
+                          aria-label={t("Выбрать папку")}
                         >
                           <FolderOpen size={15} />
                         </button>
@@ -654,8 +656,7 @@ export default function ProjectsScreen({
 
                   {dialog.kind === "duplicate" ? (
                     <p className="project-hint">
-                      Копируются скрипты, ассеты и настройки. Кеш, снапшоты и node_modules —
-                      нет.
+                      {t("Копируются скрипты, ассеты и настройки. Кеш, снапшоты и node_modules — нет.")}
                     </p>
                   ) : null}
                 </>
@@ -671,7 +672,7 @@ export default function ProjectsScreen({
                 disabled={busy}
                 onClick={() => setDialog(null)}
               >
-                Отмена
+                {t("Отмена")}
               </button>
               <span className="modal-footer-spacer" />
               <button
@@ -683,14 +684,14 @@ export default function ProjectsScreen({
                 {busy
                   ? "…"
                   : dialog.kind === "create"
-                    ? "Создать"
+                    ? t("Создать")
                     : dialog.kind === "edit"
-                      ? "Сохранить"
+                      ? t("Сохранить")
                       : dialog.kind === "duplicate"
-                        ? "Дублировать"
+                        ? t("Дублировать")
                         : deleteFiles
-                          ? "Переместить в корзину"
-                          : "Убрать из списка"}
+                          ? t("Переместить в корзину")
+                          : t("Убрать из списка")}
               </button>
             </div>
           </div>
@@ -706,12 +707,12 @@ export default function ProjectsScreen({
         >
           <div className="modal project-trash-dialog">
             <div className="modal-header">
-              <span className="modal-title">Корзина проектов</span>
+              <span className="modal-title">{t("Корзина проектов")}</span>
               <button
                 type="button"
                 className="icon-btn"
                 onClick={() => !trashBusy && setTrashOpen(false)}
-                aria-label="Закрыть"
+                aria-label={t("Закрыть")}
               >
                 <X size={14} />
               </button>
@@ -719,9 +720,9 @@ export default function ProjectsScreen({
             <div className="modal-body">
               {trashError ? <p className="modal-error">{trashError}</p> : null}
               {trashLoading ? (
-                <p className="project-hint">Загрузка…</p>
+                <p className="project-hint">{t("Загрузка…")}</p>
               ) : trashItems.length === 0 ? (
-                <p className="project-hint">Корзина пуста.</p>
+                <p className="project-hint">{t("Корзина пуста.")}</p>
               ) : (
                 <div className="project-trash-list">
                   {trashItems.map((item) => (
@@ -732,7 +733,7 @@ export default function ProjectsScreen({
                         <span>
                           {item.deleted_at
                             ? new Date(item.deleted_at).toLocaleString()
-                            : "Удалён"}
+                            : t("Удалён")}
                         </span>
                       </div>
                       <div className="project-trash-actions">
@@ -743,7 +744,7 @@ export default function ProjectsScreen({
                           onClick={() => void restoreTrash(item)}
                         >
                           <RotateCcw size={12} />
-                          Восстановить
+                          {t("Восстановить")}
                         </button>
                         <button
                           type="button"
@@ -752,7 +753,7 @@ export default function ProjectsScreen({
                           onClick={() => void purgeTrash(item)}
                         >
                           <Trash2 size={12} />
-                          Навсегда
+                          {t("Навсегда")}
                         </button>
                       </div>
                     </div>
@@ -767,7 +768,7 @@ export default function ProjectsScreen({
                 disabled={trashBusy !== null || trashItems.length === 0}
                 onClick={() => void cleanupTrash()}
               >
-                Очистить старше 30 дней
+                {t("Очистить старше 30 дней")}
               </button>
               <span className="modal-footer-spacer" />
               <button
@@ -776,7 +777,7 @@ export default function ProjectsScreen({
                 disabled={trashBusy !== null}
                 onClick={() => setTrashOpen(false)}
               >
-                Закрыть
+                {t("Закрыть")}
               </button>
             </div>
           </div>

@@ -27,8 +27,9 @@ import {
   updateTask,
   updateWorkflowStep,
 } from "../../lib/coreClient";
-import { formatDate, plural } from "../../lib/format";
+import { formatDate } from "../../lib/format";
 import { RUN_DOT, RUN_LABELS } from "../../lib/runLabels";
+import { getLanguage, t, tp } from "../../lib/i18n";
 import type {
   AgentRecommendation,
   AgentRole,
@@ -78,7 +79,7 @@ function isRunning(run: AiRun | null) {
 
 function usageLine(run: AiRun) {
   const usage = run.usage;
-  if (!usage) return "Расход: Unknown — провайдер не вернул usage.";
+  if (!usage) return t("Расход: Unknown — провайдер не вернул usage.");
   const pick = (...keys: string[]) => {
     for (const key of keys) {
       const value = usage[key];
@@ -89,9 +90,10 @@ function usageLine(run: AiRun) {
   const input = pick("input_tokens", "prompt_tokens");
   const output = pick("output_tokens", "completion_tokens");
   const total = pick("total_tokens", "total") ?? (input ?? 0) + (output ?? 0);
-  const parts = [`Токены: ${total.toLocaleString("ru-RU")}`];
-  if (input !== null) parts.push(`вход ${input.toLocaleString("ru-RU")}`);
-  if (output !== null) parts.push(`выход ${output.toLocaleString("ru-RU")}`);
+  const locale = getLanguage() === "en" ? "en-US" : "ru-RU";
+  const parts = [t("Токены: {total}", { total: total.toLocaleString(locale) })];
+  if (input !== null) parts.push(`${t("вход")} ${input.toLocaleString(locale)}`);
+  if (output !== null) parts.push(`${t("выход")} ${output.toLocaleString(locale)}`);
   return parts.join(" · ");
 }
 
@@ -218,7 +220,7 @@ export default function TaskWorkPanel({
           if (running) setActiveRun((current) => current ?? running);
         })
         .catch(() => {
-          if (alive) setSessionsError("История сессий недоступна");
+          if (alive) setSessionsError(t("История сессий недоступна"));
         });
     };
     void load();
@@ -241,9 +243,9 @@ export default function TaskWorkPanel({
             setRefreshKey((value) => value + 1);
             onFinished();
             if (next.status === "failed") {
-              onNotify("Агент завершился с ошибкой");
+              onNotify(t("Агент завершился с ошибкой"));
             } else if (next.status === "interrupted") {
-              onNotify("Запуск агента прерван", "warning");
+              onNotify(t("Запуск агента прерван"), "warning");
             }
           }
         })
@@ -328,7 +330,7 @@ export default function TaskWorkPanel({
       setAddingStep(false);
       onFinished();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Не удалось добавить шаг");
+      setError(err instanceof Error ? err.message : t("Не удалось добавить шаг"));
     } finally {
       setStepBusy(false);
     }
@@ -337,7 +339,7 @@ export default function TaskWorkPanel({
   const runStep = async (step: WorkflowStep) => {
     if (!providerId || stepBusy || busy || isRunning(activeRun)) return;
     if (needsModel && !model) {
-      setError("Выбери модель для этого провайдера");
+      setError(t("Выбери модель для этого провайдера"));
       return;
     }
     setStepBusy(true);
@@ -358,7 +360,7 @@ export default function TaskWorkPanel({
       setExpandedRun(run.id);
       onFinished();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Не удалось запустить шаг");
+      setError(err instanceof Error ? err.message : t("Не удалось запустить шаг"));
     } finally {
       setStepBusy(false);
     }
@@ -371,7 +373,7 @@ export default function TaskWorkPanel({
       await updateWorkflowStep(task.id, step.id, { status });
       onFinished();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Не удалось обновить шаг");
+      setError(err instanceof Error ? err.message : t("Не удалось обновить шаг"));
     } finally {
       setStepBusy(false);
     }
@@ -384,7 +386,7 @@ export default function TaskWorkPanel({
       await deleteWorkflowStep(task.id, step.id);
       onFinished();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Не удалось удалить шаг");
+      setError(err instanceof Error ? err.message : t("Не удалось удалить шаг"));
     } finally {
       setStepBusy(false);
     }
@@ -393,7 +395,7 @@ export default function TaskWorkPanel({
   const start = async () => {
     if (!providerId || busy || isRunning(activeRun)) return;
     if (needsModel && !model) {
-      setError("Выбери модель для этого провайдера");
+      setError(t("Выбери модель для этого провайдера"));
       return;
     }
     setBusy(true);
@@ -425,7 +427,7 @@ export default function TaskWorkPanel({
         onFinished();
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Не удалось запустить агента");
+      setError(err instanceof Error ? err.message : t("Не удалось запустить агента"));
     } finally {
       setBusy(false);
     }
@@ -440,7 +442,7 @@ export default function TaskWorkPanel({
       setActiveRun(next);
       setRefreshKey((value) => value + 1);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Не удалось подтвердить действие");
+      setError(err instanceof Error ? err.message : t("Не удалось подтвердить действие"));
     } finally {
       setApprovalBusy(false);
     }
@@ -457,7 +459,7 @@ export default function TaskWorkPanel({
         onFinished();
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Не удалось отменить запуск");
+      setError(err instanceof Error ? err.message : t("Не удалось отменить запуск"));
     } finally {
       setBusy(false);
     }
@@ -492,7 +494,7 @@ export default function TaskWorkPanel({
         onNotify(`Проверки: ${failed} с ошибками`);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Не удалось выполнить проверки");
+      setError(err instanceof Error ? err.message : t("Не удалось выполнить проверки"));
     } finally {
       setValidationBusy(false);
     }
@@ -543,7 +545,7 @@ export default function TaskWorkPanel({
                     </span>
                     <b>{session.provider_name}</b>
                     <span className={`work-session-state is-${session.status}`}>
-                      {SESSION_LABELS[session.status]}
+                      {t(SESSION_LABELS[session.status])}
                     </span>
                     {session.handoff_id ? <span className="agent-tag">из сессии</span> : null}
                     {session.cli_session_id ? (
@@ -562,18 +564,18 @@ export default function TaskWorkPanel({
                         <button
                           type="button"
                           className="agent-link"
-                          title="Продолжить: реальный resume CLI, если он доступен, иначе новая сессия с контекстом"
+                          title={t("Продолжить: реальный resume CLI, если он доступен, иначе новая сессия с контекстом")}
                           onClick={() => startHandoff(session, "continue")}
                         >
-                          Продолжить
+                          {t("Продолжить")}
                         </button>
                         <button
                           type="button"
                           className="agent-link"
-                          title="Передать работу другому агенту"
+                          title={t("Передать работу другому агенту")}
                           onClick={() => startHandoff(session, "transfer")}
                         >
-                          Передать
+                          {t("Передать")}
                         </button>
                       </>
                     ) : null}
@@ -593,7 +595,7 @@ export default function TaskWorkPanel({
                             <span className="work-run-name">{runLabel(run)}</span>
                             <span className="work-run-meta">
                               {formatDate(run.started_at || run.created_at)}
-                              {run.snapshot_id ? " · снапшот" : ""}
+                              {run.snapshot_id ? ` · ${t("снапшот")}` : ""}
                             </span>
                           </span>
                           {open ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
@@ -607,14 +609,14 @@ export default function TaskWorkPanel({
                               <div className="work-note is-warn">{run.interrupted_reason}</div>
                             ) : null}
                             <div className="work-note">
-                              {run.read_only ? "Только чтение · " : ""}
+                              {run.read_only ? `${t("Только чтение")} · ` : ""}
                               {run.tool_policy
-                                ? `инструменты: ${
+                                ? `${t("инструменты:")} ${
                                     run.tool_policy === "auto"
-                                      ? "запись + команды"
+                                      ? t("запись + команды")
                                       : run.tool_policy === "workspace"
-                                        ? "чтение + запись"
-                                        : "только чтение"
+                                        ? t("чтение + запись")
+                                        : t("только чтение")
                                   } · `
                                 : ""}
                               {run.isolation === "worktree"
@@ -623,11 +625,11 @@ export default function TaskWorkPanel({
                                   ? "sandbox-копия · "
                                   : ""}
                               {run.network?.length
-                                ? `сеть: ${run.network
+                                ? `${t("сеть:")} ${run.network
                                     .map((item) =>
                                       item.allowed
                                         ? item.host
-                                        : `${item.host} (блок)`,
+                                        : `${item.host} (${t("блок")})`,
                                     )
                                     .join(", ")} · `
                                 : ""}
@@ -679,12 +681,12 @@ export default function TaskWorkPanel({
           <div className="work-composer-head">
             <b>
               {resumeFrom
-                ? "Продолжение CLI-сессии"
+                ? t("Продолжение CLI-сессии")
                 : handoffMode === "continue"
-                  ? "Продолжение работы"
+                  ? t("Продолжение работы")
                   : handoffMode === "transfer"
-                    ? "Передача работы"
-                    : "Новый шаг"}
+                    ? t("Передача работы")
+                    : t("Новый шаг")}
             </b>
             {activeRun ? (
               <span className={`work-run-state ${RUN_DOT[activeRun.status]}`}>
@@ -747,10 +749,10 @@ export default function TaskWorkPanel({
                   {activeRun.status === "queued"
                     ? activeRun.queue_position > 1
                       ? `В очереди · ${activeRun.queue_position}`
-                      : "Ожидает слот"
+                      : t("Ожидает слот")
                     : activeRun.status === "waiting_approval"
-                      ? "Ожидает подтверждения"
-                      : "Вывод в реальном времени"}
+                      ? t("Ожидает подтверждения")
+                      : t("Вывод в реальном времени")}
                 </span>
                 <span className="work-live-dot" />
               </div>
@@ -758,8 +760,8 @@ export default function TaskWorkPanel({
                 {activeRun.status === "queued"
                   ? `Лимит параллельных запусков: ${activeRun.max_parallel_runs || 1}. Запуск начнётся автоматически.`
                   : activeRun.status === "waiting_approval"
-                    ? "Агент остановлен на опасном действии. Проверь карточку выше."
-                    : cleanOutput(activeRun.output) || "Агент работает…"}
+                    ? t("Агент остановлен на опасном действии. Проверь карточку выше.")
+                    : cleanOutput(activeRun.output) || t("Агент работает…")}
               </pre>
             </div>
           ) : null}
@@ -771,7 +773,7 @@ export default function TaskWorkPanel({
                 {validationResults.length > 0 ? (
                   <small>
                     {validationPassed} пройдено · {validationFailed}{" "}
-                    {plural(validationFailed, ["ошибка", "ошибки", "ошибок"])}
+                    {tp(validationFailed, ["ошибка", "ошибки", "ошибок"], "error", "errors")}
                   </small>
                 ) : null}
               </span>
@@ -782,7 +784,9 @@ export default function TaskWorkPanel({
                 onClick={() => void runChecks()}
               >
                 <Sparkles size={11} />
-                {validationBusy ? "Проверка…" : `Проверить (${task.validation.length})`}
+                {validationBusy
+                  ? t("Проверка…")
+                  : t("Проверить ({count})", { count: task.validation.length })}
               </button>
             </div>
           ) : null}
@@ -799,19 +803,19 @@ export default function TaskWorkPanel({
                 className="agent-link"
                 onClick={() => setAddingStep((value) => !value)}
               >
-                {addingStep ? "Скрыть" : "+ Шаг"}
+                {addingStep ? t("Скрыть") : t("+ Шаг")}
               </button>
             </div>
             {addingStep ? (
               <div className="work-flow-add">
                 <input
                   value={stepTitle}
-                  placeholder="Название шага"
+                  placeholder={t("Название шага")}
                   onChange={(event) => setStepTitle(event.target.value)}
                 />
                 <input
                   value={stepPrompt}
-                  placeholder="Что сделать (уйдёт агенту)"
+                  placeholder={t("Что сделать (уйдёт агенту)")}
                   onChange={(event) => setStepPrompt(event.target.value)}
                 />
                 <button
@@ -867,7 +871,7 @@ export default function TaskWorkPanel({
                       type="button"
                       className="agent-link"
                       disabled={stepBusy}
-                      title="Удалить шаг"
+                      title={t("Удалить шаг")}
                       onClick={() => void removeStep(step)}
                     >
                       ×
@@ -900,7 +904,7 @@ export default function TaskWorkPanel({
             <>
             <div className="work-handoff">
               <span>
-                {handoffMode === "continue" ? "Продолжение работы" : "Передача из сессии"}{" "}
+                {handoffMode === "continue" ? t("Продолжение работы") : t("Передача из сессии")}{" "}
                 · <b>{handoffFrom.provider_name}</b> · {formatDate(handoffFrom.created_at)}
               </span>
               <button
@@ -910,10 +914,10 @@ export default function TaskWorkPanel({
                 onClick={() => setHandoffPreviewOpen((value) => !value)}
               >
                 {previewBusy
-                  ? "Загрузка…"
+                  ? t("Загрузка…")
                   : handoffPreviewOpen
-                    ? "Скрыть"
-                    : "Что уйдёт"}
+                    ? t("Скрыть")
+                    : t("Что уйдёт")}
               </button>
               <button type="button" className="agent-link" onClick={clearHandoff}>
                 Отменить
@@ -926,7 +930,7 @@ export default function TaskWorkPanel({
             ) : null}
             {handoffPreviewOpen ? (
               <pre className="work-handoff-preview">
-                {handoffPreview?.text || "Предпросмотр недоступен."}
+                {handoffPreview?.text || t("Предпросмотр недоступен.")}
               </pre>
             ) : null}
             </>
@@ -1014,7 +1018,7 @@ export default function TaskWorkPanel({
                     <input
                       value={model}
                       disabled={running || busy}
-                      placeholder="Например: gpt-5-codex"
+                      placeholder={t("Например: gpt-5-codex")}
                       onChange={(event) => setModel(event.target.value)}
                     />
                   )}
@@ -1051,8 +1055,8 @@ export default function TaskWorkPanel({
                 Только чтение
                 <small>
                   {(provider?.read_only_args?.length ?? 0) === 0
-                    ? "аргументы не заданы в настройках провайдера"
-                    : "без правок файлов"}
+                    ? t("аргументы не заданы в настройках провайдера")
+                    : t("без правок файлов")}
                 </small>
               </label>
               ) : null}
@@ -1060,12 +1064,12 @@ export default function TaskWorkPanel({
               {!needsModel ? (
                 <div className="work-note">
                   {modelOptions.length > 0
-                    ? "Модели заданы, но в аргументах нет {model}. Добавь плейсхолдер в настройках провайдера."
+                    ? t("Модели заданы, но в аргументах нет {model}. Добавь плейсхолдер в настройках провайдера.")
                     : provider?.capabilities?.checked
                       ? provider.capabilities.supports_model
-                        ? "CLI поддерживает --model. Добавь {model} в аргументы, чтобы выбирать модель здесь."
-                        : "Модель задаётся в конфиге CLI."
-                      : "Модель: CLI default. Нажми «Проверить» в «Агентах», чтобы узнать флаги."}
+                        ? t("CLI поддерживает --model. Добавь {model} в аргументы, чтобы выбирать модель здесь.")
+                        : t("Модель задаётся в конфиге CLI.")
+                      : t("Модель: CLI default. Нажми «Проверить» в «Агентах», чтобы узнать флаги.")}
                 </div>
               ) : null}
 
@@ -1075,7 +1079,7 @@ export default function TaskWorkPanel({
                   rows={2}
                   value={message}
                   disabled={running || busy}
-                  placeholder="Что сделать? Например: добавь хитбоксы и проверь, что кулдауны не сломались."
+                  placeholder={t("Что сделать? Например: добавь хитбоксы и проверь, что кулдауны не сломались.")}
                   onChange={(event) => setMessage(event.target.value)}
                   onKeyDown={(event) => {
                     if ((event.ctrlKey || event.metaKey) && event.key === "Enter") {
@@ -1110,7 +1114,7 @@ export default function TaskWorkPanel({
                     onClick={() => void cancel()}
                   >
                     <CircleStop size={14} />
-                    Остановить
+                    {t("Остановить")}
                   </button>
                 ) : (
                   <button
@@ -1121,23 +1125,23 @@ export default function TaskWorkPanel({
                   >
                     <Play size={14} />
                     {busy
-                      ? "Запуск…"
+                      ? t("Запуск…")
                       : resumeFrom
-                        ? "Продолжить и запустить"
+                        ? t("Продолжить и запустить")
                         : handoffMode === "continue"
-                          ? "Продолжить и запустить"
+                          ? t("Продолжить и запустить")
                           : handoffMode === "transfer"
-                          ? "Передать и запустить"
+                          ? t("Передать и запустить")
                           : activeRun
-                            ? "Запустить ещё"
-                            : "Запустить"}
+                            ? t("Запустить ещё")
+                            : t("Запустить")}
                   </button>
                 )}
                 <button
                   type="button"
                   className="icon-btn action-btn"
-                  title="Обновить историю"
-                  aria-label="Обновить историю"
+                  title={t("Обновить историю")}
+                  aria-label={t("Обновить историю")}
                   onClick={() => setRefreshKey((value) => value + 1)}
                 >
                   <RefreshCw size={14} />
