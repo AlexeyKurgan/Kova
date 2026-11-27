@@ -8,6 +8,7 @@ from ...domain.enums import AgentMode, Engine, TaskStatus, TaskType, ValidationM
 from ...domain.ledger import LedgerEvent
 from ...domain.review import ReviewItem
 from ...domain.task import Criterion, Task, ValidationCommand, WorkflowStep
+from ...agents.runner import list_runs
 from ...integrations.blender.skills import list_skills
 from ...checks.validation import list_validation_results, run_validation, suggest_validation
 from ...storage.assets import get_asset, link_asset_task, unlink_task_from_assets
@@ -419,6 +420,63 @@ def prepare_capsule(task_id: str, hub: Path = Depends(require_hub)) -> CapsuleRe
         ),
     )
     return CapsuleResponse(capsule=capsule, text=text)
+
+
+@router.post("/{task_id}/explain", response_model=dict)
+def explain_task(task_id: str, hub: Path = Depends(require_hub)) -> dict[str, str]:
+    task = get_task(hub, task_id)
+    if task is None:
+        raise HTTPException(status_code=404, detail="task not found")
+    latest = list_runs(hub, task_id, limit=1)
+    run = latest[0] if latest else None
+
+    lines = [
+        "Ты — наставник Kova Hub. Объясни результат задачи простыми словами.",
+        "Без жаргона и без обращения к внутренним ID. Пиши так, чтобы понял новичок.",
+        "",
+        f"Задача: {task.title}",
+        f"Цель: {task.goal or 'не указана'}",
+    ]
+    if task.criteria:
+        lines.append("Критерии готовности:")
+        lines.extend(f"- {criterion.text}" for criterion in task.criteria)
+    if run:
+        lines.extend(
+            [
+                "",
+                f"Последний запуск: {run.get('provider_name') or 'агент'} · {run.get('status')}",
+            ]
+        )
+        changes = run.get("changes") or []
+        if changes:
+            lines.append("Изменённые файлы:")
+            lines.extend(f"- {change.get('path')}" for change in changes[:12])
+            if len(changes) > 12:
+                lines.append(f"- … ещё {len(changes) - 12}")
+        output = str(run.get("output") or run.get("error") or "").strip()
+        if output:
+            lines.extend(["", "Вывод агента (сокращённо):", output[:4000]])
+    else:
+        lines.extend(["", "Запусков агента ещё не было — объясни по брифу задачи."])
+    lines.extend(
+        [
+            "",
+            "Ответь по пунктам:",
+            "1. Что изменилось или что уже готово.",
+            "2. Зачем это сделано и как связано с целью.",
+            "3. Что проверить руками перед приёмкой.",
+            "4. Что можно улучшить дальше, без переписывания всего.",
+        ]
+    )
+    append_event(
+        hub,
+        LedgerEvent(
+            type="task.explained",
+            subject=task.id,
+            data={"run_id": run.get("id") if run else ""},
+        ),
+    )
+    return {"text": "\n".join(lines)}
 
 
 @router.post("/{task_id}/response", response_model=ImportResponseResult, status_code=201)

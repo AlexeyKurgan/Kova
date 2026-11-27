@@ -807,6 +807,14 @@ export async function deleteReviewComment(
   );
 }
 
+export async function getTaskExplanation(taskId: string): Promise<string> {
+  const result = await request<{ text: string }>(
+    `/tasks/${encodeURIComponent(taskId)}/explain`,
+    { method: "POST" },
+  );
+  return result.text;
+}
+
 export async function getSecondOpinion(reviewId: string): Promise<string> {
   const result = await request<{ text: string }>(
     `/review/${encodeURIComponent(reviewId)}/second-opinion`,

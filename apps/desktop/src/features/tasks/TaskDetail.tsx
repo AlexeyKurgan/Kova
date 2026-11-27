@@ -12,6 +12,7 @@ import {
   ClipboardCopy,
   ClipboardList,
   Clock,
+  GraduationCap,
   Inbox,
   Play,
   Plus,
@@ -27,10 +28,11 @@ import {
   TASK_STATUS_LABELS,
   TASK_TYPE_LABELS,
 } from "../../lib/labels";
-import { listAiRuns } from "../../lib/coreClient";
+import { getTaskExplanation, listAiRuns } from "../../lib/coreClient";
 import { RUN_DOT, RUN_LABELS } from "../../lib/runLabels";
 import TaskValidationPanel from "./TaskValidationPanel";
 import TaskWorkPanel from "./TaskWorkPanel";
+import ExplanationModal from "./ExplanationModal";
 import type {
   AiRun,
   AssetPassport,
@@ -89,6 +91,9 @@ export default function TaskDetail({
   const [validationRefresh, setValidationRefresh] = useState(0);
   const [runs, setRuns] = useState<AiRun[]>([]);
   const [showResult, setShowResult] = useState(false);
+  const [explanation, setExplanation] = useState<string | null>(null);
+  const [explaining, setExplaining] = useState(false);
+  const [explainError, setExplainError] = useState("");
 
   useEffect(() => {
     let alive = true;
@@ -103,6 +108,21 @@ export default function TaskDetail({
       alive = false;
     };
   }, [task.id, task.updated_at, validationRefresh]);
+
+  const openExplanation = async () => {
+    if (explaining) return;
+    setExplaining(true);
+    setExplainError("");
+    try {
+      setExplanation(await getTaskExplanation(task.id));
+    } catch (err) {
+      setExplainError(
+        err instanceof Error ? err.message : "Не удалось подготовить объяснение",
+      );
+    } finally {
+      setExplaining(false);
+    }
+  };
 
   const doneCount = task.criteria.filter((criterion) => criterion.done).length;
   const total = task.criteria.length;
@@ -402,7 +422,17 @@ export default function TaskDetail({
               <button type="button" className="btn btn-secondary btn-small" onClick={() => setTab("activity")}>
                 История
               </button>
+              <button
+                type="button"
+                className="btn btn-secondary btn-small"
+                disabled={explaining}
+                onClick={() => void openExplanation()}
+              >
+                <GraduationCap size={13} />
+                {explaining ? "Готовлю…" : "Объяснить простыми словами"}
+              </button>
             </div>
+            {explainError ? <p className="review-opinion-error">{explainError}</p> : null}
           </article>
 
           <article className="td2-panel td2-context">
@@ -607,6 +637,10 @@ export default function TaskDetail({
             </ul>
           )}
         </article>
+      ) : null}
+
+      {explanation !== null ? (
+        <ExplanationModal text={explanation} onClose={() => setExplanation(null)} />
       ) : null}
     </section>
   );

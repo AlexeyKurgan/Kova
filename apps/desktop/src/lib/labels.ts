@@ -100,4 +100,5 @@ export const LEDGER_TYPE_LABELS: Record<string, string> = {
   "task.validation": "Проверка задачи",
   "task.validation.added": "Проверка добавлена",
   "task.validation.deleted": "Проверка удалена",
+  "task.explained": "Запрошено объяснение",
 };
