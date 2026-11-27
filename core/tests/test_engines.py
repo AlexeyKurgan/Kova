@@ -19,6 +19,7 @@ def test_godot_detection_and_import(tmp_path: Path, monkeypatch) -> None:
     (game / "project.godot").write_text("[application]\nconfig/name=\"Test\"\n", encoding="utf-8")
     monkeypatch.setenv("KOVA_GODOT", sys.executable)
     client.post("/project/open", json={"path": str(game), "engine": "godot"})
+    client.post("/packages/godot-core/install")
 
     listed = client.get("/engines")
     assert listed.status_code == 200
@@ -55,6 +56,7 @@ def test_rpgmaker_project_import(tmp_path: Path, monkeypatch) -> None:
     game.mkdir()
     (game / "game.rmmzproject").write_text("{}", encoding="utf-8")
     client.post("/project/open", json={"path": str(game), "engine": "rpgmaker"})
+    client.post("/packages/rpgmaker-core/install")
 
     info = client.get("/engines/rpgmaker").json()
     assert info["installed"] is True
@@ -75,6 +77,7 @@ def test_engine_import_rejects_wrong_format(tmp_path: Path, monkeypatch) -> None
     game.mkdir()
     (game / "game.rmmzproject").write_text("{}", encoding="utf-8")
     client.post("/project/open", json={"path": str(game), "engine": "rpgmaker"})
+    client.post("/packages/rpgmaker-core/install")
     source = tmp_path / "hero.glb"
     source.write_bytes(b"glb")
     asset = client.post("/assets/import", json={"path": str(source)}).json()

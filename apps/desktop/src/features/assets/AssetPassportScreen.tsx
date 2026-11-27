@@ -24,6 +24,7 @@ import BrandIcon from "../../components/BrandIcon";
 import {
   getAssetContract,
   getEngineInfo,
+  getPackage,
   importAssetToEngine,
   mediaUrl,
 } from "../../lib/coreClient";
@@ -201,6 +202,7 @@ export default function AssetPassportScreen({
   const [depKind, setDepKind] = useState("texture");
   const [diffMode, setDiffMode] = useState<"metrics" | "scene">("metrics");
   const [engineInfo, setEngineInfo] = useState<EngineInfo | null>(null);
+  const [enginePackageReady, setEnginePackageReady] = useState(false);
   const [engineImport, setEngineImport] = useState<{
     relative: string;
     target: string;
@@ -252,15 +254,24 @@ export default function AssetPassportScreen({
     const supported = ["godot", "unity", "unreal", "rpgmaker", "web"];
     if (!supported.includes(asset.engine)) {
       setEngineInfo(null);
+      setEnginePackageReady(false);
       return;
     }
     let alive = true;
-    getEngineInfo(asset.engine)
-      .then((value) => {
-        if (alive) setEngineInfo(value);
+    Promise.all([
+      getEngineInfo(asset.engine),
+      getPackage(`${asset.engine}-core`).catch(() => null),
+    ])
+      .then(([info, pkg]) => {
+        if (!alive) return;
+        setEngineInfo(info);
+        setEnginePackageReady(Boolean(pkg?.installed && pkg.enabled));
       })
       .catch(() => {
-        if (alive) setEngineInfo(null);
+        if (alive) {
+          setEngineInfo(null);
+          setEnginePackageReady(false);
+        }
       });
     return () => {
       alive = false;
@@ -726,7 +737,7 @@ export default function AssetPassportScreen({
                     ))}
                   </div>
                 ) : null}
-                {engineInfo.installed && engineInfo.project_detected ? (
+                {engineInfo.installed && engineInfo.project_detected && enginePackageReady ? (
                   <button
                     type="button"
                     className="btn btn-secondary btn-small"
@@ -736,6 +747,10 @@ export default function AssetPassportScreen({
                     <Upload size={13} />
                     {engineBusy ? "Импорт…" : "Импортировать текущую версию"}
                   </button>
+                ) : engineInfo.installed && engineInfo.project_detected ? (
+                  <p className="ad3-engine-message">
+                    Установи и включи пакет <code>{asset.engine}-core</code> в разделе «Пакеты».
+                  </p>
                 ) : null}
                 {engineError ? <p className="review-opinion-error">{engineError}</p> : null}
                 {engineImport ? (

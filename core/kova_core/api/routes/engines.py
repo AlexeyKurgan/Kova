@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from ...domain.enums import Engine
 from ...domain.ledger import LedgerEvent
 from ...integrations.engines import IMPORT_FORMATS, detect_engine, import_asset_to_engine
+from ...packages import store
 from ...storage.assets import get_asset
 from ...storage.ledger import append_event
 from ..deps import require_hub
@@ -37,6 +38,12 @@ def import_asset(
 ) -> dict[str, object]:
     if engine not in IMPORT_FORMATS:
         raise HTTPException(status_code=404, detail="engine is not supported")
+    package = store.get_package(hub, f"{engine.value}-core")
+    if package is None or not package.get("installed") or not package.get("enabled"):
+        raise HTTPException(
+            status_code=400,
+            detail=f"Установи и включи пакет {engine.value}-core в разделе «Пакеты»",
+        )
     asset = get_asset(hub, asset_id)
     if asset is None:
         raise HTTPException(status_code=404, detail="asset not found")
