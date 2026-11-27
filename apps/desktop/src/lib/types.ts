@@ -274,7 +274,21 @@ export type AssetVersion = {
   file_size: number;
   preview: string;
   metrics: AssetMetrics | null;
+  scene: SceneObject[];
   created_at: string;
+};
+
+export type SceneObject = {
+  name: string;
+  type: string;
+  parent: string;
+  vertices: number;
+  triangles: number;
+  materials: string[];
+  location: number[];
+  rotation: number[];
+  scale: number[];
+  dimensions: number[];
 };
 
 export type AssetMetrics = {
@@ -432,6 +446,7 @@ export type AssetPassport = {
   human_author: string | null;
   license: string;
   metrics: AssetMetrics;
+  scene: SceneObject[];
   versions: AssetVersion[];
   dependencies: AssetDependency[];
   export_profiles: ExportProfile[];

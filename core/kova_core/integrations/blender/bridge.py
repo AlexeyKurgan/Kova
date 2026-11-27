@@ -5,7 +5,7 @@ import subprocess
 from functools import lru_cache
 from pathlib import Path
 
-from ...domain.asset import AssetMetrics, AssetPassport
+from ...domain.asset import AssetMetrics, AssetPassport, SceneObject
 from ...security.paths import resolve_inside
 
 MARKER = "---KOVA_JSON---"
@@ -190,6 +190,23 @@ def inspect_asset(hub: Path, asset: AssetPassport) -> dict[str, object]:
         bones=int(metrics.get("bones") or 0),
         animations=int(metrics.get("animations") or 0),
     )
+    scene_rows = metrics.get("scene") or []
+    asset.scene = [
+        SceneObject(
+            name=str(row.get("name") or ""),
+            type=str(row.get("type") or ""),
+            parent=str(row.get("parent") or ""),
+            vertices=int(row.get("vertices") or 0),
+            triangles=int(row.get("triangles") or 0),
+            materials=[str(item) for item in (row.get("materials") or [])],
+            location=[float(item) for item in (row.get("location") or [])],
+            rotation=[float(item) for item in (row.get("rotation") or [])],
+            scale=[float(item) for item in (row.get("scale") or [])],
+            dimensions=[float(item) for item in (row.get("dimensions") or [])],
+        )
+        for row in scene_rows[:500]
+        if isinstance(row, dict)
+    ]
     asset.preview = (
         preview.relative_to(hub).as_posix() if preview.is_file() else ""
     )

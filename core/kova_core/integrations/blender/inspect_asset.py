@@ -82,7 +82,44 @@ def collect_metrics() -> dict:
         "bones": bones,
         "animations": len(bpy.data.actions),
         "missing_textures": missing_textures,
+        "scene": collect_scene(),
     }
+
+
+def collect_scene() -> list[dict]:
+    scene = bpy.context.scene
+    rows: list[dict] = []
+    for obj in list(scene.objects)[:500]:
+        if obj.type not in {"MESH", "ARMATURE", "EMPTY", "LIGHT", "CAMERA"}:
+            continue
+        vertices = 0
+        triangles = 0
+        materials: list[str] = []
+        if obj.type == "MESH" and obj.data is not None:
+            mesh = obj.data
+            mesh.calc_loop_triangles()
+            vertices = len(mesh.vertices)
+            triangles = len(mesh.loop_triangles)
+            materials = [
+                material.name
+                for material in mesh.materials
+                if material is not None
+            ]
+        rows.append(
+            {
+                "name": obj.name,
+                "type": obj.type,
+                "parent": obj.parent.name if obj.parent is not None else "",
+                "vertices": vertices,
+                "triangles": triangles,
+                "materials": materials,
+                "location": [round(value, 4) for value in obj.location],
+                "rotation": [round(value, 4) for value in obj.rotation_euler],
+                "scale": [round(value, 4) for value in obj.scale],
+                "dimensions": [round(value, 4) for value in obj.dimensions],
+            }
+        )
+    return rows
 
 
 def render_preview(path: Path) -> str:

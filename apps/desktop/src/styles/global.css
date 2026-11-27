@@ -20405,3 +20405,102 @@ html[data-mode="beginner"] .advanced-only {
 .night-check {
   gap: 6px !important;
 }
+
+/* Scene diff */
+.ad3-diff-mode {
+  display: inline-flex;
+  gap: 2px;
+  padding: 2px;
+  margin-left: auto;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--bg-card);
+}
+
+.ad3-diff-mode button {
+  padding: 4px 8px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--text-muted);
+  font: inherit;
+  font-size: 8px;
+  cursor: pointer;
+}
+
+.ad3-diff-mode button.is-active {
+  background: rgba(var(--accent-rgb), 0.14);
+  color: var(--accent-strong);
+}
+
+.ad3-scene-diff {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  align-self: start;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.ad3-scene-row {
+  display: grid;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 8px;
+  border-top: 1px solid var(--border);
+  grid-template-columns: minmax(90px, 1.2fr) 74px 70px minmax(90px, 1fr);
+  font-size: 8px;
+}
+
+.ad3-scene-row:first-child {
+  border-top: 0;
+}
+
+.ad3-scene-row.is-head {
+  background: var(--bg-raised);
+  color: var(--text-muted);
+  font-size: 7.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.ad3-scene-row > span:first-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text);
+  font-size: 8.5px;
+}
+
+.ad3-scene-row.is-added > span:nth-child(2) {
+  color: var(--success);
+}
+
+.ad3-scene-row.is-removed > span:nth-child(2) {
+  color: var(--danger-text);
+}
+
+.ad3-scene-row.is-changed > span:nth-child(2) {
+  color: var(--accent-strong);
+}
+
+.ad3-scene-row .is-up {
+  color: var(--accent-strong);
+}
+
+.ad3-scene-row .is-down {
+  color: var(--danger-text);
+}
+
+.ad3-scene-row .is-flat {
+  color: var(--text-muted);
+}
+
+.ad3-scene-fields {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-muted);
+  font-size: 7.5px;
+}

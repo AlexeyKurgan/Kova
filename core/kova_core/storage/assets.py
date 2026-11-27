@@ -153,6 +153,7 @@ def add_asset_version(
         asset.file_size = version.file_size
         asset.preview = ""
         asset.metrics = AssetMetrics()
+        asset.scene = []
     save_asset(hub, asset)
     return version
 
@@ -172,6 +173,7 @@ def activate_asset_version(hub: Path, asset: AssetPassport, version_id: str) -> 
     asset.file_size = version.file_size
     asset.preview = version.preview
     asset.metrics = version.metrics.model_copy(deep=True) if version.metrics else AssetMetrics()
+    asset.scene = [item.model_copy(deep=True) for item in version.scene]
     save_asset(hub, asset)
     return version
 
@@ -188,6 +190,7 @@ def sync_current_version(asset: AssetPassport) -> AssetVersion | None:
     version.file_size = asset.file_size
     version.preview = asset.preview
     version.metrics = asset.metrics.model_copy(deep=True)
+    version.scene = [item.model_copy(deep=True) for item in asset.scene]
     return version
 
 

@@ -17,6 +17,19 @@ class AssetMetrics(DomainModel):
     animations: int | None = None
 
 
+class SceneObject(DomainModel):
+    name: str
+    type: str = "MESH"
+    parent: str = ""
+    vertices: int = 0
+    triangles: int = 0
+    materials: list[str] = Field(default_factory=list)
+    location: list[float] = Field(default_factory=list)
+    rotation: list[float] = Field(default_factory=list)
+    scale: list[float] = Field(default_factory=list)
+    dimensions: list[float] = Field(default_factory=list)
+
+
 class AssetVersion(DomainModel):
     id: str = Field(default_factory=lambda: new_id("ver"))
     label: str
@@ -28,6 +41,7 @@ class AssetVersion(DomainModel):
     file_size: int = 0
     preview: str = ""
     metrics: AssetMetrics | None = None
+    scene: list[SceneObject] = Field(default_factory=list)
     created_at: datetime = Field(default_factory=utc_now)
 
 
@@ -61,6 +75,7 @@ class AssetPassport(DomainModel):
     human_author: str | None = None
     license: str = ""
     metrics: AssetMetrics = Field(default_factory=AssetMetrics)
+    scene: list[SceneObject] = Field(default_factory=list)
     materials: list[str] = Field(default_factory=list)
     textures: list[str] = Field(default_factory=list)
     sockets: list[str] = Field(default_factory=list)

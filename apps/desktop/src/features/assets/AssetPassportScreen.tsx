@@ -34,6 +34,7 @@ import type {
   AssetPassport,
   AssetVersion,
   CheckResult,
+  SceneObject,
   ContractReport,
   CheckStatus,
   Engine,
@@ -104,6 +105,51 @@ const CHECK_LABELS: Record<CheckStatus, string> = {
   skipped: "Пропущено",
 };
 
+type SceneChange = {
+  name: string;
+  status: "added" | "removed" | "changed";
+  fields: string[];
+  before: SceneObject | null;
+  after: SceneObject | null;
+};
+
+function sameNumbers(left: number[], right: number[]) {
+  return left.length === right.length && left.every((value, index) => value === right[index]);
+}
+
+function sceneDiff(left: SceneObject[], right: SceneObject[]): SceneChange[] {
+  const before = new Map(left.map((item) => [item.name, item]));
+  const after = new Map(right.map((item) => [item.name, item]));
+  const names = new Set([...before.keys(), ...after.keys()]);
+  const rows: SceneChange[] = [];
+  for (const name of names) {
+    const a = before.get(name) ?? null;
+    const b = after.get(name) ?? null;
+    if (!a) {
+      rows.push({ name, status: "added", fields: [], before: a, after: b });
+      continue;
+    }
+    if (!b) {
+      rows.push({ name, status: "removed", fields: [], before: a, after: b });
+      continue;
+    }
+    const fields: string[] = [];
+    if (a.type !== b.type) fields.push("тип");
+    if (a.parent !== b.parent) fields.push("родитель");
+    if (a.triangles !== b.triangles) fields.push("треугольники");
+    if (a.vertices !== b.vertices) fields.push("вершины");
+    if (a.materials.join(",") !== b.materials.join(",")) fields.push("материалы");
+    if (!sameNumbers(a.location, b.location)) fields.push("позиция");
+    if (!sameNumbers(a.rotation, b.rotation)) fields.push("поворот");
+    if (!sameNumbers(a.scale, b.scale)) fields.push("масштаб");
+    if (!sameNumbers(a.dimensions, b.dimensions)) fields.push("размеры");
+    if (fields.length > 0) {
+      rows.push({ name, status: "changed", fields, before: a, after: b });
+    }
+  }
+  return rows.sort((a, b) => a.name.localeCompare(b.name));
+}
+
 export default function AssetPassportScreen({
   asset,
   assets,
@@ -146,6 +192,7 @@ export default function AssetPassportScreen({
   const [exportFormat, setExportFormat] = useState("FBX");
   const [depTarget, setDepTarget] = useState("");
   const [depKind, setDepKind] = useState("texture");
+  const [diffMode, setDiffMode] = useState<"metrics" | "scene">("metrics");
   const stripRef = useRef<HTMLDivElement | null>(null);
   const currentVersion =
     asset.versions.find((item) => item.id === asset.current_version_id) ??
@@ -255,6 +302,7 @@ export default function AssetPassportScreen({
     asset.versions.find((item) => item.id === id) ?? null;
   const versionA = findVersion(compareA);
   const versionB = findVersion(compareB);
+  const sceneChanges = sceneDiff(versionA?.scene ?? [], versionB?.scene ?? []);
   const versionPreview = (version: AssetVersion | null) => {
     const preview = version?.preview || (version?.id === asset.current_version_id ? asset.preview : "");
     if (!preview || !version) return "";
@@ -781,6 +829,22 @@ export default function AssetPassportScreen({
                       ))}
                     </select>
                   </label>
+                  <div className="ad3-diff-mode">
+                    <button
+                      type="button"
+                      className={diffMode === "metrics" ? "is-active" : ""}
+                      onClick={() => setDiffMode("metrics")}
+                    >
+                      Метрики
+                    </button>
+                    <button
+                      type="button"
+                      className={diffMode === "scene" ? "is-active" : ""}
+                      onClick={() => setDiffMode("scene")}
+                    >
+                      Сцена
+                    </button>
+                  </div>
                 </div>
                 <div className="ad3-diff-grid">
                   <div className="ad3-diff-previews">
@@ -803,6 +867,7 @@ export default function AssetPassportScreen({
                       );
                     })}
                   </div>
+                  {diffMode === "metrics" ? (
                   <div className="ad3-diff-metrics">
                     <div className="ad3-diff-row is-head">
                       <span>Метрика</span>
@@ -855,6 +920,58 @@ export default function AssetPassportScreen({
                       </span>
                     </div>
                   </div>
+                  ) : (
+                    <div className="ad3-scene-diff">
+                      {!versionA?.scene.length || !versionB?.scene.length ? (
+                        <p className="ad3-empty">
+                          Сцена не снята: проверь обе версии через Blender, чтобы увидеть
+                          объекты и трансформации.
+                        </p>
+                      ) : sceneChanges.length === 0 ? (
+                        <p className="ad3-empty">Объекты и трансформации не отличаются.</p>
+                      ) : (
+                        <>
+                          <div className="ad3-scene-row is-head">
+                            <span>Объект</span>
+                            <span>Статус</span>
+                            <span>Δ треуг.</span>
+                            <span>Изменения</span>
+                          </div>
+                          {sceneChanges.map((change) => {
+                            const before = change.before?.triangles ?? 0;
+                            const after = change.after?.triangles ?? 0;
+                            const delta = after - before;
+                            return (
+                              <div className={`ad3-scene-row is-${change.status}`} key={change.name}>
+                                <span title={change.name}>{change.name}</span>
+                                <span>
+                                  {change.status === "added"
+                                    ? "+ добавлен"
+                                    : change.status === "removed"
+                                      ? "− удалён"
+                                      : "~ изменён"}
+                                </span>
+                                <span className={delta === 0 ? "is-flat" : delta > 0 ? "is-up" : "is-down"}>
+                                  {change.status === "added"
+                                    ? `+${after}`
+                                    : change.status === "removed"
+                                      ? `−${before}`
+                                      : delta === 0
+                                        ? "0"
+                                        : delta > 0
+                                          ? `+${delta}`
+                                          : String(delta)}
+                                </span>
+                                <span className="ad3-scene-fields">
+                                  {change.fields.length > 0 ? change.fields.join(" · ") : "—"}
+                                </span>
+                              </div>
+                            );
+                          })}
+                        </>
+                      )}
+                    </div>
+                  )}
                 </div>
               </>
             )}
