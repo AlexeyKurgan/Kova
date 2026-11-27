@@ -59,6 +59,29 @@ jobs:
           KOVA_SIGN_PFX_PASSWORD: ${{ secrets.KOVA_SIGN_PFX_PASSWORD }}
         run: ./scripts/release.ps1 -SkipBuild -Version "${{ github.ref_name }}"
 
+      - name: Install smoke test
+        shell: pwsh
+        run: |
+          $msi = Get-ChildItem "apps/desktop/src-tauri/target/release/bundle/msi/*.msi" | Select-Object -First 1
+          if (-not $msi) { throw "MSI not found" }
+          $install = Start-Process msiexec.exe -ArgumentList @("/i", "`"$($msi.FullName)`"", "/qn", "/norestart") -Wait -PassThru
+          if ($install.ExitCode -ne 0) { throw "MSI install failed: $($install.ExitCode)" }
+          $exe = Get-ChildItem "$env:ProgramFiles\Kova Hub" -Filter "*.exe" -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
+          if (-not $exe) { throw "Installed executable not found" }
+          Start-Process -FilePath $exe.FullName
+          $healthy = $false
+          for ($i = 0; $i -lt 25; $i++) {
+            Start-Sleep -Seconds 2
+            try {
+              $health = Invoke-RestMethod "http://127.0.0.1:8765/health" -TimeoutSec 2
+              if ($health.status -eq "ok") { $healthy = $true; break }
+            } catch { }
+          }
+          if (-not $healthy) { throw "Installed app did not start Core" }
+          Stop-Process -Name kova-hub,kova-core -Force -ErrorAction SilentlyContinue
+          Start-Process msiexec.exe -ArgumentList @("/x", "`"$($msi.FullName)`"", "/qn", "/norestart") -Wait
+          Write-Host "Install smoke test passed"
+
       - uses: actions/upload-artifact@v4
         with:
           name: kova-hub-windows
