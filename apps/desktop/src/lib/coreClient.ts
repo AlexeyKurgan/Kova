@@ -1016,6 +1016,7 @@ export async function updateProvider(
     args?: string[];
     enabled?: boolean;
     timeout?: number;
+    token_budget?: number;
     models?: string[];
     set_default?: boolean;
   },

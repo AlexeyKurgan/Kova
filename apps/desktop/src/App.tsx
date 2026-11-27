@@ -475,6 +475,7 @@ export default function App() {
         args?: string[];
         enabled?: boolean;
         timeout?: number;
+        token_budget?: number;
         models?: string[];
         default_model?: string;
         models_args?: string[];

@@ -491,6 +491,7 @@ export type ProviderInfo = {
   description: string;
   url: string;
   timeout: number;
+  token_budget: number;
   models: string[];
   default_model: string;
   default_effort: string;

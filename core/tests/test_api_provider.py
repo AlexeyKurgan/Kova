@@ -60,6 +60,7 @@ def test_api_provider_run_and_key_storage(tmp_path: Path, monkeypatch) -> None:
                 "api_url": f"http://127.0.0.1:{port}/v1/chat/completions",
                 "api_model": "fake-model",
                 "api_key": "secret-key",
+                "token_budget": 5000,
             },
         )
         assert created.status_code == 201, created.text
@@ -67,6 +68,7 @@ def test_api_provider_run_and_key_storage(tmp_path: Path, monkeypatch) -> None:
         assert provider["kind"] == "api"
         assert provider["has_key"] is True
         assert provider["installed"] is True
+        assert provider["token_budget"] == 5000
         assert "secret-key" not in created.text
 
         listed = client.get("/providers")

@@ -47,6 +47,7 @@ class ProviderInfo(BaseModel):
     description: str = ""
     url: str = ""
     timeout: int = 1800
+    token_budget: int = 0
     models: list[str] = Field(default_factory=list)
     default_model: str = ""
     default_effort: str = "auto"
@@ -81,6 +82,7 @@ class UpdateProviderRequest(BaseModel):
     args: list[str] | None = None
     enabled: bool | None = None
     timeout: int | None = None
+    token_budget: int | None = None
     models: list[str] | None = None
     default_model: str | None = None
     default_effort: str | None = None
@@ -109,6 +111,7 @@ class CreateProviderRequest(BaseModel):
     args: list[str] = Field(default_factory=list)
     description: str = ""
     timeout: int = 1800
+    token_budget: int = 0
     models: list[str] = Field(default_factory=list)
     default_model: str = ""
     default_effort: str = "auto"
@@ -177,6 +180,7 @@ def create_provider_route(payload: CreateProviderRequest) -> ProviderInfo:
             "args": payload.args,
             "description": payload.description,
             "timeout": payload.timeout,
+            "token_budget": payload.token_budget,
             "models": payload.models,
             "default_model": payload.default_model,
             "models_args": payload.models_args,

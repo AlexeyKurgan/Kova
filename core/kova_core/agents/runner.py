@@ -909,6 +909,18 @@ def start_run(
                 f"лимит токенов исчерпан: {summary['used']} из {project_budget} "
                 "(по известным запускам)"
             )
+    provider_budget = int(provider.get("token_budget") or 0)
+    if provider_budget > 0:
+        summary = usage_report.usage_summary(hub)
+        used = next(
+            (row["used"] for row in summary.get("providers", []) if row.get("id") == provider["id"]),
+            0,
+        )
+        if used >= provider_budget:
+            raise RuntimeError(
+                f"лимит токенов провайдера {provider.get('name')} исчерпан: "
+                f"{used} из {provider_budget}"
+            )
 
     if task.status not in {TaskStatus.archived, TaskStatus.done}:
         task.status = TaskStatus.working

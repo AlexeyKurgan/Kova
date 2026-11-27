@@ -518,6 +518,7 @@ def _entry(provider_id: str, base: dict[str, Any], override: dict[str, Any]) -> 
         "description": str(override.get("description") or base.get("description") or ""),
         "url": str(base.get("url") or ""),
         "timeout": int(override.get("timeout") or 1800),
+        "token_budget": int(override.get("token_budget") or 0),
         "models": [
             str(item)
             for item in (override.get("models") or base.get("models") or [])
@@ -659,6 +660,11 @@ def update_provider(provider_id: str, payload: dict[str, Any]) -> dict[str, Any]
     if "timeout" in payload:
         try:
             existing["timeout"] = max(60, min(7200, int(payload["timeout"])))
+        except (TypeError, ValueError):
+            pass
+    if "token_budget" in payload:
+        try:
+            existing["token_budget"] = max(0, min(100_000_000, int(payload["token_budget"])))
         except (TypeError, ValueError):
             pass
     if "models" in payload and isinstance(payload["models"], list):

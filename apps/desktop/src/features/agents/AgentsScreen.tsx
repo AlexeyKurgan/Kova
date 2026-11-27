@@ -59,6 +59,7 @@ type Props = {
       args?: string[];
       enabled?: boolean;
       timeout?: number;
+      token_budget?: number;
       models?: string[];
       default_model?: string;
       default_effort?: string;
@@ -198,6 +199,7 @@ export default function AgentsScreen({
   const [apiKey, setApiKey] = useState("");
   const [deleteKey, setDeleteKey] = useState(false);
   const [timeout, setTimeoutValue] = useState(1800);
+  const [tokenBudget, setTokenBudget] = useState(0);
   const [enabled, setEnabled] = useState(true);
   const [setDefault, setSetDefault] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -475,6 +477,7 @@ export default function AgentsScreen({
     setSessionRegex(provider.session_regex ?? "");
     setOutputMode(provider.output_mode || "auto");
     setTimeoutValue(provider.timeout);
+    setTokenBudget(provider.token_budget ?? 0);
     setEnabled(provider.enabled);
     setSetDefault(provider.default);
     setError(null);
@@ -502,6 +505,7 @@ export default function AgentsScreen({
     setSessionRegex("");
     setOutputMode("auto");
     setTimeoutValue(1800);
+    setTokenBudget(0);
     setEnabled(true);
     setSetDefault(false);
     setError(null);
@@ -518,6 +522,7 @@ export default function AgentsScreen({
         name: name.trim(),
         description: description.trim(),
         timeout,
+        token_budget: tokenBudget,
         kind,
         api_style: apiStyle,
         catalog_id: catalogId,
@@ -2069,6 +2074,18 @@ export default function AgentsScreen({
                     max={7200}
                     value={timeout}
                     onChange={(event) => setTimeoutValue(Number(event.target.value))}
+                  />
+                </div>
+                <div className="field">
+                  <label htmlFor="agent-token-budget">Лимит токенов провайдера</label>
+                  <input
+                    id="agent-token-budget"
+                    type="number"
+                    min={0}
+                    max={100000000}
+                    value={tokenBudget}
+                    onChange={(event) => setTokenBudget(Number(event.target.value) || 0)}
+                    placeholder="0 — без лимита"
                   />
                 </div>
                 <div className="field">
