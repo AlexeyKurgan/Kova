@@ -20,6 +20,7 @@ try {
     --add-data "$skills;kova_core/integrations/blender/skills" `
     --add-data "$blender/inspect_asset.py;kova_core/integrations/blender" `
     --add-data "$blender/addon;kova_core/integrations/blender/addon" `
+    --collect-data certifi `
     sidecar.py
 } finally {
   Pop-Location

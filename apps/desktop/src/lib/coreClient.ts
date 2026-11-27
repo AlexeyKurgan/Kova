@@ -477,6 +477,19 @@ export async function getDiary(days = 14): Promise<DiaryResponse> {
   return request<DiaryResponse>(`/diary?days=${days}`);
 }
 
+export async function checkForUpdates(): Promise<{
+  current: string;
+  latest: string;
+  update_available: boolean;
+  url: string;
+  notes: string;
+  published_at: string;
+  checked_at: string;
+  error: string;
+}> {
+  return request("/updates/check");
+}
+
 export async function repairDoctor(): Promise<{
   actions: string[];
   checks: CheckResult[];

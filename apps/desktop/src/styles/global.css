@@ -20643,3 +20643,77 @@ html[data-mode="beginner"] .advanced-only {
   line-height: 1.45;
   white-space: pre-wrap;
 }
+
+/* About and update check */
+.about-grid {
+  display: grid;
+  gap: 4px 10px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin: 10px 0;
+}
+
+.about-grid > div {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.about-grid span {
+  color: var(--text-muted);
+  font-size: 7.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.about-grid b {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 8.5px;
+}
+
+.about-update {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+}
+
+.about-message {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 8.5px;
+}
+
+.about-message.is-warn {
+  color: var(--warning-text);
+}
+
+.about-release {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 7px 9px;
+  border: 1px solid rgba(var(--accent-rgb), 0.28);
+  border-radius: 8px;
+  background: rgba(var(--accent-rgb), 0.06);
+}
+
+.about-release b {
+  font-size: 9px;
+}
+
+.about-release small {
+  color: var(--text-muted);
+  font-size: 8px;
+}
+
+@media (max-width: 900px) {
+  .about-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}

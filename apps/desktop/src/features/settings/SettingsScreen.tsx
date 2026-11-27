@@ -17,6 +17,7 @@ import {
 import type { AppPreferences } from "../../lib/appPreferences";
 import { formatDate } from "../../lib/format";
 import type { Snapshot } from "../../lib/types";
+import AboutCard from "./AboutCard";
 import StyleBibleCard from "./StyleBibleCard";
 
 type Props = {
@@ -300,6 +301,8 @@ export default function SettingsScreen({
         </article>
 
         <StyleBibleCard />
+
+        <AboutCard />
 
         <article className="settings-card">
           <div className="settings-card-head">

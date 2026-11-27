@@ -27,6 +27,7 @@ from .routes import (
     style,
     summary,
     tasks,
+    updates,
 )
 
 ALLOWED_ORIGINS = [
@@ -88,6 +89,7 @@ def create_app() -> FastAPI:
     app.include_router(ledger.router)
     app.include_router(memory.router)
     app.include_router(summary.router)
+    app.include_router(updates.router)
     app.include_router(providers.router)
     app.include_router(skills.router)
     app.include_router(agents.router)
