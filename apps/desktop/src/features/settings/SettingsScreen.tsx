@@ -324,7 +324,7 @@ export default function SettingsScreen({
             <label className="settings-row">
               <span>
                 <b>{t("Интерфейс")}</b>
-                <small>{t("Английский: бета — навигация, верхняя панель и настройки")}</small>
+                <small>{t("Английский: бета — основные экраны")}</small>
               </span>
               <select
                 value={appPreferences.language}

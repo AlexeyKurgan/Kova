@@ -18,8 +18,9 @@ import {
 import ReviewAssetStage from "./ReviewAssetStage";
 import SecondOpinionModal from "./SecondOpinionModal";
 import { useConfirm } from "../../components/ConfirmProvider";
-import { formatDate, plural } from "../../lib/format";
-import { REVIEW_STATUS_LABELS } from "../../lib/labels";
+import { formatDate } from "../../lib/format";
+import { t, tp } from "../../lib/i18n";
+import { ASSET_TYPE_LABELS, REVIEW_STATUS_LABELS } from "../../lib/labels";
 import type {
   AiRun,
   AssetPassport,
@@ -76,13 +77,13 @@ export default function ReviewScreen({
   const applyRun = async (run: AiRun) => {
     if (applyBusy) return;
     const ok = await confirm({
-      title: "Применить изменения?",
-      message: "Файлы из worktree будут перенесены в проект.",
+      title: t("Применить изменения?"),
+      message: t("Файлы из worktree будут перенесены в проект."),
       details: [
-        "Перед переносом Kova создаст снапшот проекта.",
-        "Файлы, не относящиеся к запуску, не затрагиваются.",
+        t("Перед переносом Kova создаст снапшот проекта."),
+        t("Файлы, не относящиеся к запуску, не затрагиваются."),
       ],
-      confirmLabel: "Применить",
+      confirmLabel: t("Применить"),
     });
     if (!ok) return;
     setApplyBusy(run.id);
@@ -96,12 +97,15 @@ export default function ReviewScreen({
       }));
       setApplyNote((current) => ({
         ...current,
-        [run.id]: `Перенесено файлов: ${updated.worktree_applied}, удалено: ${updated.worktree_deleted}`,
+        [run.id]: t("Перенесено файлов: {added}, удалено: {deleted}", {
+          added: updated.worktree_applied,
+          deleted: updated.worktree_deleted,
+        }),
       }));
     } catch (err) {
       setApplyNote((current) => ({
         ...current,
-        [run.id]: err instanceof Error ? err.message : "Не удалось применить worktree",
+        [run.id]: err instanceof Error ? err.message : t("Не удалось применить worktree"),
       }));
     } finally {
       setApplyBusy(null);
@@ -119,7 +123,7 @@ export default function ReviewScreen({
         const text = await reviewResponse(reviewId);
         setPreviews((current) => ({ ...current, [reviewId]: text }));
       } catch {
-        setPreviews((current) => ({ ...current, [reviewId]: "Не удалось загрузить ответ" }));
+        setPreviews((current) => ({ ...current, [reviewId]: t("Не удалось загрузить ответ") }));
       }
     }
   };
@@ -271,7 +275,7 @@ export default function ReviewScreen({
       setSecondOpinion(await getSecondOpinion(reviewId));
     } catch (err) {
       setOpinionError(
-        err instanceof Error ? err.message : "Не удалось подготовить второе мнение",
+        err instanceof Error ? err.message : t("Не удалось подготовить второе мнение"),
       );
     } finally {
       setOpinionBusy(null);
@@ -291,8 +295,8 @@ export default function ReviewScreen({
       setPatches((current) => ({
         ...current,
         [key]: change.binary
-          ? "Бинарный файл: текстовый патч недоступен."
-          : "Патч недоступен.",
+          ? t("Бинарный файл: текстовый патч недоступен.")
+          : t("Патч недоступен."),
       }));
       return;
     }
@@ -300,12 +304,12 @@ export default function ReviewScreen({
       const text = await getRunChangePatch(run.id, index);
       setPatches((current) => ({ ...current, [key]: text }));
     } catch {
-      setPatches((current) => ({ ...current, [key]: "Не удалось загрузить патч." }));
+      setPatches((current) => ({ ...current, [key]: t("Не удалось загрузить патч.") }));
     }
   };
 
   const taskTitle = (taskId: string) =>
-    tasks.find((task) => task.id === taskId)?.title ?? "Задача";
+    tasks.find((task) => task.id === taskId)?.title ?? t("Задача");
 
   const linkedAssets = (taskId: string) =>
     assets.filter((asset) => asset.task_ids.includes(taskId));
@@ -355,20 +359,20 @@ export default function ReviewScreen({
   ) => {
     if (summary && summary.failed > 0) {
       const ok = await confirm({
-        title: "Принять с ошибками?",
-        message: "Проверки не пройдены. Результат всё равно будет принят.",
+        title: t("Принять с ошибками?"),
+        message: t("Проверки не пройдены. Результат всё равно будет принят."),
         details: summary.failedLabels.slice(0, 6),
-        note: "Полный список смотри во вкладке проверок.",
-        confirmLabel: "Принять всё равно",
+        note: t("Полный список смотри во вкладке проверок."),
+        confirmLabel: t("Принять всё равно"),
         danger: true,
       });
       if (!ok) return;
     } else if (summary && summary.total === 0) {
       const ok = await confirm({
-        title: "Принять без проверок?",
-        message: "Проверки ещё не запускались.",
+        title: t("Принять без проверок?"),
+        message: t("Проверки ещё не запускались."),
         details: ["Kova не подтверждает, что изменения работают."],
-        confirmLabel: "Принять без проверок",
+        confirmLabel: t("Принять без проверок"),
         danger: true,
       });
       if (!ok) return;
@@ -383,7 +387,7 @@ export default function ReviewScreen({
         <div className="assets-heading-copy">
           <h1>Review Inbox</h1>
           <p className="subtitle">
-            Очередь приёмки: AI не пишет в проект без твоего подтверждения.
+            {t("Очередь приёмки: AI не пишет в проект без твоего подтверждения.")}
           </p>
         </div>
         <div className="header-actions">
@@ -404,7 +408,7 @@ export default function ReviewScreen({
                 setArchiveKey((value) => value + 1);
               }}
             >
-              Архив
+              {t("Архив")}
             </button>
           </div>
         </div>
@@ -415,7 +419,7 @@ export default function ReviewScreen({
           <div className="empty-art">
             <Star size={52} strokeWidth={1.05} />
           </div>
-          <h2 className="empty-title">Загружаю архив…</h2>
+          <h2 className="empty-title">{t("Загружаю архив…")}</h2>
         </div>
       ) : visibleItems.length === 0 ? (
         <div className="empty-panel">
@@ -423,11 +427,11 @@ export default function ReviewScreen({
             <Star size={72} strokeWidth={1.05} />
             <Sparkles size={22} className="empty-sparkle" />
           </div>
-          <h2 className="empty-title">{showArchive ? "Архив пуст" : "Очередь пуста"}</h2>
+          <h2 className="empty-title">{showArchive ? t("Архив пуст") : t("Очередь пуста")}</h2>
           <p className="empty-text">
             {showArchive
-              ? "Принятые и заархивированные результаты появятся здесь."
-              : "Когда импортируешь ответ AI в задаче, он появится здесь для приёмки."}
+              ? t("Принятые и заархивированные результаты появятся здесь.")
+              : t("Когда импортируешь ответ AI в задаче, он появится здесь для приёмки.")}
           </p>
         </div>
       ) : (
@@ -504,7 +508,7 @@ export default function ReviewScreen({
                           )}
                           <span>
                             <b>{asset.name}</b>
-                            <small>{asset.type}</small>
+                            <small>{ASSET_TYPE_LABELS[asset.type] ?? asset.type}</small>
                           </span>
                         </button>
                       );
@@ -520,7 +524,7 @@ export default function ReviewScreen({
                     <b>Style Guard</b>
                     <span>
                       {styleChecks.length}{" "}
-                      {plural(styleChecks.length, ["нарушение", "нарушения", "нарушений"])}
+                      {tp(styleChecks.length, ["нарушение", "нарушения", "нарушений"], "issue", "issues")}
                     </span>
                     <small>{styleChecks[0].message}</small>
                   </div>
@@ -579,7 +583,7 @@ export default function ReviewScreen({
                       <b>
                         {summary.passed} пройдено
                         {summary.failed > 0
-                          ? ` · ${summary.failed} ${plural(summary.failed, ["ошибка", "ошибки", "ошибок"])}`
+                          ? ` · ${summary.failed} ${tp(summary.failed, ["ошибка", "ошибки", "ошибок"], "error", "errors")}`
                           : ""}
                       </b>
                     )}
@@ -594,7 +598,7 @@ export default function ReviewScreen({
                           }))
                         }
                       >
-                        {validationOpen[item.id] ? "Скрыть" : "Детали"}
+                        {validationOpen[item.id] ? t("Скрыть") : t("Детали")}
                       </button>
                     ) : null}
                     {validationOpen[item.id] ? (
@@ -602,7 +606,7 @@ export default function ReviewScreen({
                         {summary.rows.map((row) => (
                           <div className="review-validation-row" key={row.command_id}>
                             <span className={`review-validation-state is-${row.status}`}>
-                              {row.status === "passed" ? "Пройдено" : "Ошибка"}
+                              {row.status === "passed" ? t("Пройдено") : t("Ошибка")}
                             </span>
                             <b>{row.label}</b>
                             <small>
@@ -622,7 +626,7 @@ export default function ReviewScreen({
                       {run.isolation !== "direct" ? (
                         <span
                           className="review-isolation"
-                          title={run.worktree_path || "Отдельная копия"}
+                          title={run.worktree_path || t("Отдельная копия")}
                         >
                           {run.isolation === "sandbox" ? "sandbox копия" : "worktree"}
                         </span>
@@ -637,7 +641,7 @@ export default function ReviewScreen({
                           disabled={applyBusy === run.id}
                           onClick={() => void applyRun(run)}
                         >
-                          {applyBusy === run.id ? "Перенос…" : "Применить в проект"}
+                          {applyBusy === run.id ? t("Перенос…") : t("Применить в проект")}
                         </button>
                       ) : null}
                       {filteredChanges.length > 6 ? (
@@ -651,7 +655,9 @@ export default function ReviewScreen({
                             }))
                           }
                         >
-                          {showAllChanges[item.id] ? "Свернуть" : `Все (${filteredChanges.length})`}
+                          {showAllChanges[item.id]
+                            ? t("Свернуть")
+                            : `${t("Все")} (${filteredChanges.length})`}
                         </button>
                       ) : null}
                     </div>
@@ -659,7 +665,7 @@ export default function ReviewScreen({
                       <div className="review-change-filters">
                         {(
                           [
-                            ["all", "Все"],
+                            ["all", t("Все")],
                             ["added", "+"],
                             ["modified", "~"],
                             ["deleted", "-"],
@@ -682,7 +688,7 @@ export default function ReviewScreen({
                         ))}
                         <input
                           value={changeQuery[item.id] ?? ""}
-                          placeholder="файл…"
+                          placeholder={t("файл…")}
                           onChange={(event) =>
                             setChangeQuery((current) => ({
                               ...current,
@@ -695,9 +701,9 @@ export default function ReviewScreen({
                     {run.changes_error ? (
                       <small>{run.changes_error}</small>
                     ) : run.changes.length === 0 ? (
-                      <small>Файлы не изменились</small>
+                      <small>{t("Файлы не изменились")}</small>
                     ) : changesShown.length === 0 ? (
-                      <small>Нет файлов по фильтру</small>
+                      <small>{t("Нет файлов по фильтру")}</small>
                     ) : (
                       <ul className={showAllChanges[item.id] ? "is-expanded" : ""}>
                         {changesShown.map(({ change, index }) => {
@@ -707,7 +713,7 @@ export default function ReviewScreen({
                               <button
                                 type="button"
                                 className="review-change"
-                                title="Показать патч"
+                                title={t("Показать патч")}
                                 onClick={() => void togglePatch(run, index)}
                               >
                                 <span>
@@ -738,7 +744,7 @@ export default function ReviewScreen({
                     {applyNote[run.id] ? <small>{applyNote[run.id]}</small> : null}
                     {patchOpen?.startsWith(`${run.id}:`) ? (
                       <pre className="review-patch">
-                        {patches[patchOpen] ?? "Загрузка патча…"}
+                        {patches[patchOpen] ?? t("Загрузка патча…")}
                       </pre>
                     ) : null}
                   </div>
@@ -753,7 +759,7 @@ export default function ReviewScreen({
                   className="btn btn-secondary"
                   onClick={() => void toggle(item.id)}
                 >
-                  {expanded === item.id ? "Скрыть" : "Ответ"}
+                  {expanded === item.id ? t("Скрыть") : t("Ответ")}
                 </button>
                 {showArchive ? (
                   <span className={`task-status is-${item.status}`}>
@@ -768,7 +774,7 @@ export default function ReviewScreen({
                       onClick={() => void openSecondOpinion(item.id)}
                     >
                       <Users size={15} />
-                      {opinionBusy === item.id ? "Готовлю…" : "Второе мнение"}
+                      {opinionBusy === item.id ? t("Готовлю…") : t("Второе мнение")}
                     </button>
                     <button
                       type="button"
@@ -785,12 +791,12 @@ export default function ReviewScreen({
                     >
                       {blocked ? <TriangleAlert size={15} /> : <Check size={15} />}
                       {stale
-                        ? "Принять без проверок"
+                        ? t("Принять без проверок")
                         : hasFailures
-                          ? "Принять всё равно"
+                          ? t("Принять всё равно")
                           : notRun
-                            ? "Принять без проверок"
-                            : "Принять"}
+                            ? t("Принять без проверок")
+                            : t("Принять")}
                     </button>
                   </>
                 )}

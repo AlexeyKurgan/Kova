@@ -23,6 +23,7 @@ import { engineBrand } from "../../lib/brands";
 import { TASK_TEMPLATES } from "../../lib/taskTemplates";
 import { formatDate } from "../../lib/format";
 import { listPackageTaskTemplates, mediaUrl } from "../../lib/coreClient";
+import { t, tp } from "../../lib/i18n";
 import {
   ENGINE_LABELS,
   TASK_STATUS_LABELS,
@@ -192,7 +193,7 @@ export default function TasksScreen({
           }}
         >
           <Trash2 size={13} />
-          Удалить навсегда
+          {t("Удалить навсегда")}
         </button>
       ) : (
         <>
@@ -204,7 +205,7 @@ export default function TasksScreen({
             }}
           >
             <ChevronRight size={13} />
-            Открыть
+            {t("Открыть")}
           </button>
           {task.status === "archived" ? (
             <button
@@ -215,7 +216,7 @@ export default function TasksScreen({
               }}
             >
               <ArchiveRestore size={13} />
-              Вернуть из архива
+              {t("Вернуть из архива")}
             </button>
           ) : (
             <button
@@ -226,7 +227,7 @@ export default function TasksScreen({
               }}
             >
               <Archive size={13} />
-              В архив
+              {t("В архив")}
             </button>
           )}
           <button
@@ -238,7 +239,7 @@ export default function TasksScreen({
             }}
           >
             <Trash2 size={13} />
-            В корзину
+            {t("В корзину")}
           </button>
         </>
       )}
@@ -252,8 +253,8 @@ export default function TasksScreen({
           <ClipboardList size={34} strokeWidth={1.3} />
         </span>
         <div className="tk-head-copy">
-          <h1>Задачи</h1>
-          <p>Цель, критерии готовности и связанные ассеты.</p>
+          <h1>{t("Задачи")}</h1>
+          <p>{t("Цель, критерии готовности и связанные ассеты.")}</p>
         </div>
         <div className="tk-head-actions">
           <button
@@ -262,11 +263,11 @@ export default function TasksScreen({
             onClick={() => setLibraryOpen(true)}
           >
             <BookOpen size={15} />
-            Шаблоны
+            {t("Шаблоны")}
           </button>
           <button type="button" className="btn btn-primary" onClick={onCreateTask}>
             <Plus size={15} />
-            Новая задача
+            {t("Новая задача")}
           </button>
         </div>
       </header>
@@ -281,8 +282,8 @@ export default function TasksScreen({
               setQuery(event.target.value);
               setPage(0);
             }}
-            placeholder="Поиск задач…"
-            aria-label="Поиск задач"
+            placeholder={t("Поиск задач…")}
+            aria-label={t("Поиск задач")}
           />
         </label>
         <select
@@ -292,11 +293,11 @@ export default function TasksScreen({
             setStatus(event.target.value as StatusFilter);
             setPage(0);
           }}
-          aria-label="Статус задач"
+          aria-label={t("Статус задач")}
         >
           {STATUS_OPTIONS.map((option) => (
             <option key={option.value} value={option.value}>
-              {option.label} ({counts[option.value]})
+              {t(option.label)} ({counts[option.value]})
             </option>
           ))}
         </select>
@@ -307,9 +308,9 @@ export default function TasksScreen({
             setType(event.target.value as "all" | TaskType);
             setPage(0);
           }}
-          aria-label="Тип задачи"
+          aria-label={t("Тип задачи")}
         >
-          <option value="all">Все типы</option>
+          <option value="all">{t("Все типы")}</option>
           {TYPE_ORDER.map((item) => (
             <option key={item} value={item}>
               {taskTypeValue(item)}
@@ -323,17 +324,17 @@ export default function TasksScreen({
             setSort(event.target.value);
             setPage(0);
           }}
-          aria-label="Сортировка"
+          aria-label={t("Сортировка")}
         >
-          <option value="recent">Последние</option>
-          <option value="name">По названию</option>
-          <option value="progress">По прогрессу</option>
+          <option value="recent">{t("Последние")}</option>
+          <option value="name">{t("По названию")}</option>
+          <option value="progress">{t("По прогрессу")}</option>
         </select>
         <div className="tk-view-switch">
           <button
             type="button"
             className={view === "table" ? "is-active" : ""}
-            title="Списком"
+            title={t("Списком")}
             onClick={() => setView("table")}
           >
             <List size={15} />
@@ -341,7 +342,7 @@ export default function TasksScreen({
           <button
             type="button"
             className={view === "grid" ? "is-active" : ""}
-            title="Плиткой"
+            title={t("Плиткой")}
             onClick={() => setView("grid")}
           >
             <LayoutGrid size={15} />
@@ -356,28 +357,28 @@ export default function TasksScreen({
           </div>
           <h2 className="empty-title">
             {isTrash
-              ? "Корзина пуста"
+              ? t("Корзина пуста")
               : tasks.length === 0
-                ? "Пока нет задач"
-                : "Здесь пусто"}
+                ? t("Пока нет задач")
+                : t("Здесь пусто")}
           </h2>
           <p className="empty-text">
             {isTrash
-              ? "Удалённые задачи появятся здесь — их можно восстановить."
+              ? t("Удалённые задачи появятся здесь — их можно восстановить.")
               : tasks.length === 0
-                ? "Нажми «Новая задача» в правом верхнем углу."
-                : "Смени фильтры или сбрось поиск."}
+                ? t("Нажми «Новая задача» в правом верхнем углу.")
+                : t("Смени фильтры или сбрось поиск.")}
           </p>
         </div>
       ) : view === "table" ? (
         <div className="tk-table">
           <div className="tk-row is-head">
-            <span>Задача</span>
-            <span>Статус</span>
-            <span>Проект</span>
-            <span>Тип</span>
-            <span>Обновлена</span>
-            <span>Критерии</span>
+            <span>{t("Задача")}</span>
+            <span>{t("Статус")}</span>
+            <span>{t("Проект")}</span>
+            <span>{t("Тип")}</span>
+            <span>{t("Обновлена")}</span>
+            <span>{t("Критерии")}</span>
             <span />
           </div>
           {paged.map((task) => {
@@ -405,12 +406,12 @@ export default function TasksScreen({
                   </span>
                   <span className="tk-task-copy">
                     <b>{task.title}</b>
-                    <small>{task.goal || "Цель пока не задана"}</small>
+                    <small>{task.goal || t("Цель пока не задана")}</small>
                   </span>
                 </div>
                 <span className={`tk-status is-${isTrash ? "deleted" : task.status}`}>
                   <i />
-                  {isTrash ? "В корзине" : TASK_STATUS_LABELS[task.status]}
+                  {isTrash ? t("В корзине") : TASK_STATUS_LABELS[task.status]}
                 </span>
                 <span className="tk-cell">
                   {engineBrand(task.engine) ? (
@@ -444,7 +445,7 @@ export default function TasksScreen({
                     <button
                       type="button"
                       className="tk-icon-btn"
-                      title="Открыть задачу"
+                      title={t("Открыть задачу")}
                       onClick={(event) => {
                         event.stopPropagation();
                         onOpenTask(task.id);
@@ -456,7 +457,7 @@ export default function TasksScreen({
                     <button
                       type="button"
                       className="tk-icon-btn"
-                      title="Восстановить"
+                      title={t("Восстановить")}
                       onClick={(event) => {
                         event.stopPropagation();
                         onRestoreTrash(task.id);
@@ -469,7 +470,7 @@ export default function TasksScreen({
                     <button
                       type="button"
                       className="tk-icon-btn"
-                      aria-label="Действия с задачей"
+                      aria-label={t("Действия с задачей")}
                       onClick={(event) => {
                         event.stopPropagation();
                         setMenuFor(menuFor === task.id ? null : task.id);
@@ -504,12 +505,12 @@ export default function TasksScreen({
                   <div className="tk-card-top">
                     <span className={`tk-status is-${isTrash ? "deleted" : task.status}`}>
                       <i />
-                      {isTrash ? "В корзине" : TASK_STATUS_LABELS[task.status]}
+                      {isTrash ? t("В корзине") : TASK_STATUS_LABELS[task.status]}
                     </span>
                     <small>{formatDate(task.updated_at)}</small>
                   </div>
                   <b>{task.title}</b>
-                  <p>{task.goal || "Цель пока не задана"}</p>
+                  <p>{task.goal || t("Цель пока не задана")}</p>
                   <div className="tk-card-meta">
                     <span>{projectName || ENGINE_LABELS[task.engine]}</span>
                     <span>{taskTypeValue(task.type)}</span>
@@ -528,7 +529,7 @@ export default function TasksScreen({
                     <button
                       type="button"
                       className="tk-icon-btn"
-                      title="Открыть задачу"
+                      title={t("Открыть задачу")}
                       onClick={(event) => {
                         event.stopPropagation();
                         onOpenTask(task.id);
@@ -559,15 +560,19 @@ export default function TasksScreen({
 
       <footer className="tk-footer">
         <span>
-          Показано {currentPage * PAGE_SIZE + 1}–{Math.min(visible.length, (currentPage + 1) * PAGE_SIZE)} из{" "}
-          {visible.length} задач
+          {t("Показано {from}–{to} из {count}", {
+            from: currentPage * PAGE_SIZE + 1,
+            to: Math.min(visible.length, (currentPage + 1) * PAGE_SIZE),
+            count: visible.length,
+          })}{" "}
+          {tp(visible.length, ["задача", "задачи", "задач"], "task", "tasks")}
         </span>
         <div className="tk-pager">
           <button
             type="button"
             disabled={currentPage === 0}
             onClick={() => setPage(Math.max(0, currentPage - 1))}
-            aria-label="Назад"
+            aria-label={t("Назад")}
           >
             <ChevronLeft size={14} />
           </button>
@@ -576,7 +581,7 @@ export default function TasksScreen({
             type="button"
             disabled={currentPage >= pageCount - 1}
             onClick={() => setPage(Math.min(pageCount - 1, currentPage + 1))}
-            aria-label="Вперёд"
+            aria-label={t("Вперёд")}
           >
             <ChevronRight size={14} />
           </button>
@@ -593,21 +598,20 @@ export default function TasksScreen({
             <div className="modal-header">
               <span className="modal-title">
                 <BookOpen size={15} />
-                Библиотека задач
+                {t("Библиотека задач")}
               </span>
               <button
                 type="button"
                 className="icon-btn"
                 onClick={() => setLibraryOpen(false)}
-                aria-label="Закрыть"
+                aria-label={t("Закрыть")}
               >
                 <X size={14} />
               </button>
             </div>
             <div className="modal-body">
               <p className="detail-muted">
-                Готовые брифы с целью и критериями готовности. Выбери шаблон — Kova
-                откроет задачу с заполненными полями.
+                {t("Готовые брифы с целью и критериями готовности. Выбери шаблон — Kova откроет задачу с заполненными полями.")}
               </p>
               <div className="template-library-grid">
                 {templates.map((template) => (
@@ -635,7 +639,7 @@ export default function TasksScreen({
                       }}
                     >
                       <Plus size={13} />
-                      Использовать
+                      {t("Использовать")}
                     </button>
                   </article>
                 ))}

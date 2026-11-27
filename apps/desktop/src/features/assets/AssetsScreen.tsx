@@ -17,7 +17,8 @@ import {
   TriangleAlert,
 } from "lucide-react";
 import { mediaUrl } from "../../lib/coreClient";
-import { formatBytes, formatDate, plural } from "../../lib/format";
+import { formatBytes, formatDate } from "../../lib/format";
+import { t, tp } from "../../lib/i18n";
 import {
   ASSET_TYPE_LABELS,
   ASSET_VERSION_STATUS_LABELS,
@@ -113,10 +114,9 @@ export default function AssetsScreen({
       <div className="assets-heading">
         <Box size={42} strokeWidth={1.15} className="assets-heading-icon" />
         <div className="assets-heading-copy">
-          <h1>Библиотека ассетов</h1>
+          <h1>{t("Библиотека ассетов")}</h1>
           <p className="subtitle">
-            Модели, текстуры, анимации и другие ресурсы проекта. Ассет принадлежит проекту,
-            а задачи используют его по необходимости.
+            {t("Модели, текстуры, анимации и другие ресурсы проекта. Ассет принадлежит проекту, а задачи используют его по необходимости.")}
           </p>
         </div>
         <div className="header-actions">
@@ -127,7 +127,7 @@ export default function AssetsScreen({
             onClick={onImport}
           >
             <Plus size={15} />
-            {importing ? "Импорт…" : "Импортировать ассет"}
+            {importing ? t("Импорт…") : t("Импортировать ассет")}
           </button>
         </div>
       </div>
@@ -139,17 +139,17 @@ export default function AssetsScreen({
             type="search"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Поиск ассетов…"
-            aria-label="Поиск ассетов"
+            placeholder={t("Поиск ассетов…")}
+            aria-label={t("Поиск ассетов")}
           />
         </label>
         <select
           className="filter-select"
           value={typeFilter}
           onChange={(event) => setTypeFilter(event.target.value)}
-          aria-label="Тип ассета"
+          aria-label={t("Тип ассета")}
         >
-          <option value="all">Все типы</option>
+          <option value="all">{t("Все типы")}</option>
           {TYPE_ORDER.map((type) => (
             <option key={type} value={type}>
               {ASSET_TYPE_LABELS[type] ?? type}
@@ -160,9 +160,9 @@ export default function AssetsScreen({
           className="filter-select"
           value={engineFilter}
           onChange={(event) => setEngineFilter(event.target.value)}
-          aria-label="Движок"
+          aria-label={t("Движок")}
         >
-          <option value="all">Все движки</option>
+          <option value="all">{t("Все движки")}</option>
           {engines.map((engine) => (
             <option key={engine} value={engine}>
               {ENGINE_LABELS[engine as Engine]}
@@ -173,9 +173,9 @@ export default function AssetsScreen({
           className="filter-select"
           value={statusFilter}
           onChange={(event) => setStatusFilter(event.target.value)}
-          aria-label="Статус ассета"
+          aria-label={t("Статус ассета")}
         >
-          <option value="all">Все статусы</option>
+          <option value="all">{t("Все статусы")}</option>
           {(["draft", "review", "accepted", "archived"] as AssetVersionStatus[]).map((status) => (
             <option key={status} value={status}>
               {ASSET_VERSION_STATUS_LABELS[status]}
@@ -186,19 +186,19 @@ export default function AssetsScreen({
           className="filter-select"
           value={sort}
           onChange={(event) => setSort(event.target.value)}
-          aria-label="Сортировка"
+          aria-label={t("Сортировка")}
         >
-          <option value="recent">Последние</option>
-          <option value="name">По имени</option>
-          <option value="size">По размеру</option>
+          <option value="recent">{t("Последние")}</option>
+          <option value="name">{t("По имени")}</option>
+          <option value="size">{t("По размеру")}</option>
         </select>
         <div className="view-toggle">
           <button
             type="button"
             className={view === "grid" ? "is-active" : ""}
             onClick={() => setView("grid")}
-            aria-label="Сетка"
-            title="Сетка"
+            aria-label={t("Сетка")}
+            title={t("Сетка")}
           >
             <LayoutGrid size={15} />
           </button>
@@ -206,8 +206,8 @@ export default function AssetsScreen({
             type="button"
             className={view === "list" ? "is-active" : ""}
             onClick={() => setView("list")}
-            aria-label="Список"
-            title="Список"
+            aria-label={t("Список")}
+            title={t("Список")}
           >
             <List size={15} />
           </button>
@@ -223,17 +223,17 @@ export default function AssetsScreen({
             <Sparkles size={22} className="empty-sparkle" />
           </div>
           <h2 className="empty-title">
-            {assets.length === 0 ? "Библиотека пока пуста" : "Ничего не найдено"}
+            {assets.length === 0 ? t("Библиотека пока пуста") : t("Ничего не найдено")}
           </h2>
           <p className="empty-text">
             {assets.length === 0
-              ? "Импортируй первый ассет — Kova сохранит версии, проверки и происхождение."
-              : "Попробуй другой запрос или сбрось фильтры."}
+              ? t("Импортируй первый ассет — Kova сохранит версии, проверки и происхождение.")
+              : t("Попробуй другой запрос или сбрось фильтры.")}
           </p>
           {assets.length === 0 ? (
             <button type="button" className="btn btn-primary" onClick={onImport}>
               <Plus size={15} />
-              Импортировать ассет
+              {t("Импортировать ассет")}
             </button>
           ) : null}
           <div className="empty-footer">
@@ -251,12 +251,12 @@ export default function AssetsScreen({
       ) : view === "list" ? (
         <div className="asset-table">
           <div className="asset-table-row is-head">
-            <span>Ассет</span>
-            <span>Тип</span>
-            <span>Статус</span>
-            <span>Размер</span>
-            <span>Обновлён</span>
-            <span>Задачи</span>
+            <span>{t("Ассет")}</span>
+            <span>{t("Тип")}</span>
+            <span>{t("Статус")}</span>
+            <span>{t("Размер")}</span>
+            <span>{t("Обновлён")}</span>
+            <span>{t("Задачи")}</span>
             <span />
           </div>
           {visible.map((asset) => {
@@ -301,14 +301,14 @@ export default function AssetsScreen({
                 <span className="asset-table-muted">{formatDate(asset.updated_at)}</span>
                 <span className="asset-table-muted">
                   {asset.task_ids.length > 0
-                    ? `${asset.task_ids.length} ${plural(asset.task_ids.length, ["задача", "задачи", "задач"])}`
-                    : "свободен"}
+                    ? `${asset.task_ids.length} ${tp(asset.task_ids.length, ["задача", "задачи", "задач"], "task", "tasks")}`
+                    : t("свободен")}
                 </span>
                 <span className="asset-table-actions">
                   <button
                     type="button"
                     className="tk-icon-btn"
-                    title="Открыть ассет"
+                    title={t("Открыть ассет")}
                     onClick={(event) => {
                       event.stopPropagation();
                       onOpenAsset(asset.id);
@@ -319,7 +319,7 @@ export default function AssetsScreen({
                   <button
                     type="button"
                     className="tk-icon-btn is-danger"
-                    title="Удалить ассет"
+                    title={t("Удалить ассет")}
                     onClick={(event) => {
                       event.stopPropagation();
                       onDeleteAsset(asset.id);
@@ -332,7 +332,10 @@ export default function AssetsScreen({
             );
           })}
           <div className="asset-table-foot">
-            Показано {filtered.length} из {assets.length} ассетов
+            {t("Показано {shown} из {total} ассетов", {
+              shown: filtered.length,
+              total: assets.length,
+            })}
           </div>
         </div>
       ) : (
@@ -367,8 +370,8 @@ export default function AssetsScreen({
                     <b>{asset.name}</b>
                     <span className="asset-used">
                       {asset.task_ids.length > 0
-                        ? `${asset.task_ids.length} ${plural(asset.task_ids.length, ["задача", "задачи", "задач"])}`
-                        : "свободен"}
+                        ? `${asset.task_ids.length} ${tp(asset.task_ids.length, ["задача", "задачи", "задач"], "task", "tasks")}`
+                        : t("свободен")}
                     </span>
                   </span>
                   <span className="asset-type2">

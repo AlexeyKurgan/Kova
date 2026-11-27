@@ -5,8 +5,19 @@ import type {
   TaskStatus,
   TaskType,
 } from "./types";
+import { t } from "./i18n";
 
-export const ENGINE_LABELS: Record<Engine, string> = {
+function translated<T extends Record<string, string>>(values: T): T {
+  return new Proxy(values, {
+    get(target, property: string | symbol) {
+      if (typeof property !== "string") return Reflect.get(target, property);
+      const value = Reflect.get(target, property);
+      return typeof value === "string" ? t(value) : value;
+    },
+  });
+}
+
+const ENGINE_LABELS_BASE: Record<Engine, string> = {
   generic: "Без движка",
   blender: "Blender",
   roblox: "Roblox",
@@ -17,7 +28,9 @@ export const ENGINE_LABELS: Record<Engine, string> = {
   web: "Web",
 };
 
-export const TASK_STATUS_LABELS: Record<TaskStatus, string> = {
+export const ENGINE_LABELS = translated(ENGINE_LABELS_BASE);
+
+const TASK_STATUS_LABELS_BASE: Record<TaskStatus, string> = {
   draft: "Черновик",
   ready: "Готова",
   working: "В работе",
@@ -28,7 +41,9 @@ export const TASK_STATUS_LABELS: Record<TaskStatus, string> = {
   archived: "Архив",
 };
 
-export const TASK_TYPE_LABELS: Record<TaskType, string> = {
+export const TASK_STATUS_LABELS = translated(TASK_STATUS_LABELS_BASE);
+
+const TASK_TYPE_LABELS_BASE: Record<TaskType, string> = {
   model: "Модель",
   animation: "Анимация",
   effect: "Эффект",
@@ -38,7 +53,9 @@ export const TASK_TYPE_LABELS: Record<TaskType, string> = {
   export: "Экспорт",
 };
 
-export const ASSET_TYPE_LABELS: Record<string, string> = {
+export const TASK_TYPE_LABELS = translated(TASK_TYPE_LABELS_BASE);
+
+const ASSET_TYPE_LABELS_BASE: Record<string, string> = {
   model: "Модель",
   animation: "Анимация",
   effect: "Эффект",
@@ -50,21 +67,27 @@ export const ASSET_TYPE_LABELS: Record<string, string> = {
   other: "Другое",
 };
 
-export const ASSET_VERSION_STATUS_LABELS: Record<AssetVersionStatus, string> = {
+export const ASSET_TYPE_LABELS = translated(ASSET_TYPE_LABELS_BASE);
+
+const ASSET_VERSION_STATUS_LABELS_BASE: Record<AssetVersionStatus, string> = {
   draft: "Черновик",
   review: "Review",
   accepted: "Принято",
   archived: "Архив",
 };
 
-export const REVIEW_STATUS_LABELS: Record<ReviewStatus, string> = {
+export const ASSET_VERSION_STATUS_LABELS = translated(ASSET_VERSION_STATUS_LABELS_BASE);
+
+const REVIEW_STATUS_LABELS_BASE: Record<ReviewStatus, string> = {
   pending: "Ждёт приёмки",
   accepted: "Принято",
   rework: "Доработка",
   archived: "Архив",
 };
 
-export const LEDGER_TYPE_LABELS: Record<string, string> = {
+export const REVIEW_STATUS_LABELS = translated(REVIEW_STATUS_LABELS_BASE);
+
+const LEDGER_TYPE_LABELS_BASE: Record<string, string> = {
   "task.created": "Задача создана",
   "task.status": "Статус задачи изменён",
   "task.deleted": "Задача удалена",
@@ -103,3 +126,5 @@ export const LEDGER_TYPE_LABELS: Record<string, string> = {
   "task.validation.deleted": "Проверка удалена",
   "task.explained": "Запрошено объяснение",
 };
+
+export const LEDGER_TYPE_LABELS = translated(LEDGER_TYPE_LABELS_BASE);

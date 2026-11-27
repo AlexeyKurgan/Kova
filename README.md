@@ -223,7 +223,7 @@ explicit click, after a snapshot.
   never executed; archives pass the same manifest and zip-slip checks as a local
   import.
 - Interface language: Russian by default; English beta covers navigation, the top
-  bar and settings.
+  bar, overview, tasks, assets, review and settings.
 - Kova does not intercept commands a CLI runs inside itself; read the provider’s
   own permission model.
 - The editor port `48620` has authentication disabled by code-server. Do not expose it.

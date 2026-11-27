@@ -26,7 +26,7 @@ import {
   loadAppPreferences,
   saveAppPreferences,
 } from "./lib/appPreferences";
-import { setLanguage } from "./lib/i18n";
+import { setLanguage, t } from "./lib/i18n";
 import OverviewScreen from "./features/overview/OverviewScreen";
 import ProjectsScreen from "./features/projects/ProjectsScreen";
 import PackagesScreen from "./features/packages/PackagesScreen";
@@ -114,11 +114,11 @@ async function notifyReview(count: number): Promise<void> {
     if (!granted) granted = (await requestPermission()) === "granted";
     if (!granted) return;
     sendNotification({
-      title: "Kova: есть результат",
+      title: t("Kova: есть результат"),
       body:
         count === 1
-          ? "Агент закончил — проверь Review."
-          : `Новых результатов: ${count}. Проверь Review.`,
+          ? t("Агент закончил — проверь Review.")
+          : t("Новых результатов: {count}. Проверь Review.", { count }),
     });
   } catch {
     // Notifications are optional.
@@ -662,13 +662,13 @@ export default function App() {
   const requestDeleteTask = useCallback(
     async (task: Task) => {
       const ok = await confirm({
-        title: "Удалить задачу?",
-        message: `Задача «${task.title}» переместится в корзину.`,
+        title: t("Удалить задачу?"),
+        message: t("Задача «{title}» переместится в корзину.", { title: task.title }),
         details: [
-          "Задачу можно восстановить из корзины.",
-          "Ассеты и файлы проекта не удаляются.",
+          t("Задачу можно восстановить из корзины."),
+          t("Ассеты и файлы проекта не удаляются."),
         ],
-        confirmLabel: "В корзину",
+        confirmLabel: t("В корзину"),
         danger: true,
       });
       if (!ok) return;
@@ -690,10 +690,13 @@ export default function App() {
   const requestPurgeTask = useCallback(
     async (task: Task) => {
       const ok = await confirm({
-        title: "Удалить задачу навсегда?",
-        message: `Задача «${task.title}» и её файлы будут удалены.`,
-        details: ["Это действие нельзя отменить.", "Корзина не сохранит копию."],
-        confirmLabel: "Удалить навсегда",
+        title: t("Удалить задачу навсегда?"),
+        message: t("Задача «{title}» и её файлы будут удалены.", { title: task.title }),
+        details: [
+          t("Это действие нельзя отменить."),
+          t("Корзина не сохранит копию."),
+        ],
+        confirmLabel: t("Удалить навсегда"),
         danger: true,
       });
       if (!ok) return;
@@ -776,13 +779,13 @@ export default function App() {
   const handleRestoreSnapshot = useCallback(
     async (snapshotId: string) => {
       const ok = await confirm({
-        title: "Откатить проект?",
-        message: "Файлы проекта вернутся к выбранному снапшоту.",
+        title: t("Откатить проект?"),
+        message: t("Файлы проекта вернутся к выбранному снапшоту."),
         details: [
-          "Текущее состояние сначала сохранится отдельным снапшотом.",
-          "Незакоммиченные изменения вне проекта не затрагиваются.",
+          t("Текущее состояние сначала сохранится отдельным снапшотом."),
+          t("Незакоммиченные изменения вне проекта не затрагиваются."),
         ],
-        confirmLabel: "Откатить",
+        confirmLabel: t("Откатить"),
         danger: true,
       });
       if (!ok) return;
@@ -800,14 +803,16 @@ export default function App() {
     async (assetId: string) => {
       const asset = assets.find((item) => item.id === assetId);
       const ok = await confirm({
-        title: "Удалить ассет?",
-        message: `Ассет «${asset?.name ?? assetId}» будет удалён из библиотеки.`,
+        title: t("Удалить ассет?"),
+        message: t("Ассет «{name}» будет удалён из библиотеки.", {
+          name: asset?.name ?? assetId,
+        }),
         details: [
-          "Будут удалены паспорт, превью и проверки.",
-          "Скопированные файлы удалятся, если их не использует другой ассет.",
-          "Связи с задачами будут сняты.",
+          t("Будут удалены паспорт, превью и проверки."),
+          t("Скопированные файлы удалятся, если их не использует другой ассет."),
+          t("Связи с задачами будут сняты."),
         ],
-        confirmLabel: "Удалить",
+        confirmLabel: t("Удалить"),
         danger: true,
       });
       if (!ok) return;
@@ -1184,36 +1189,36 @@ export default function App() {
 
   const tip = !blenderStatus?.connected
     ? {
-        title: "Подключи Blender",
-        text: "Kova сможет собирать модели, запускать QA и делать превью прямо из задачи.",
-        action: "Открыть Blender",
+        title: t("Подключи Blender"),
+        text: t("Kova сможет собирать модели, запускать QA и делать превью прямо из задачи."),
+        action: t("Открыть Blender"),
         onAction: openBlenderModal,
       }
     : pendingReviewCount > 0
       ? {
-          title: "Есть что проверить",
-          text: "Результаты AI ждут приёмки. Прими удачные и отправь слабые на доработку.",
-          action: "Открыть Review",
+          title: t("Есть что проверить"),
+          text: t("Результаты AI ждут приёмки. Прими удачные и отправь слабые на доработку."),
+          action: t("Открыть Review"),
           onAction: () => setActive("Review"),
         }
       : assets.length === 0
         ? {
-            title: "Добавь первый ассет",
-            text: "Импортируй модель или текстуру — Kova сохранит паспорт, версию и проверки.",
-            action: "Импортировать",
+            title: t("Добавь первый ассет"),
+            text: t("Импортируй модель или текстуру — Kova сохранит паспорт, версию и проверки."),
+            action: t("Импортировать"),
             onAction: () => void handleImportAsset(),
           }
         : activeTaskCount === 0
           ? {
-              title: "Задач нет",
-              text: "Открой раздел «Задачи» и создай первую — Kova соберёт капсулу и выбранные скиллы.",
-              action: "Открыть задачи",
+              title: t("Задач нет"),
+              text: t("Открой раздел «Задачи» и создай первую — Kova соберёт капсулу и выбранные скиллы."),
+              action: t("Открыть задачи"),
               onAction: () => setActive("Задачи"),
             }
           : {
-              title: "Проект в порядке",
-              text: "Можно продолжать работу или проверить окружение через Doctor.",
-              action: "Открыть Doctor",
+              title: t("Проект в порядке"),
+              text: t("Можно продолжать работу или проверить окружение через Doctor."),
+              action: t("Открыть Doctor"),
               onAction: () => setActive("Doctor"),
             };
   const activeProjectCard =

@@ -1,14 +1,17 @@
+import { getLanguage } from "./i18n";
+
 export function formatBytes(size: number): string {
-  if (!size) return "0 Б";
-  if (size < 1024) return `${size} Б`;
-  if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} КБ`;
-  return `${(size / (1024 * 1024)).toFixed(1)} МБ`;
+  const en = getLanguage() === "en";
+  if (!size) return en ? "0 B" : "0 Б";
+  if (size < 1024) return `${size} ${en ? "B" : "Б"}`;
+  if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} ${en ? "KB" : "КБ"}`;
+  return `${(size / (1024 * 1024)).toFixed(1)} ${en ? "MB" : "МБ"}`;
 }
 
 export function formatDate(iso: string): string {
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return "";
-  return date.toLocaleString("ru-RU", {
+  return date.toLocaleString(getLanguage() === "en" ? "en-US" : "ru-RU", {
     day: "numeric",
     month: "short",
     hour: "2-digit",

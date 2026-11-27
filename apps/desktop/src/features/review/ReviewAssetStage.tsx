@@ -11,6 +11,7 @@ import {
   X,
 } from "lucide-react";
 import { mediaUrl } from "../../lib/coreClient";
+import { t } from "../../lib/i18n";
 import { formatDate } from "../../lib/format";
 import type {
   AssetPassport,
@@ -191,7 +192,7 @@ export default function ReviewAssetStage({
     if (!draft || !baseSource) return;
     const text = body.trim();
     if (!text) {
-      setError("Напиши комментарий к пину.");
+      setError(t("Напиши комментарий к пину."));
       return;
     }
     setBusy(true);
@@ -210,7 +211,7 @@ export default function ReviewAssetStage({
       setBody("");
       setPinMode(false);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Не удалось сохранить пин");
+      setError(err instanceof Error ? err.message : t("Не удалось сохранить пин"));
     } finally {
       setBusy(false);
     }
@@ -247,7 +248,7 @@ export default function ReviewAssetStage({
       <div className="review-stage-head">
         <span className="review-stage-title">
           <Pin size={13} />
-          Пины и версии
+          {t("Пины и версии")}
           {openCount > 0 ? <b>{openCount}</b> : null}
         </span>
         <span className="review-stage-spacer" />
@@ -259,7 +260,7 @@ export default function ReviewAssetStage({
               setCompare(false);
               setDraft(null);
             }}
-            aria-label="Версия для просмотра"
+            aria-label={t("Версия для просмотра")}
           >
             {asset.versions.map((item) => (
               <option key={item.id} value={item.id}>
@@ -280,7 +281,7 @@ export default function ReviewAssetStage({
             }}
           >
             <GitCompareArrows size={13} />
-            {compare ? "Обычный вид" : "Сравнить"}
+            {compare ? t("Обычный вид") : t("Сравнить")}
           </button>
         ) : null}
         {video ? (
@@ -299,7 +300,7 @@ export default function ReviewAssetStage({
             }}
           >
             <Film size={13} />
-            Пин на {formatClock(currentTime)}
+            {t("Пин на {time}", { time: formatClock(currentTime) })}
           </button>
         ) : null}
         {frameAnimated && activeFrame ? (
@@ -318,7 +319,7 @@ export default function ReviewAssetStage({
             }}
           >
             <Film size={13} />
-            Пин на кадре {activeFrame.frame}
+            {t("Пин на кадре {frame}", { frame: activeFrame.frame })}
           </button>
         ) : null}
         <button
@@ -331,14 +332,14 @@ export default function ReviewAssetStage({
           }}
         >
           <MessageSquarePlus size={13} />
-          {pinMode ? "Отменить пин" : "Оставить пин"}
+          {pinMode ? t("Отменить пин") : t("Оставить пин")}
         </button>
       </div>
 
       {compare ? (
         <div className="review-stage-compare-bar">
           <label>
-            Было
+            {t("Было")}
             <select value={compareA} onChange={(event) => setCompareA(event.target.value)}>
               {asset.versions.map((item) => (
                 <option key={item.id} value={item.id}>
@@ -348,7 +349,7 @@ export default function ReviewAssetStage({
             </select>
           </label>
           <label>
-            Стало
+            {t("Стало")}
             <select value={compareB} onChange={(event) => setCompareB(event.target.value)}>
               {asset.versions.map((item) => (
                 <option key={item.id} value={item.id}>
@@ -363,7 +364,7 @@ export default function ReviewAssetStage({
             max={100}
             value={split}
             onChange={(event) => setSplit(Number(event.target.value))}
-            aria-label="Позиция сравнения"
+            aria-label={t("Позиция сравнения")}
           />
           <b>{split}%</b>
         </div>
@@ -406,7 +407,7 @@ export default function ReviewAssetStage({
             src={displayPreview}
             alt={
               frameAnimated && activeFrame
-                ? `${asset.name}, кадр ${activeFrame.frame}`
+                ? `${asset.name}, ${t("Кадр {frame}", { frame: activeFrame.frame })}`
                 : asset.name
             }
           />
@@ -465,10 +466,10 @@ export default function ReviewAssetStage({
         {pinMode ? (
           <span className="review-stage-hint">
             {video
-              ? "Кликни по кадру, чтобы привязать пин ко времени"
+              ? t("Кликни по кадру, чтобы привязать пин ко времени")
               : frameAnimated
-                ? "Кликни по изображению, чтобы привязать пин к кадру"
-                : "Кликни по изображению, чтобы поставить пин"}
+                ? t("Кликни по изображению, чтобы привязать пин к кадру")
+                : t("Кликни по изображению, чтобы поставить пин")}
           </span>
         ) : null}
       </div>
@@ -479,7 +480,7 @@ export default function ReviewAssetStage({
             className="review-video-track"
             role="slider"
             tabIndex={0}
-            aria-label="Таймлайн видео"
+            aria-label={t("Таймлайн видео")}
             aria-valuemin={0}
             aria-valuemax={Math.max(0, duration)}
             aria-valuenow={currentTime}
@@ -506,7 +507,7 @@ export default function ReviewAssetStage({
                     left: `${Math.min(100, ((comment.timestamp ?? 0) / duration) * 100)}%`,
                   }}
                   title={`${formatClock(comment.timestamp ?? 0)} · ${comment.body}`}
-                  aria-label={`Перейти к пину ${index + 1}`}
+                  aria-label={t("Перейти к пину {index}", { index: index + 1 })}
                   onClick={(event) => {
                     event.stopPropagation();
                     seekTo(comment.timestamp ?? 0);
@@ -537,11 +538,15 @@ export default function ReviewAssetStage({
         <div className="review-frame-timeline">
           <div className="review-frame-head">
             <span>
-              Кадр <b>{activeFrame.frame}</b>
-              {asset.frame_end ? ` из ${asset.frame_end}` : ""}
+              {asset.frame_end
+                ? t("Кадр {frame} из {end}", {
+                    frame: activeFrame.frame,
+                    end: asset.frame_end,
+                  })
+                : t("Кадр {frame}", { frame: activeFrame.frame })}
             </span>
             <small>
-              {frameList.length} превью
+              {t("{count} превью", { count: frameList.length })}
               {asset.fps ? ` · ${Math.round(asset.fps)} fps` : ""}
             </small>
           </div>
@@ -552,7 +557,7 @@ export default function ReviewAssetStage({
               max={Math.max(0, frameList.length - 1)}
               step={1}
               value={frameIndex}
-              aria-label="Кадр анимации"
+              aria-label={t("Кадр анимации")}
               onChange={(event) => {
                 const next = frameList[Number(event.target.value)];
                 if (next) selectFrame(next.frame);
@@ -575,8 +580,10 @@ export default function ReviewAssetStage({
                     style={{
                       left: `${(index / Math.max(1, frameList.length - 1)) * 100}%`,
                     }}
-                    title={`Кадр ${comment.frame} · ${comment.body}`}
-                    aria-label={`Перейти к пину на кадре ${comment.frame}`}
+                    title={`${t("Кадр {frame}", { frame: comment.frame ?? 0 })} · ${comment.body}`}
+                    aria-label={t("Перейти к пину на кадре {frame}", {
+                      frame: comment.frame ?? 0,
+                    })}
                     onClick={() => selectFrame(comment.frame ?? activeFrame.frame)}
                   >
                     {commentNumber(comment.id)}
@@ -591,17 +598,17 @@ export default function ReviewAssetStage({
         <div className="review-pin-form">
           <div className="review-pin-form-head">
             <span>
-              <Pin size={12} /> Пин на {versionLabel(baseSource)}
+              <Pin size={12} /> {t("Пин на {version}", { version: versionLabel(baseSource) })}
               {draft.timestamp != null
                 ? ` · ${formatClock(draft.timestamp)}`
                 : draft.frame != null
-                  ? ` · кадр ${draft.frame}`
+                  ? ` · ${t("кадр {frame}", { frame: draft.frame })}`
                   : ""}
             </span>
             <button
               type="button"
               className="icon-btn"
-              aria-label="Убрать пин"
+              aria-label={t("Убрать пин")}
               onClick={() => setDraft(null)}
             >
               <X size={13} />
@@ -611,7 +618,7 @@ export default function ReviewAssetStage({
             rows={3}
             autoFocus
             value={body}
-            placeholder="Что поправить в этом месте?"
+            placeholder={t("Что поправить в этом месте?")}
             onChange={(event) => setBody(event.target.value)}
             onKeyDown={(event) => {
               if ((event.ctrlKey || event.metaKey) && event.key === "Enter") {
@@ -622,7 +629,7 @@ export default function ReviewAssetStage({
           />
           {error ? <small className="form-error">{error}</small> : null}
           <div className="review-pin-form-actions">
-            <small>Ctrl+Enter — отправить</small>
+            <small>{t("Ctrl+Enter — отправить")}</small>
             <button
               type="button"
               className="btn btn-primary btn-small"
@@ -630,7 +637,7 @@ export default function ReviewAssetStage({
               onClick={() => void submit()}
             >
               <Send size={13} />
-              {busy ? "Сохраняю…" : "Добавить пин"}
+              {busy ? t("Сохраняю…") : t("Добавить пин")}
             </button>
           </div>
         </div>
@@ -638,7 +645,7 @@ export default function ReviewAssetStage({
 
       <div className="review-comments">
         <div className="review-comments-head">
-          <span>Комментарии к ассету</span>
+          <span>{t("Комментарии к ассету")}</span>
           <b>{comments.filter((comment) => comment.asset_id === asset.id).length}</b>
           <span className="review-stage-spacer" />
           <button
@@ -646,12 +653,12 @@ export default function ReviewAssetStage({
             className="agent-link"
             onClick={() => setShowResolved((value) => !value)}
           >
-            {showResolved ? "Скрыть решённые" : "Показать решённые"}
+            {showResolved ? t("Скрыть решённые") : t("Показать решённые")}
           </button>
         </div>
         {comments.filter((comment) => comment.asset_id === asset.id).length === 0 ? (
           <p className="review-comments-empty">
-            Комментариев пока нет. Включи «Оставить пин» и кликни по проблемному месту.
+            {t("Комментариев пока нет. Включи «Оставить пин» и кликни по проблемному месту.")}
           </p>
         ) : (
           comments
@@ -669,7 +676,7 @@ export default function ReviewAssetStage({
                     {comment.timestamp != null
                       ? `${formatClock(comment.timestamp)} · `
                       : comment.frame != null
-                        ? `кадр ${comment.frame} · `
+                        ? `${t("кадр {frame}", { frame: comment.frame })} · `
                         : ""}
                     {formatDate(comment.created_at)}
                   </small>
@@ -677,8 +684,8 @@ export default function ReviewAssetStage({
                 <button
                   type="button"
                   className="icon-btn"
-                  title={comment.resolved ? "Вернуть в работу" : "Решено"}
-                  aria-label={comment.resolved ? "Вернуть в работу" : "Решено"}
+                  title={comment.resolved ? t("Вернуть в работу") : t("Решено")}
+                  aria-label={comment.resolved ? t("Вернуть в работу") : t("Решено")}
                   onClick={() => void onResolve(comment.id, !comment.resolved)}
                 >
                   {comment.resolved ? <RotateCcw size={13} /> : <Check size={13} />}
@@ -686,8 +693,8 @@ export default function ReviewAssetStage({
                 <button
                   type="button"
                   className="icon-btn is-danger"
-                  title="Удалить пин"
-                  aria-label="Удалить пин"
+                  title={t("Удалить пин")}
+                  aria-label={t("Удалить пин")}
                   onClick={() => void onDelete(comment.id)}
                 >
                   <Trash2 size={13} />

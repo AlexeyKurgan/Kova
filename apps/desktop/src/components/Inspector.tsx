@@ -14,6 +14,7 @@ import {
 import catSleeping from "../assets/cat-sleeping.svg";
 import BrandIcon from "./BrandIcon";
 import { formatDate } from "../lib/format";
+import { t } from "../lib/i18n";
 import type { BlenderStatus, RobloxStatus } from "../lib/types";
 
 type Attention = {
@@ -69,28 +70,28 @@ export default function Inspector({
       ? "is-unknown"
       : "is-off";
   const blenderLabel = !blender
-    ? "Не проверен"
+    ? t("Не проверен")
     : blender.connected
-      ? "Подключён"
+      ? t("Подключён")
       : !blender.installed
-        ? "Не найден"
+        ? t("Не найден")
         : blender.addon_installed
-          ? "Не запущен"
-          : "Нужен аддон";
+          ? t("Не запущен")
+          : t("Нужен аддон");
   const blenderTitle = blender?.connected
     ? `Blender ${blender.version} · ${blender.host}:${blender.port}`
-    : [blender?.path, blender?.message, "Нажми, чтобы подключить"]
+    : [blender?.path, blender?.message, t("Нажми, чтобы подключить")]
         .filter(Boolean)
         .join(" · ");
 
   const robloxConnected = Boolean(roblox?.connected);
   const robloxLabel = !roblox
-    ? "Не проверен"
+    ? t("Не проверен")
     : robloxConnected
-      ? "Подключён"
+      ? t("Подключён")
       : roblox.token_configured
-        ? "Плагин не запущен"
-        : "Не настроен";
+        ? t("Плагин не запущен")
+        : t("Не настроен");
   const robloxTone = robloxConnected ? "is-on" : roblox ? "is-unknown" : "is-off";
 
   const totalAttention =
@@ -100,12 +101,12 @@ export default function Inspector({
     <aside className="inspector">
       <div className="inspector-header">
         <Sparkles size={15} className="inspector-sparkle" />
-        <span>Состояние проекта</span>
+        <span>{t("Состояние проекта")}</span>
         <button
           type="button"
           className="icon-btn inspector-close"
           onClick={onClose}
-          aria-label="Скрыть панель"
+          aria-label={t("Скрыть панель")}
         >
           <X size={14} />
         </button>
@@ -113,7 +114,7 @@ export default function Inspector({
 
       <div className="section-label">
         <Plug size={12} />
-        Подключения
+        {t("Подключения")}
       </div>
 
       <div className="conn-list">
@@ -133,7 +134,11 @@ export default function Inspector({
         <button
           type="button"
           className="conn-row is-action"
-          title={robloxConnected ? "Roblox Studio подключён" : "Настроить Roblox Studio"}
+          title={
+            robloxConnected
+              ? t("Roblox Studio подключён")
+              : t("Настроить Roblox Studio")
+          }
           onClick={onOpenRoblox}
         >
           <BrandIcon name="roblox" size={15} />
@@ -143,7 +148,7 @@ export default function Inspector({
             {robloxLabel}
           </span>
         </button>
-        <div className="conn-row" title={git?.message ?? "Проверка Git"}>
+        <div className="conn-row" title={git?.message ?? t("Проверка Git")}>
           <BrandIcon name="git" size={15} />
           <span>Git</span>
           <span
@@ -152,20 +157,24 @@ export default function Inspector({
             }`}
           >
             <span className="dot" />
-            {git === null ? "Не проверен" : git.ok ? "В порядке" : "Не найден"}
+            {git === null
+              ? t("Не проверен")
+              : git.ok
+                ? t("В порядке")
+                : t("Не найден")}
           </span>
         </div>
       </div>
 
       <div className="section-label">
         <Star size={12} />
-        Требует внимания
+        {t("Требует внимания")}
       </div>
 
       {totalAttention === 0 ? (
         <div className="attention-ok">
           <Check size={13} />
-          Всё в порядке
+          {t("Всё в порядке")}
         </div>
       ) : (
         <div className="attention-list">
@@ -184,7 +193,7 @@ export default function Inspector({
               <span className="attention-icon is-danger">
                 <Box size={13} />
               </span>
-              <span>Проблемные ассеты</span>
+              <span>{t("Проблемные ассеты")}</span>
               <span className="attention-count">{attention.problems}</span>
               <ChevronRight size={13} />
             </button>
@@ -194,7 +203,7 @@ export default function Inspector({
               <span className="attention-icon is-danger">
                 <ClipboardList size={13} />
               </span>
-              <span>Заблокированные задачи</span>
+              <span>{t("Заблокированные задачи")}</span>
               <span className="attention-count">{attention.blocked}</span>
               <ChevronRight size={13} />
             </button>
@@ -204,7 +213,7 @@ export default function Inspector({
               <span className="attention-icon is-warning">
                 <Stethoscope size={13} />
               </span>
-              <span>Проверки Doctor</span>
+              <span>{t("Проверки Doctor")}</span>
               <span className="attention-count">{attention.doctor}</span>
               <ChevronRight size={13} />
             </button>
@@ -214,15 +223,17 @@ export default function Inspector({
 
       <div className="section-label">
         <Camera size={12} />
-        Память проекта
+        {t("Память проекта")}
       </div>
       <button type="button" className="snapshot-row" onClick={onOpenSnapshots}>
         <span>
-          <b>Снапшоты</b>
+          <b>{t("Снапшоты")}</b>
           <small>
             {snapshots.count > 0
-              ? `Последний: ${snapshots.lastAt ? formatDate(snapshots.lastAt) : "—"}`
-              : "Пока нет снапшотов"}
+              ? t("Последний: {date}", {
+                  date: snapshots.lastAt ? formatDate(snapshots.lastAt) : "—",
+                })
+              : t("Пока нет снапшотов")}
           </small>
         </span>
         <span className="snapshot-count">{snapshots.count}</span>
@@ -233,7 +244,7 @@ export default function Inspector({
         <div className="inspector-tip-copy">
           <span className="section-label">
             <Lightbulb size={12} />
-            Совет
+            {t("Совет")}
           </span>
           <h3>{tip.title}</h3>
           <p>{tip.text}</p>

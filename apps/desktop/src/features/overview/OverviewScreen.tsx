@@ -17,7 +17,8 @@ import BrandIcon from "../../components/BrandIcon";
 import type { BrandName } from "../../components/brandPaths";
 import { engineBrand } from "../../lib/brands";
 import { mediaUrl } from "../../lib/coreClient";
-import { formatDate, plural } from "../../lib/format";
+import { formatDate } from "../../lib/format";
+import { t, tp } from "../../lib/i18n";
 import {
   ENGINE_LABELS,
   LEDGER_TYPE_LABELS,
@@ -134,15 +135,15 @@ export default function OverviewScreen({
           <div className="ov-hero-copy">
             <h1>{project?.name ?? "Kova Hub"}</h1>
             <p>
-              {project ? ENGINE_LABELS[project.engine] : "Проект"}
+              {project ? ENGINE_LABELS[project.engine] : t("Проект")}
               <span>·</span>
-              {projectPath ?? "папка не выбрана"}
+              {projectPath ?? t("папка не выбрана")}
             </p>
           </div>
           <div className="ov-hero-actions">
             <button type="button" className="btn btn-primary" onClick={onCreateTask}>
               <Plus size={15} />
-              Новая задача
+              {t("Новая задача")}
             </button>
             <button
               type="button"
@@ -151,7 +152,7 @@ export default function OverviewScreen({
               onClick={onImportAsset}
             >
               <Box size={15} />
-              {importing ? "Импорт…" : "Импорт ассета"}
+              {importing ? t("Импорт…") : t("Импорт ассета")}
             </button>
           </div>
         </div>
@@ -164,9 +165,9 @@ export default function OverviewScreen({
             <span className="ov-head-icon is-accent">
               <Play size={15} />
             </span>
-            <h2>Продолжить работу</h2>
+            <h2>{t("Продолжить работу")}</h2>
             <button type="button" className="ov-link" onClick={onOpenTasks}>
-              Все задачи
+              {t("Все задачи")}
             </button>
           </div>
 
@@ -188,13 +189,13 @@ export default function OverviewScreen({
                   </span>
                 </div>
                 <h3>{currentTask.title}</h3>
-                <p>{currentTask.goal || "Цель пока не задана"}</p>
+                <p>{currentTask.goal || t("Цель пока не задана")}</p>
                 <div className="ov-progress">
                   <span className="ov-progress-bar">
                     <span style={{ width: `${percent}%` }} />
                   </span>
                   <small>
-                    Критерии {done}/{total}
+                    {t("Критерии {done}/{total}", { done, total })}
                   </small>
                 </div>
               </div>
@@ -203,7 +204,7 @@ export default function OverviewScreen({
                 className="btn btn-secondary"
                 onClick={() => onOpenTask(currentTask.id)}
               >
-                Открыть задачу
+                {t("Открыть задачу")}
                 <ArrowRight size={15} />
               </button>
             </div>
@@ -213,8 +214,8 @@ export default function OverviewScreen({
                 <CheckIcon />
               </span>
               <div>
-                <b>Активных задач нет</b>
-                <small>Создай новую или открой готовые в разделе «Задачи».</small>
+                <b>{t("Активных задач нет")}</b>
+                <small>{t("Создай новую или открой готовые в разделе «Задачи».")}</small>
               </div>
             </div>
           )}
@@ -225,9 +226,9 @@ export default function OverviewScreen({
             <span className="ov-head-icon is-accent">
               <FolderKanban size={15} />
             </span>
-            <h2>Проекты</h2>
+            <h2>{t("Проекты")}</h2>
             <button type="button" className="ov-link" onClick={onOpenProjects}>
-              Все проекты
+              {t("Все проекты")}
             </button>
           </div>
           <div className="ov-project-list">
@@ -252,10 +253,11 @@ export default function OverviewScreen({
                 <span className="ov-project-copy">
                   <b>{item.name}</b>
                   <small>
-                    {ENGINE_LABELS[item.engine]} · {item.tasks_total} {plural(item.tasks_total, ["задача", "задачи", "задач"])}
+                    {ENGINE_LABELS[item.engine]} · {item.tasks_total}{" "}
+                    {tp(item.tasks_total, ["задача", "задачи", "задач"], "task", "tasks")}
                   </small>
                 </span>
-                {item.active ? <span className="ov-active">Открыт</span> : null}
+                {item.active ? <span className="ov-active">{t("Открыт")}</span> : null}
                 <ArrowRight size={14} />
               </button>
               );
@@ -270,7 +272,7 @@ export default function OverviewScreen({
             </span>
             <h2>Review</h2>
             <button type="button" className="ov-link" onClick={onOpenReview}>
-              Все результаты
+              {t("Все результаты")}
             </button>
           </div>
           {pendingReview.length === 0 ? (
@@ -279,13 +281,13 @@ export default function OverviewScreen({
                 <Star size={20} />
               </span>
               <div>
-                <b>Нет результатов для проверки</b>
+                <b>{t("Нет результатов для проверки")}</b>
                 <small>
-                  Когда агент закончит задачу, результат появится здесь.
+                  {t("Когда агент закончит задачу, результат появится здесь.")}
                 </small>
               </div>
               <button type="button" className="btn btn-secondary btn-small" onClick={onOpenTasks}>
-                К задачам
+                {t("К задачам")}
               </button>
             </div>
           ) : (
@@ -303,8 +305,8 @@ export default function OverviewScreen({
                       <Star size={14} />
                     </span>
                     <span>
-                      <b>{item.summary || "Результат AI"}</b>
-                      <small>{task ? task.title : "Задача"}</small>
+                      <b>{item.summary || t("Результат AI")}</b>
+                      <small>{task ? task.title : t("Задача")}</small>
                     </span>
                     <ArrowRight size={14} />
                   </button>
@@ -320,7 +322,7 @@ export default function OverviewScreen({
             <span className="ov-head-icon is-blue">
               <Zap size={15} />
             </span>
-            <h2>Быстрый доступ</h2>
+            <h2>{t("Быстрый доступ")}</h2>
           </div>
           <div className="ov-shortcut-list">
             <button type="button" className="ov-shortcut" onClick={onOpenEditor}>
@@ -328,8 +330,8 @@ export default function OverviewScreen({
                 <Code2 size={17} />
               </span>
               <span>
-                <b>Редактор</b>
-                <small>Открыть код проекта</small>
+                <b>{t("Редактор")}</b>
+                <small>{t("Открыть код проекта")}</small>
               </span>
               <ArrowRight size={14} />
             </button>
@@ -339,7 +341,9 @@ export default function OverviewScreen({
               </span>
               <span>
                 <b>Blender</b>
-                <small>{blender?.connected ? "Сцена и рендеры" : "Подключить сцену"}</small>
+                <small>
+                  {blender?.connected ? t("Сцена и рендеры") : t("Подключить сцену")}
+                </small>
               </span>
               <ArrowRight size={14} />
             </button>
@@ -348,8 +352,10 @@ export default function OverviewScreen({
                 <Box size={17} />
               </span>
               <span>
-                <b>Ассеты</b>
-                <small>{assets.length} в библиотеке</small>
+                <b>{t("Ассеты")}</b>
+                <small>
+                  {assets.length} {t("в библиотеке")}
+                </small>
               </span>
               <ArrowRight size={14} />
             </button>
@@ -361,13 +367,13 @@ export default function OverviewScreen({
             <span className="ov-head-icon is-muted">
               <Clock3 size={15} />
             </span>
-            <h2>Последняя активность</h2>
+            <h2>{t("Последняя активность")}</h2>
             <button type="button" className="ov-link" onClick={onOpenActivity}>
-              Все события
+              {t("Все события")}
             </button>
           </div>
           {events.length === 0 ? (
-            <p className="ov-muted">Пока нет событий.</p>
+            <p className="ov-muted">{t("Пока нет событий.")}</p>
           ) : (
             <div className="ov-event-list">
               {events.slice(0, 4).map((event) => {
