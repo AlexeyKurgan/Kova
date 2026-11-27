@@ -5,11 +5,14 @@ import {
   Camera,
   CheckCircle2,
   Download,
+  FolderLock,
   FolderTree,
   Gamepad2,
   GitBranch,
   HardDrive,
   KeyRound,
+  Network,
+  Package,
   RefreshCw,
   ShieldCheck,
   Stethoscope,
@@ -48,7 +51,13 @@ const STATUS_TONES: Record<CheckStatus, string> = {
 const GROUPS: Array<{ title: string; names: string[] }> = [
   {
     title: "Проект",
-    names: ["Структура .hub", "Движок проекта", "Снапшоты", "Корзина проектов"],
+    names: [
+      "Структура .hub",
+      "Движок проекта",
+      "Пакеты проекта",
+      "Снапшоты",
+      "Корзина проектов",
+    ],
   },
   { title: "Инструменты", names: ["Git", "Blender"] },
   {
@@ -62,12 +71,16 @@ const GROUPS: Array<{ title: string; names: string[] }> = [
       "Токен Core API",
     ],
   },
-  { title: "Система", names: ["Свободное место"] },
+  {
+    title: "Система",
+    names: ["Права на запись", "Порты Kova", "Свободное место"],
+  },
 ];
 
 const ICONS: Record<string, typeof FolderTree> = {
   "Структура .hub": FolderTree,
   "Движок проекта": Gamepad2,
+  "Пакеты проекта": Package,
   Снапшоты: Camera,
   "Корзина проектов": Trash2,
   Git: GitBranch,
@@ -78,6 +91,8 @@ const ICONS: Record<string, typeof FolderTree> = {
   "Process containment": ShieldCheck,
   "OS sandbox": ShieldCheck,
   "Токен Core API": KeyRound,
+  "Права на запись": FolderLock,
+  "Порты Kova": Network,
   "Свободное место": HardDrive,
 };
 
@@ -90,6 +105,9 @@ const HINTS: Record<string, string> = {
   "OS sandbox": "OS sandbox не поддерживается. Провайдеры работают в sandbox-копии проекта + process containment.",
   "Токен Core API": "Задай KOVA_CORE_TOKEN, чтобы локальные процессы не могли управлять core API.",
   "Корзина проектов": "Проекты можно восстановить или очистить в разделе «Проекты».",
+  "Пакеты проекта": "Проверь пакеты в разделе «Пакеты»: включи пакет движка и переустанови повреждённые.",
+  "Права на запись": "Проверь, что папка проекта и .hub не защищены от записи и не заняты другой программой.",
+  "Порты Kova": "8765 — core, 47832 — Blender, 48620 — редактор. Занятый порт может принадлежать другой копии Kova.",
 };
 
 export default function DoctorScreen({ checks, onRefresh, onExport, onRepair }: Props) {

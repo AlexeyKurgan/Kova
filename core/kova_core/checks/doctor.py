@@ -1,5 +1,6 @@
 import os
 import shutil
+import socket
 from pathlib import Path
 
 from ..domain.check import CheckResult
@@ -159,6 +160,100 @@ def run_doctor(hub: Path) -> list[CheckResult]:
             status=CheckStatus.passed,
             message=f"{len(snapshots)} точ(ек) восстановления",
             details={"count": len(snapshots)},
+        )
+    )
+
+    write_targets = [("проект", hub.parent), (".hub", hub)]
+    write_errors: list[str] = []
+    for label, path in write_targets:
+        probe = path / f".kova-write-{os.getpid()}.tmp"
+        try:
+            probe.write_text("ok", encoding="utf-8")
+            probe.unlink(missing_ok=True)
+        except OSError as exc:
+            write_errors.append(f"{label}: {exc}")
+            probe.unlink(missing_ok=True)
+    results.append(
+        CheckResult(
+            name="Права на запись",
+            status=CheckStatus.passed if not write_errors else CheckStatus.failed,
+            message=(
+                "проект и .hub доступны для записи"
+                if not write_errors
+                else "; ".join(write_errors)
+            ),
+            details={"errors": write_errors},
+        )
+    )
+
+    ports: dict[str, str] = {}
+    for port in (8765, 47832, 48620):
+        probe = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        probe.settimeout(0.3)
+        busy = probe.connect_ex(("127.0.0.1", port)) == 0
+        probe.close()
+        ports[str(port)] = "занят" if busy else "свободен"
+    results.append(
+        CheckResult(
+            name="Порты Kova",
+            status=CheckStatus.passed if ports["8765"] == "занят" else CheckStatus.warning,
+            message=(
+                "8765: core · 47832: Blender · 48620: редактор"
+                if ports["8765"] == "занят"
+                else "порт 8765 свободен — core не слушает"
+            ),
+            details=ports,
+        )
+    )
+
+    from ..packages import store
+
+    package_rows = store.list_packages(hub)
+    installed_packages = [row for row in package_rows if row.get("installed")]
+    missing_packages = [
+        row["id"]
+        for row in installed_packages
+        if row.get("custom")
+        and not (hub / "packages" / "custom" / row["id"] / "kova-package.json").is_file()
+    ]
+    disabled_engines = [
+        row["id"]
+        for row in installed_packages
+        if row.get("type") == "engine" and not row.get("enabled")
+    ]
+    project_engine_id = f"{project.engine.value}-core"
+    engine_package = next(
+        (row for row in package_rows if row["id"] == project_engine_id),
+        None,
+    )
+    engine_missing = bool(
+        engine_package and not engine_package.get("installed")
+    )
+    if missing_packages:
+        package_status = CheckStatus.failed
+        package_message = "повреждены пакеты: " + ", ".join(missing_packages)
+    elif disabled_engines or engine_missing:
+        package_status = CheckStatus.warning
+        parts = []
+        if disabled_engines:
+            parts.append("выключены: " + ", ".join(disabled_engines))
+        if engine_missing:
+            parts.append(f"нет пакета движка {project_engine_id}")
+        package_message = "; ".join(parts)
+    else:
+        package_status = CheckStatus.passed
+        package_message = f"{len(installed_packages)} установленных пакетов в порядке"
+    results.append(
+        CheckResult(
+            name="Пакеты проекта",
+            status=package_status,
+            message=package_message,
+            details={
+                "installed": len(installed_packages),
+                "missing": missing_packages,
+                "disabled_engines": disabled_engines,
+                "engine_package": project_engine_id,
+            },
         )
     )
 

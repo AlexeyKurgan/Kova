@@ -158,7 +158,7 @@ For free browser AIs:
 
 ### Doctor and notifications
 
-- Environment checks: `.hub`, Git, Blender, engine, isolation, network guard, token, snapshots, disk.
+- Environment checks: `.hub`, Git, Blender, engine, packages, write permissions, Kova ports, isolation, network guard, token, snapshots, disk.
 - Safe “Fix” for `.hub` structure and journal files.
 - JSON diagnostics export.
 - Notification center with ranges and type filters.
