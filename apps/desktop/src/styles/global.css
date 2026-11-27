@@ -19020,6 +19020,12 @@ html[data-mode="beginner"] .advanced-only {
   overflow: auto;
 }
 
+.template-library .modal-title {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
 .template-library-grid {
   display: grid;
   gap: 9px;

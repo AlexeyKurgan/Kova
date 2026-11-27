@@ -114,7 +114,11 @@ def install_from_marketplace(
     existing = store.get_package(hub, payload.package_id)
     if existing is not None and not existing.get("custom"):
         raise HTTPException(status_code=409, detail="id занят встроенным пакетом")
-    was_enabled = bool(existing.get("enabled")) if existing is not None else True
+    was_enabled = (
+        not (existing.get("installed") and not existing.get("enabled"))
+        if existing is not None
+        else True
+    )
     remote_version = payload.version.strip()
     if existing is not None and (
         not remote_version
