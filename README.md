@@ -71,7 +71,7 @@ game project:
 - Per-version checks, Blender metrics and `.glb`/`.gltf` 3D viewer; Blender converts `.blend`/`.fbx`/`.obj`.
 - Object-level scene diff between versions: added/removed objects, transforms, materials and triangle counts.
 - Engine contracts for Blender, Roblox, Godot, Unity, Unreal, RPG Maker and Web.
-- Engine importers and native project reimport for Godot and Unity.
+- Engine importers and native project reimport for Godot, Unity and Unreal.
 - Dependency map with manual links between assets.
 
 ### Review
@@ -134,7 +134,7 @@ For free browser AIs:
   - Unreal: `Content/Kova/Source/`
   - RPG Maker: `img/pictures/` or `audio/se/`
   - Web: `public/assets/`
-- Godot/Unity native reimport runs the editor in batch/headless mode when available.
+- Godot/Unity/Unreal native reimport runs the editor in batch/headless mode when available.
 
 ### Style Guard
 
