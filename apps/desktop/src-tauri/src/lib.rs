@@ -103,14 +103,16 @@ fn start_core(app: &tauri::AppHandle) {
     let token = load_or_create_token();
     let shell = app.shell();
     let command = match shell.sidecar("kova-core") {
-        Ok(command) => command.args([
-            "--host",
-            "127.0.0.1",
-            "--port",
-            "8765",
-            "--token",
-            token.as_str(),
-        ]),
+        Ok(command) => command
+            .env("KOVA_VERSION", env!("CARGO_PKG_VERSION"))
+            .args([
+                "--host",
+                "127.0.0.1",
+                "--port",
+                "8765",
+                "--token",
+                token.as_str(),
+            ]),
         Err(error) => {
             eprintln!("kova-core sidecar unavailable: {error}");
             return;
