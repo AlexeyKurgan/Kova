@@ -16635,6 +16635,19 @@ button.blender-chip {
   gap: 14px;
 }
 
+.memory-screen,
+.packages-screen {
+  flex: 1;
+  min-height: 0;
+  padding: 20px 22px 22px;
+  overflow: auto;
+}
+
+.memory-screen > *,
+.packages-screen > * {
+  flex: none;
+}
+
 .memory-search {
   display: flex;
   align-items: center;
@@ -19800,4 +19813,33 @@ html[data-mode="beginner"] .advanced-only {
   flex: none;
   margin-top: 1px;
   color: var(--accent-strong);
+}
+
+/* Keep package filters on one row at desktop widths */
+.pkg-toolbar-v2 {
+  display: grid;
+  grid-template-columns: auto minmax(160px, 1fr) minmax(110px, 150px) minmax(110px, 150px);
+  align-items: center;
+}
+
+.pkg-toolbar-v2 .pkg-tabs {
+  margin-right: 0;
+}
+
+.pkg-toolbar-v2 .pkg-search {
+  width: auto;
+}
+
+.pkg-toolbar-v2 .filter-select {
+  width: 100%;
+}
+
+@media (max-width: 1180px) {
+  .pkg-toolbar-v2 {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .pkg-toolbar-v2 .pkg-tabs {
+    grid-column: 1 / -1;
+  }
 }
