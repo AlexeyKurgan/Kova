@@ -20736,3 +20736,72 @@ html[data-mode="beginner"] .advanced-only {
   color: var(--text-secondary);
   font-size: 7.5px;
 }
+
+/* Sandbox status */
+.sandbox-grid {
+  display: grid;
+  gap: 6px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: 10px 0 8px;
+}
+
+.sandbox-backend {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 1px;
+  padding: 7px 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-raised);
+}
+
+.sandbox-backend i {
+  width: 6px;
+  height: 6px;
+  margin-bottom: 3px;
+  border-radius: 50%;
+  background: var(--border-strong);
+}
+
+.sandbox-backend.is-ready i {
+  background: var(--success);
+}
+
+.sandbox-backend b {
+  font-size: 8.5px;
+}
+
+.sandbox-backend small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-muted);
+  font-size: 7px;
+}
+
+.sandbox-message {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 8.5px;
+}
+
+.sandbox-message.is-warn {
+  color: var(--warning-text);
+}
+
+.sandbox-fallback {
+  margin: 5px 0 0;
+  color: var(--text-muted);
+  font-size: 8px;
+}
+
+.sandbox-fallback b {
+  color: var(--text-secondary);
+}
+
+@media (max-width: 760px) {
+  .sandbox-grid {
+    grid-template-columns: 1fr;
+  }
+}

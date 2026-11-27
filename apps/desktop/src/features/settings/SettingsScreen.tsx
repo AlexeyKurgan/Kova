@@ -18,6 +18,7 @@ import type { AppPreferences } from "../../lib/appPreferences";
 import { formatDate } from "../../lib/format";
 import type { Snapshot } from "../../lib/types";
 import AboutCard from "./AboutCard";
+import SandboxCard from "./SandboxCard";
 import StyleBibleCard from "./StyleBibleCard";
 
 type Props = {
@@ -301,6 +302,8 @@ export default function SettingsScreen({
         </article>
 
         <StyleBibleCard />
+
+        <SandboxCard />
 
         <AboutCard />
 

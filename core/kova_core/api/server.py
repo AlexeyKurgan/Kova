@@ -22,6 +22,7 @@ from .routes import (
     providers,
     review,
     roblox,
+    sandbox,
     skills,
     snapshots,
     style,
@@ -86,6 +87,7 @@ def create_app() -> FastAPI:
     app.include_router(night.router)
     app.include_router(doctor.router)
     app.include_router(engines.router)
+    app.include_router(sandbox.router)
     app.include_router(ledger.router)
     app.include_router(memory.router)
     app.include_router(summary.router)

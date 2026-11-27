@@ -37,6 +37,7 @@ import type {
   Skill,
   SkillDetail,
   Snapshot,
+  SandboxStatus,
   SnapshotDiff,
   StyleBible,
   StyleViolation,
@@ -386,6 +387,10 @@ export async function purgeTask(taskId: string): Promise<void> {
 
 export async function listAssets(): Promise<AssetPassport[]> {
   return request<AssetPassport[]>("/assets");
+}
+
+export async function getSandboxStatus(): Promise<SandboxStatus> {
+  return request<SandboxStatus>("/sandbox");
 }
 
 export async function getEngineInfo(engine: Engine): Promise<EngineInfo> {

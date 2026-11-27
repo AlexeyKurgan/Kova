@@ -674,6 +674,20 @@ export type MemoryResponse = {
   };
 };
 
+export type SandboxBackend = {
+  id: string;
+  label: string;
+  available: boolean;
+  detail: string;
+};
+
+export type SandboxStatus = {
+  backends: SandboxBackend[];
+  default: string;
+  fallback: string;
+  message: string;
+};
+
 export type EngineInfo = {
   engine: Engine;
   name: string;
