@@ -46,10 +46,10 @@ def reimport_engine(
     payload: ReimportRequest,
     hub: Path = Depends(require_hub),
 ) -> dict[str, object]:
-    if engine not in (Engine.godot, Engine.unity):
+    if engine not in (Engine.godot, Engine.unity, Engine.unreal):
         raise HTTPException(
             status_code=400,
-            detail="Нативная переиндексация доступна для Godot и Unity",
+            detail="Нативная переиндексация доступна для Godot, Unity и Unreal",
         )
     package = store.get_package(hub, f"{engine.value}-core")
     if package is None or not package.get("installed") or not package.get("enabled"):

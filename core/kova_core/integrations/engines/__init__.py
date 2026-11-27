@@ -289,6 +289,50 @@ def reimport_project(
             "-logFile",
             "-",
         ]
+    elif engine == Engine.unreal:
+        uproject = Path(info.project_file)
+        source = root / "Content" / "Kova" / "Source"
+        files = [
+            path
+            for path in source.glob("*")
+            if path.is_file() and path.suffix.lower() in {".fbx", ".glb", ".gltf"}
+        ] if source.is_dir() else []
+        if not files:
+            raise RuntimeError(
+                "Сначала импортируй FBX/GLB в Content/Kova/Source через паспорт ассета"
+            )
+        import tempfile
+
+        script = Path(tempfile.gettempdir()) / "kova_unreal_import.py"
+        script.write_text(
+            f"""import os, unreal
+source = r'{source}'
+tasks = []
+for name in sorted(os.listdir(source)):
+    if not name.lower().endswith(('.fbx', '.glb', '.gltf')):
+        continue
+    task = unreal.AssetImportTask()
+    task.filename = os.path.join(source, name)
+    task.destination_path = '/Game/Kova'
+    task.automated = True
+    task.replace_existing = True
+    task.save = True
+    tasks.append(task)
+if tasks:
+    unreal.AssetToolsHelpers.get_asset_tools().import_asset_tasks(tasks)
+""",
+            encoding="utf-8",
+        )
+        args = [
+            info.executable,
+            str(uproject),
+            "-run=pythonscript",
+            f"-script={script}",
+            "-unattended",
+            "-nullrhi",
+            "-nosplash",
+            "-stdout",
+        ]
     else:
         raise RuntimeError(
             f"Нативная переиндексация для {info.name} пока не поддерживается: "

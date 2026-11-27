@@ -94,8 +94,21 @@ def test_reimport_requires_supported_engine_and_package(tmp_path: Path, monkeypa
     client.post("/project/open", json={"path": str(game), "engine": "rpgmaker"})
     response = client.post("/engines/rpgmaker/reimport", json={})
     assert response.status_code == 400
-    assert "Godot и Unity" in response.json()["detail"]
+    assert "Godot, Unity и Unreal" in response.json()["detail"]
 
     response = client.post("/engines/godot/reimport", json={})
     assert response.status_code == 400
     assert "пакет" in response.json()["detail"]
+
+
+def test_unreal_reimport_requires_staged_assets(tmp_path: Path, monkeypatch) -> None:
+    client = make_client(tmp_path, monkeypatch)
+    game = tmp_path / "game"
+    game.mkdir()
+    (game / "Game.uproject").write_text("{}", encoding="utf-8")
+    monkeypatch.setenv("KOVA_UNREAL", sys.executable)
+    client.post("/project/open", json={"path": str(game), "engine": "unreal"})
+    client.post("/packages/unreal-core/install")
+    response = client.post("/engines/unreal/reimport", json={})
+    assert response.status_code == 400
+    assert "Content/Kova/Source" in response.json()["detail"]

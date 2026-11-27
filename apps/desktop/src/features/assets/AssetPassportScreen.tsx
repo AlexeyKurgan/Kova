@@ -772,7 +772,7 @@ export default function AssetPassportScreen({
                       <Upload size={13} />
                       {engineBusy ? "Импорт…" : "Импортировать текущую версию"}
                     </button>
-                    {asset.engine === "godot" || asset.engine === "unity" ? (
+                    {asset.engine === "godot" || asset.engine === "unity" || asset.engine === "unreal" ? (
                       <button
                         type="button"
                         className="btn btn-secondary btn-small"
