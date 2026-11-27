@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
-import { Box as BoxIcon, Check, ChevronDown, ChevronRight, RotateCcw, Sparkles, Star, TriangleAlert } from "lucide-react";
+import { Box as BoxIcon, Check, ChevronDown, ChevronRight, RotateCcw, Sparkles, Star, TriangleAlert, Users } from "lucide-react";
 import { mediaUrl } from "../../lib/coreClient";
 import {
   addReviewComment,
   applyWorktreeRun,
   deleteReviewComment,
   getRunChangePatch,
+  getSecondOpinion,
   listAiRuns,
   listReviewArchive,
   listReviewComments,
@@ -15,6 +16,7 @@ import {
   updateReviewComment,
 } from "../../lib/coreClient";
 import ReviewAssetStage from "./ReviewAssetStage";
+import SecondOpinionModal from "./SecondOpinionModal";
 import { useConfirm } from "../../components/ConfirmProvider";
 import { formatDate, plural } from "../../lib/format";
 import { REVIEW_STATUS_LABELS } from "../../lib/labels";
@@ -66,6 +68,9 @@ export default function ReviewScreen({
   const [archiveLoading, setArchiveLoading] = useState(false);
   const [archiveKey, setArchiveKey] = useState(0);
   const [styleChecksByAsset, setStyleChecksByAsset] = useState<Record<string, CheckResult[]>>({});
+  const [secondOpinion, setSecondOpinion] = useState<string | null>(null);
+  const [opinionBusy, setOpinionBusy] = useState<string | null>(null);
+  const [opinionError, setOpinionError] = useState("");
   const [stageAsset, setStageAsset] = useState<Record<string, string>>({});
 
   const applyRun = async (run: AiRun) => {
@@ -246,6 +251,21 @@ export default function ReviewScreen({
       ...current,
       [reviewId]: (current[reviewId] ?? []).filter((item) => item.id !== commentId),
     }));
+  };
+
+  const openSecondOpinion = async (reviewId: string) => {
+    if (opinionBusy) return;
+    setOpinionBusy(reviewId);
+    setOpinionError("");
+    try {
+      setSecondOpinion(await getSecondOpinion(reviewId));
+    } catch (err) {
+      setOpinionError(
+        err instanceof Error ? err.message : "Не удалось подготовить второе мнение",
+      );
+    } finally {
+      setOpinionBusy(null);
+    }
   };
 
   const togglePatch = async (run: AiRun, index: number) => {
@@ -728,6 +748,15 @@ export default function ReviewScreen({
                     <button
                       type="button"
                       className="btn btn-secondary"
+                      disabled={opinionBusy === item.id}
+                      onClick={() => void openSecondOpinion(item.id)}
+                    >
+                      <Users size={15} />
+                      {opinionBusy === item.id ? "Готовлю…" : "Второе мнение"}
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-secondary"
                       onClick={() => onRework(item.id)}
                     >
                       <RotateCcw size={15} />
@@ -750,11 +779,19 @@ export default function ReviewScreen({
                   </>
                 )}
               </div>
+              {opinionError ? <p className="review-opinion-error">{opinionError}</p> : null}
             </article>
             );
           })}
         </div>
       )}
+
+      {secondOpinion !== null ? (
+        <SecondOpinionModal
+          text={secondOpinion}
+          onClose={() => setSecondOpinion(null)}
+        />
+      ) : null}
     </section>
   );
 }

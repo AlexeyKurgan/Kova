@@ -853,6 +853,26 @@ export type SnapshotFile = {
   size: number;
 };
 
+export type EngineContract = {
+  engine: Engine;
+  title: string;
+  formats: string[];
+  up_axis: string;
+  forward_axis: string;
+  scale: string;
+  pivot: string;
+  max_triangles: number | null;
+  max_materials: number | null;
+  max_textures: number | null;
+  required_sockets: string[];
+  notes: string;
+};
+
+export type ContractReport = {
+  contract: EngineContract;
+  checks: CheckResult[];
+};
+
 export type StyleBible = {
   enabled: boolean;
   name: string;

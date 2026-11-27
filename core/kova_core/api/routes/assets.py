@@ -6,9 +6,11 @@ from pydantic import BaseModel
 
 from ...checks.assets import get_asset_checks, run_asset_checks, save_asset_checks
 from ...checks.blender import blender_checks
+from ...checks.contracts import contract_checks, contract_for
 from ...checks.style import style_checks
 from ...domain.asset import AssetPassport, ExportProfile
 from ...domain.check import CheckResult
+from ...domain.contract import ContractReport
 from ...domain.enums import AssetType, Engine
 from ...domain.ledger import LedgerEvent
 from ...integrations.blender.bridge import inspect_asset
@@ -160,6 +162,20 @@ def update_asset_route(
         ),
     )
     return saved
+
+
+@router.get("/{asset_id}/contract", response_model=ContractReport)
+def get_contract_route(
+    asset_id: str,
+    hub: Path = Depends(require_hub),
+) -> ContractReport:
+    asset = get_asset(hub, asset_id)
+    if asset is None:
+        raise HTTPException(status_code=404, detail="asset not found")
+    return ContractReport(
+        contract=contract_for(asset.engine),
+        checks=contract_checks(asset),
+    )
 
 
 @router.get("/{asset_id}/checks", response_model=list[CheckResult])

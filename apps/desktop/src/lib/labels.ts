@@ -75,6 +75,7 @@ export const LEDGER_TYPE_LABELS: Record<string, string> = {
   "review.accepted": "Результат принят",
   "review.rework": "Отправлено на доработку",
   "review.commented": "Комментарий к результату",
+  "review.second_opinion": "Запрошено второе мнение",
   "snapshot.created": "Снапшот создан",
   "snapshot.restored": "Откат к снапшоту",
   "asset.imported": "Ассет импортирован",

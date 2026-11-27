@@ -11,6 +11,7 @@ import type {
   CapsuleResponse,
   CheckResult,
   CreateProjectInput,
+  ContractReport,
   CreateTaskInput,
   DiaryResponse,
   DuplicateProjectInput,
@@ -653,6 +654,10 @@ export async function updateAsset(
   });
 }
 
+export async function getAssetContract(assetId: string): Promise<ContractReport> {
+  return request<ContractReport>(`/assets/${encodeURIComponent(assetId)}/contract`);
+}
+
 export async function getAsset(assetId: string): Promise<AssetPassport> {
   return request<AssetPassport>(`/assets/${encodeURIComponent(assetId)}`);
 }
@@ -795,6 +800,14 @@ export async function deleteReviewComment(
     `/review/${encodeURIComponent(reviewId)}/comments/${encodeURIComponent(commentId)}`,
     { method: "DELETE" },
   );
+}
+
+export async function getSecondOpinion(reviewId: string): Promise<string> {
+  const result = await request<{ text: string }>(
+    `/review/${encodeURIComponent(reviewId)}/second-opinion`,
+    { method: "POST" },
+  );
+  return result.text;
 }
 
 export async function acceptReview(reviewId: string): Promise<ReviewItem> {

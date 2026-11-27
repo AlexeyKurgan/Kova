@@ -19,8 +19,8 @@ import {
   TriangleAlert,
 } from "lucide-react";
 import BrandIcon from "../../components/BrandIcon";
-import { mediaUrl } from "../../lib/coreClient";
-import { formatBytes, formatDate } from "../../lib/format";
+import { getAssetContract, mediaUrl } from "../../lib/coreClient";
+import { formatBytes, formatDate, plural } from "../../lib/format";
 import {
   ASSET_TYPE_LABELS,
   ASSET_VERSION_STATUS_LABELS,
@@ -32,6 +32,7 @@ import type {
   AssetPassport,
   AssetVersion,
   CheckResult,
+  ContractReport,
   CheckStatus,
   Engine,
   ExportProfile,
@@ -127,6 +128,7 @@ export default function AssetPassportScreen({
   const [previewMode, setPreviewMode] = useState<"3d" | "render">("render");
   const [tab, setTab] = useState<"overview" | "files" | "usage" | "related">("overview");
   const [editingDescription, setEditingDescription] = useState(false);
+  const [contract, setContract] = useState<ContractReport | null>(null);
   const [compareOpen, setCompareOpen] = useState(false);
   const [compareA, setCompareA] = useState("");
   const [compareB, setCompareB] = useState("");
@@ -174,6 +176,20 @@ export default function AssetPassportScreen({
   useEffect(() => {
     setExportEngine(asset.engine === "generic" ? "roblox" : asset.engine);
   }, [asset.engine, asset.id]);
+
+  useEffect(() => {
+    let alive = true;
+    getAssetContract(asset.id)
+      .then((value) => {
+        if (alive) setContract(value);
+      })
+      .catch(() => {
+        if (alive) setContract(null);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [asset.engine, asset.id, asset.updated_at]);
 
   useEffect(() => {
     if (!can3d) {
@@ -565,6 +581,56 @@ export default function AssetPassportScreen({
                 <p className="ad3-empty">{asset.dependencies.length} связанных ресурсов</p>
               ) : (
                 <p className="ad3-empty">Связанных ресурсов нет.</p>
+              )}
+            </article>
+
+            <article className="ad3-card ad3-contract">
+              <div className="ad3-card-head">
+                <h2><Box size={14} /> Контракт движка</h2>
+                {contract ? (
+                  <span className={`task-status ${contract.checks.length ? "is-review" : "is-done"}`}>
+                    {contract.checks.length
+                      ? `${contract.checks.length} ${plural(contract.checks.length, ["замечание", "замечания", "замечаний"])}`
+                      : "Соблюдён"}
+                  </span>
+                ) : null}
+              </div>
+              {contract ? (
+                <>
+                  <div className="ad3-contract-title">
+                    <b>{contract.contract.title}</b>
+                    <small>{contract.contract.notes}</small>
+                  </div>
+                  <div className="ad3-contract-grid">
+                    <div><span>Форматы</span><b>{contract.contract.formats.join(" · ") || "—"}</b></div>
+                    <div><span>Оси</span><b>{contract.contract.up_axis} · {contract.contract.forward_axis}</b></div>
+                    <div><span>Масштаб</span><b>{contract.contract.scale}</b></div>
+                    <div><span>Пивот</span><b>{contract.contract.pivot}</b></div>
+                    <div>
+                      <span>Бюджеты</span>
+                      <b>
+                        {contract.contract.max_triangles
+                          ? `${contract.contract.max_triangles.toLocaleString("ru-RU")} треуг.`
+                          : "без лимита"}
+                      </b>
+                    </div>
+                    <div><span>Материалы</span><b>{contract.contract.max_materials ?? "—"}</b></div>
+                  </div>
+                  {contract.checks.length > 0 ? (
+                    <div className="ad3-contract-checks">
+                      {contract.checks.map((check) => (
+                        <div key={check.id}>
+                          <TriangleAlert size={11} />
+                          <span>{check.message}</span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="ad3-empty">Ассет проходит контракт движка.</p>
+                  )}
+                </>
+              ) : (
+                <p className="ad3-empty">Контракт загружается…</p>
               )}
             </article>
 

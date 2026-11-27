@@ -18,7 +18,7 @@ from ...storage.review import (
     save_review_comment,
 )
 from ...storage.tasks import get_task, save_task
-from ...storage.assets import get_asset
+from ...storage.assets import get_asset, list_assets
 from ..deps import require_hub
 
 router = APIRouter(prefix="/review", tags=["review"])
@@ -26,6 +26,16 @@ router = APIRouter(prefix="/review", tags=["review"])
 
 class ReviewText(BaseModel):
     text: str
+
+
+def _plural(value: int, one: str, few: str, many: str) -> str:
+    mod10 = value % 10
+    mod100 = value % 100
+    if mod10 == 1 and mod100 != 11:
+        return one
+    if 2 <= mod10 <= 4 and not 10 <= mod100 < 20:
+        return few
+    return many
 
 
 class ReviewCommentCreate(BaseModel):
@@ -179,6 +189,70 @@ def _resolve(
         ),
     )
     return saved
+
+
+@router.post("/{review_id}/second-opinion", response_model=ReviewText)
+def second_opinion(review_id: str, hub: Path = Depends(require_hub)) -> ReviewText:
+    item = get_review(hub, review_id)
+    if item is None:
+        raise HTTPException(status_code=404, detail="review item not found")
+    task = get_task(hub, item.task_id)
+    assets = [
+        asset
+        for asset in list_assets(hub)
+        if task is not None and (task.id in asset.task_ids or asset.task_id == task.id)
+    ]
+
+    lines = [
+        "Ты — независимый критик результата в Kova Hub.",
+        "Не переписывай всё без причины. Сначала найди риски и проверь соответствие задаче.",
+        "",
+        f"Задача: {task.title if task else item.task_id}",
+    ]
+    if task is not None:
+        lines.append(f"Цель: {task.goal or 'не указана'}")
+        if task.criteria:
+            lines.append("Критерии готовности:")
+            lines.extend(f"- {criterion.text}" for criterion in task.criteria)
+        if task.constraints:
+            lines.append("Ограничения:")
+            lines.extend(f"- {constraint}" for constraint in task.constraints)
+        if task.validation:
+            lines.append("Проверки, настроенные в задаче:")
+            lines.extend(f"- {command.label}: {command.command}" for command in task.validation)
+    lines.extend(["", f"Результат на приёмку: {item.summary or 'без описания'}", ""])
+    if assets:
+        lines.append("Связанные ассеты:")
+        for asset in assets:
+            metrics = asset.metrics
+            triangles = metrics.triangles or 0
+            materials = metrics.materials or 0
+            textures = metrics.textures or 0
+            lines.append(
+                f"- {asset.name}: {asset.type}, {asset.engine.value}, "
+                f"{triangles} {_plural(triangles, 'треугольник', 'треугольника', 'треугольников')}, "
+                f"{materials} {_plural(materials, 'материал', 'материала', 'материалов')}, "
+                f"{textures} {_plural(textures, 'текстура', 'текстуры', 'текстур')}"
+            )
+    lines.extend(
+        [
+            "",
+            "Ответь строго по пунктам:",
+            "1. Вердикт: принять / доработать / отклонить — и почему.",
+            "2. Три главных риска или места, где результат может сломаться.",
+            "3. Что проверить руками или в движке до приёмки.",
+            "4. Если нужна доработка — конкретные шаги и файлы, без лишних изменений.",
+        ]
+    )
+    append_event(
+        hub,
+        LedgerEvent(
+            type="review.second_opinion",
+            subject=item.task_id,
+            data={"review_id": item.id, "assets": len(assets)},
+        ),
+    )
+    return ReviewText(text="\n".join(lines))
 
 
 @router.post("/{review_id}/accept", response_model=ReviewItem)

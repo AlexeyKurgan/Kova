@@ -80,6 +80,14 @@ def test_review_comment_thread(tmp_path: Path, monkeypatch) -> None:
     assert client.get(f"/review/{review.id}/comments").json() == []
     assert client.delete(f"/review/{review.id}/comments/{comment['id']}").status_code == 404
 
+    opinion = client.post(f"/review/{review.id}/second-opinion")
+    assert opinion.status_code == 200, opinion.text
+    prompt = opinion.json()["text"]
+    assert "независимый критик" in prompt
+    assert task["title"] in prompt
+    assert "Sword review" in prompt
+    assert "Sword" in prompt
+
     accepted = client.post(f"/review/{review.id}/accept")
     assert accepted.status_code == 200, accepted.text
     assert client.get("/review").json() == []

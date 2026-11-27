@@ -19385,3 +19385,78 @@ html[data-mode="beginner"] .advanced-only {
   color: var(--text-muted);
   font-size: 7.5px;
 }
+
+.review-opinion-error {
+  margin: 6px 0 0;
+  color: var(--danger-text, #e26d6d);
+  font-size: 8.5px;
+}
+
+/* Engine contract card */
+.ad3-contract-title {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-bottom: 8px;
+}
+
+.ad3-contract-title b {
+  font-size: 10.5px;
+}
+
+.ad3-contract-title small {
+  color: var(--text-muted);
+  font-size: 8px;
+  line-height: 1.45;
+}
+
+.ad3-contract-grid {
+  display: grid;
+  gap: 4px 10px;
+  grid-template-columns: 1fr 1fr;
+}
+
+.ad3-contract-grid > div {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.ad3-contract-grid span {
+  color: var(--text-muted);
+  font-size: 7.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.ad3-contract-grid b {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 8.5px;
+}
+
+.ad3-contract-checks {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-top: 8px;
+  padding-top: 7px;
+  border-top: 1px solid var(--border);
+}
+
+.ad3-contract-checks > div {
+  display: flex;
+  align-items: flex-start;
+  gap: 5px;
+  color: var(--text-muted);
+  font-size: 8px;
+  line-height: 1.4;
+}
+
+.ad3-contract-checks svg {
+  flex: none;
+  margin-top: 1px;
+  color: var(--accent-strong);
+}
