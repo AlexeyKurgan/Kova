@@ -19,6 +19,7 @@ import urllib.request
 from pathlib import Path
 from typing import Any
 
+from ..security.paths import resolve_inside
 from . import custom
 
 DEFAULT_INDEX_URL = (
@@ -251,24 +252,40 @@ def install_remote_package(
 ) -> dict[str, Any]:
     if not custom.ID_RE.match(package_id):
         raise RemoteError("некорректный id пакета")
+    target = resolve_inside(hub, custom.CUSTOM_ROOT / package_id)
+    backup = target.with_name(target.name + ".backup")
     with tempfile.TemporaryDirectory(prefix="kova-market-") as temporary:
         archive = Path(temporary) / "package.zip"
         _download_archive(url, archive, sha256)
-        try:
-            manifest = custom.import_custom_package(hub, archive)
-        except custom.PackageImportError as exc:
-            raise RemoteError(str(exc)) from exc
-    target = hub / "packages" / "custom" / manifest["id"]
-    if manifest["id"] != package_id:
         import shutil
 
-        shutil.rmtree(target, ignore_errors=True)
-        raise RemoteError(
-            f"манифест пакета содержит id {manifest['id']}, а индекс — {package_id}"
+        if backup.exists():
+            shutil.rmtree(backup, ignore_errors=True)
+        if target.exists():
+            target.rename(backup)
+        try:
+            manifest = custom.import_custom_package(hub, archive)
+            if manifest["id"] != package_id:
+                raise RemoteError(
+                    f"манифест пакета содержит id {manifest['id']}, а индекс — {package_id}"
+                )
+        except custom.PackageImportError as exc:
+            if target.exists():
+                shutil.rmtree(target, ignore_errors=True)
+            if backup.exists():
+                backup.rename(target)
+            raise RemoteError(str(exc)) from exc
+        except Exception:
+            if target.exists():
+                shutil.rmtree(target, ignore_errors=True)
+            if backup.exists():
+                backup.rename(target)
+            raise
+        (target / custom.REMOTE_MARKER).write_text(
+            json.dumps({"url": url, "sha256": sha256}, ensure_ascii=False) + "\n",
+            encoding="utf-8",
         )
-    (target / custom.REMOTE_MARKER).write_text(
-        json.dumps({"url": url, "sha256": sha256}, ensure_ascii=False) + "\n",
-        encoding="utf-8",
-    )
+        if backup.exists():
+            shutil.rmtree(backup, ignore_errors=True)
     manifest["trust"] = "remote"
     return manifest

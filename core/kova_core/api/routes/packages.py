@@ -26,6 +26,7 @@ class RemoteInstallRequest(BaseModel):
     package_id: str
     url: str
     sha256: str
+    version: str = ""
 
 
 @router.get("")
@@ -92,8 +93,16 @@ def get_marketplace(
             else "available"
         )
         entry["builtin"] = get_catalog_entry(entry["id"]) is not None
+        entry["installed_version"] = (
+            str(current.get("installed_version") or "") if current else ""
+        )
         if entry["builtin"]:
             entry["installed"] = True
+        entry["update_available"] = bool(
+            entry["installed"]
+            and entry["installed_version"]
+            and entry["installed_version"] != entry["version"]
+        )
     return index
 
 
@@ -105,7 +114,12 @@ def install_from_marketplace(
     existing = store.get_package(hub, payload.package_id)
     if existing is not None and not existing.get("custom"):
         raise HTTPException(status_code=409, detail="id занят встроенным пакетом")
-    if existing is not None:
+    was_enabled = bool(existing.get("enabled")) if existing is not None else True
+    remote_version = payload.version.strip()
+    if existing is not None and (
+        not remote_version
+        or existing.get("installed_version") == remote_version
+    ):
         try:
             return store.install_package(hub, payload.package_id)
         except (KeyError, RuntimeError) as exc:
@@ -147,7 +161,10 @@ def install_from_marketplace(
         ),
     )
     try:
-        return store.install_package(hub, manifest["id"])
+        result = store.install_package(hub, manifest["id"])
+        if not was_enabled:
+            result = store.set_package_enabled(hub, manifest["id"], False)
+        return result
     except (KeyError, RuntimeError) as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 

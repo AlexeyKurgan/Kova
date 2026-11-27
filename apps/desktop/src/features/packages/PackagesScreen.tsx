@@ -193,6 +193,7 @@ export default function PackagesScreen() {
         packageId: item.id,
         url: item.download_url,
         sha256: item.sha256,
+        version: item.version,
       });
       await refresh();
       await loadMarket(market?.index_url ?? marketUrl);
@@ -622,14 +623,23 @@ export default function PackagesScreen() {
                     </div>
 
                     <div className="pkg-actions">
-                      {item.installed || item.builtin ? (
+                      {item.builtin ? (
                         <button
                           type="button"
                           className="btn btn-secondary btn-small"
                           disabled
                         >
                           <CheckCircle2 size={13} />
-                          {item.builtin ? "Уже в Kova" : "Установлен"}
+                          Уже в Kova
+                        </button>
+                      ) : item.installed && !item.update_available ? (
+                        <button
+                          type="button"
+                          className="btn btn-secondary btn-small"
+                          disabled
+                        >
+                          <CheckCircle2 size={13} />
+                          Установлен {item.installed_version}
                         </button>
                       ) : (
                         <button
@@ -639,7 +649,11 @@ export default function PackagesScreen() {
                           onClick={() => void installRemote(item)}
                         >
                           <Download size={13} />
-                          {remoteBusy === item.id ? "Установка…" : "Установить"}
+                          {remoteBusy === item.id
+                            ? "Установка…"
+                            : item.update_available
+                              ? `Обновить до ${item.version}`
+                              : "Установить"}
                         </button>
                       )}
                     </div>

@@ -169,6 +169,7 @@ export async function installRemotePackage(input: {
   packageId: string;
   url: string;
   sha256: string;
+  version?: string;
 }): Promise<KovaPackage> {
   return request<KovaPackage>("/packages/marketplace/install", {
     method: "POST",
@@ -176,6 +177,7 @@ export async function installRemotePackage(input: {
       package_id: input.packageId,
       url: input.url,
       sha256: input.sha256,
+      version: input.version ?? "",
     }),
   });
 }

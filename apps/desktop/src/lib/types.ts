@@ -763,6 +763,8 @@ export type RemotePackage = {
   size: number;
   trust: "remote";
   installed: boolean;
+  installed_version: string;
+  update_available: boolean;
   status: KovaPackage["status"];
   builtin: boolean;
 };
