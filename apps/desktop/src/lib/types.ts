@@ -722,8 +722,10 @@ export type KovaPackage = {
   checks: string[];
   templates: string[];
   ui: string[];
-  trust: "official" | "verified" | "community" | "local";
+  trust: "official" | "verified" | "community" | "local" | "remote";
   description: string;
+  custom?: boolean;
+  task_templates?: PackageTaskTemplate[];
   installed_by_default: boolean;
   available: boolean;
   installed: boolean;

@@ -694,6 +694,11 @@ export default function PackagesScreen() {
                         <b>{item.name}</b>
                         <small>
                           {TYPE_LABELS[item.type] ?? item.type} · {item.author || "Kova"} · {item.version}
+                          {item.trust === "remote"
+                            ? " · внешний"
+                            : item.custom
+                              ? " · локальный"
+                              : ""}
                         </small>
                       </div>
                       <span className={`pkg-status is-${item.status}`}>
