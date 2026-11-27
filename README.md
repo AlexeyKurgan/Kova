@@ -325,7 +325,7 @@ cd ..
 npm run typecheck
 ```
 
-Current suite: **129 Python tests**, plus TypeScript typecheck.
+Current suite: **131 Python tests**, plus TypeScript typecheck.
 
 ## Troubleshooting
 
