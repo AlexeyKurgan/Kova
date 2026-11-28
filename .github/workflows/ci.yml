@@ -62,14 +62,16 @@ jobs:
 
       - name: Portable core tests
         working-directory: core
-        run: >-
-          python -m pytest -q
-          tests/test_health.py
-          tests/test_domain.py
-          tests/test_projects.py
-          tests/test_packages.py
-          tests/test_custom_packages.py
-          tests/test_remote_packages.py
-          tests/test_memory.py
-          tests/test_sharing.py
-          tests/test_platform.py
+        shell: bash
+        run: |
+          set +e
+          python -m pytest -q             tests/test_health.py             tests/test_domain.py             tests/test_projects.py             tests/test_packages.py             tests/test_custom_packages.py             tests/test_remote_packages.py             tests/test_memory.py             tests/test_sharing.py             tests/test_platform.py 2>&1 | tee portable-tests.log
+          status=${PIPESTATUS[0]}
+          exit "$status"
+
+      - name: Upload portable test log
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: portable-${{ matrix.os }}
+          path: core/portable-tests.log
