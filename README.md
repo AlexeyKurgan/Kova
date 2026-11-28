@@ -149,7 +149,8 @@ For free browser AIs:
   append-only ledger is merged instead of conflicting.
 - Git tokens are stored in the OS keyring (DPAPI/Keychain/Secret Service) and are
   never kept in `.git/config`.
-- This is bundle-level collaboration with explicit review, not live co-editing.
+- This is bundle-level collaboration with explicit review. Real-time pair
+  programming and live co-editing are optional and outside the current scope.
 
 ### Packages and engines
 
