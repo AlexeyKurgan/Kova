@@ -1653,6 +1653,7 @@ const EN: Record<string, string> = {
   "Kova не запускает CLI провайдера внутри Docker/WSL: бинарник и авторизация должны быть установлены в контейнере. Это ограничение указано явно, а не маскируется под готовую изоляцию.":
     "Kova does not run a provider CLI inside Docker/WSL: the binary and authorization must be installed in the container. This limitation is stated explicitly instead of being disguised as ready isolation.",
   // Team
+  "В пространстве есть неприменённые срезы. Проверь их, чтобы не потерять чужие изменения.": "There are unapplied bundles in the space. Review them so you do not lose someone else's changes.",
   "Не удалось загрузить команду": "Could not load the team space",
   "Не удалось открыть изменения": "Could not open the changes",
   "Новых срезов: {count}": "New bundles: {count}",

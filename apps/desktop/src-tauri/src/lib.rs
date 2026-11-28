@@ -86,9 +86,14 @@ fn install_update(app: tauri::AppHandle, path: String) -> Result<(), String> {
         command
             .spawn()
             .map_err(|error| format!("не удалось запустить установщик: {error}"))?;
+        app.exit(0);
+        Ok(())
     }
-    app.exit(0);
-    Ok(())
+    #[cfg(not(windows))]
+    {
+        let _ = app;
+        Err("автообновление доступно только в Windows-сборке".to_string())
+    }
 }
 
 #[tauri::command]

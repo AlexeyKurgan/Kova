@@ -8,11 +8,11 @@ Kova Hub keeps the brief, the assets, the checks, the Blender scene, the AI run 
 
 <p>
   <img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-blue.svg">
-  <img alt="Platform: Windows" src="https://img.shields.io/badge/platform-Windows%2010%2F11-lightgrey">
+  <img alt="Platform: Windows, macOS and Linux" src="https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey">
   <img alt="Status: early preview" src="https://img.shields.io/badge/status-early%20preview-orange">
 </p>
 
-> Early preview. Windows 10/11 x64 is the supported platform today. The data model and UI can still change.
+> Early preview. Windows 10/11 x64 ships official installers; macOS and Linux are a source-build preview. The data model and UI can still change.
 
 ## Install
 
@@ -26,7 +26,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -Command "irm https://raw.githubus
 
 The script:
 
-1. takes the latest GitHub Release;
+1. takes the highest published GitHub Release;
 2. downloads the NSIS installer;
 3. verifies SHA256 against `manifest.json`;
 4. removes Mark-of-the-Web;

@@ -12,6 +12,8 @@ from datetime import datetime
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
+from ...i18n import tr
+
 router = APIRouter(prefix="/updates", tags=["updates"])
 
 
@@ -62,6 +64,14 @@ def _pick_release(releases: list[object]) -> dict[str, object] | None:
 @router.get("/check", response_model=UpdateInfo)
 def check_updates() -> UpdateInfo:
     current = os.environ.get("KOVA_VERSION", "0.0.0")
+    if os.name != "nt":
+        return UpdateInfo(
+            current=current,
+            error=tr(
+                "Автообновление доступно в Windows-сборке. На macOS/Linux обнови исходники и пересобери проект.",
+                "Self-update is available in the Windows build. On macOS/Linux update the sources and rebuild.",
+            ),
+        )
     repo = os.environ.get("KOVA_UPDATE_REPO", "AlexeyKurgan/Kova")
     url = f"https://api.github.com/repos/{repo}/releases?per_page=20"
     request = urllib.request.Request(

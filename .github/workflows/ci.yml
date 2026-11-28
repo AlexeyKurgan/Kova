@@ -112,5 +112,12 @@ jobs:
           npm ci
           npm run build
 
+      - name: Sidecar placeholder
+        shell: bash
+        run: |
+          triple="$(rustc -vV | awk '/^host:/ {print $2}')"
+          touch "apps/desktop/src-tauri/binaries/kova-core-$triple"
+          chmod +x "apps/desktop/src-tauri/binaries/kova-core-$triple"
+
       - name: Cargo check
         run: cargo check --manifest-path apps/desktop/src-tauri/Cargo.toml

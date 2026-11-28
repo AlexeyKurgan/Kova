@@ -578,6 +578,13 @@ export default function TeamScreen({ onChanged }: Props) {
                 maxLength={200}
                 rows={3}
               />
+              {incoming.length > 0 ? (
+                <p className="team-conflict-note">
+                  {t(
+                    "В пространстве есть неприменённые срезы. Проверь их, чтобы не потерять чужие изменения.",
+                  )}
+                </p>
+              ) : null}
               <div className="pkg-actions">
                 <button type="submit" className="btn btn-primary" disabled={publishing}>
                   <Send size={15} />
