@@ -1267,14 +1267,15 @@ def apply_bundle(
 
     state["head"] = bundle_id
     state["base"] = _archive_manifest(extracted)
-    state["last_apply_at"] = _now()
     _remember(state, bundle_id, "apply")
+    if operations:
+        state["last_apply_at"] = _now()
+        _write_json(
+            _team_dir(root) / "last-apply.json",
+            {"bundle_id": bundle_id, "space_id": space["id"], "at": _now()},
+        )
+        _prune_backups(root)
     _save_state(root, space["id"], state)
-    _write_json(
-        _team_dir(root) / "last-apply.json",
-        {"bundle_id": bundle_id, "space_id": space["id"], "at": _now()},
-    )
-    _prune_backups(root)
     _event(
         root,
         "team.applied",
