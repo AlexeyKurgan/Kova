@@ -14,6 +14,7 @@ up, and the last apply can be rolled back.
 """
 from __future__ import annotations
 
+import functools
 import hashlib
 import json
 import os
@@ -60,10 +61,20 @@ LEDGER_PATH = ".hub/ledger/events.jsonl"
 BUNDLE_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,79}$")
 BRANCH = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._/-]{0,120}$")
 LOCK = threading.Lock()
+MUTATION_LOCK = threading.RLock()
 
 
 class TeamError(ValueError):
     pass
+
+
+def _serialized(function):
+    @functools.wraps(function)
+    def wrapper(*args, **kwargs):
+        with MUTATION_LOCK:
+            return function(*args, **kwargs)
+
+    return wrapper
 
 
 def _now() -> str:
@@ -259,6 +270,7 @@ def _token_key(space_id: str) -> str:
     return f"team_token_{space_id}"
 
 
+@_serialized
 def connect_space(
     root: Path,
     kind: Literal["folder", "git"],
@@ -347,6 +359,7 @@ def connect_space(
     return space_info(root)
 
 
+@_serialized
 def leave_space(root: Path) -> dict[str, Any]:
     space = require_space(root)
     _space_path(root).unlink(missing_ok=True)
@@ -926,6 +939,7 @@ def _new_bundle_id() -> str:
     return f"{stamp}-{uuid.uuid4().hex[:8]}"
 
 
+@_serialized
 def publish(root: Path, message: str = "") -> dict[str, Any]:
     root = root.resolve()
     space = require_space(root)
@@ -1149,6 +1163,7 @@ def _merge_ledger(root: Path, extracted: Path) -> None:
     )
 
 
+@_serialized
 def preview_bundle(root: Path, bundle_id: str) -> dict[str, Any]:
     root = root.resolve()
     space = require_space(root)
@@ -1177,6 +1192,7 @@ def preview_bundle(root: Path, bundle_id: str) -> dict[str, Any]:
     }
 
 
+@_serialized
 def apply_bundle(
     root: Path,
     bundle_id: str,
@@ -1351,6 +1367,7 @@ def _prune_empty(root: Path, directory: Path) -> None:
         current = current.parent
 
 
+@_serialized
 def rollback_last(root: Path) -> dict[str, Any]:
     root = root.resolve()
     space = require_space(root)
