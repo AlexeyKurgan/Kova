@@ -2,6 +2,7 @@ import hashlib
 import os
 import shutil
 import subprocess
+import sys
 from functools import lru_cache
 from pathlib import Path
 
@@ -21,18 +22,39 @@ def find_blender() -> Path | None:
     if which:
         candidates.append(Path(which))
 
-    bases = [
-        Path(base)
-        for base in (os.environ.get("ProgramFiles"), os.environ.get("LOCALAPPDATA"))
-        if base
-    ]
-    for base in bases:
+    if os.name == "nt":
+        bases = [
+            Path(base)
+            for base in (os.environ.get("ProgramFiles"), os.environ.get("LOCALAPPDATA"))
+            if base
+        ]
+        for base in bases:
+            for root in (
+                base / "Blender Foundation",
+                base / "Programs" / "Blender Foundation",
+            ):
+                if root.is_dir():
+                    candidates.extend(sorted(root.glob("Blender */blender.exe"), reverse=True))
+    elif sys.platform == "darwin":
         for root in (
-            base / "Blender Foundation",
-            base / "Programs" / "Blender Foundation",
+            Path("/Applications"),
+            Path.home() / "Applications",
         ):
             if root.is_dir():
-                candidates.extend(sorted(root.glob("Blender */blender.exe"), reverse=True))
+                candidates.extend(
+                    sorted(root.glob("Blender*.app/Contents/MacOS/Blender"), reverse=True)
+                )
+        candidates.append(Path("/Applications/Blender.app/Contents/MacOS/Blender"))
+    else:
+        candidates.extend(
+            Path(path)
+            for path in (
+                "/usr/bin/blender",
+                "/usr/local/bin/blender",
+                "/snap/bin/blender",
+                "/var/lib/flatpak/exports/bin/org.blender.Blender",
+            )
+        )
 
     for candidate in candidates:
         if candidate.is_file():

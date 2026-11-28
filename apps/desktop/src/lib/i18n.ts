@@ -915,6 +915,8 @@ const EN: Record<string, string> = {
     "Check Packages: enable the engine package and reinstall damaged ones.",
   "Проверь, что папка проекта и .hub не защищены от записи и не заняты другой программой.":
     "Make sure the project folder and .hub are writable and not locked by another program.",
+  "Windows использует DPAPI, macOS — Keychain, Linux — Secret Service. Файл 0600 — явный fallback.":
+    "Windows uses DPAPI, macOS uses Keychain, Linux uses Secret Service. A 0600 file is an explicit fallback.",
   "8765 — core, 47832 — Blender, 48620 — редактор. Занятый порт может принадлежать другой копии Kova.":
     "8765 — core, 47832 — Blender, 48620 — editor. A busy port may belong to another Kova instance.",
 

@@ -233,19 +233,68 @@ fn ensure_profile() -> Result<(), String> {
     .map_err(|e| e.to_string())
 }
 
+fn platform_slug() -> &'static str {
+    if cfg!(target_os = "windows") {
+        if cfg!(target_arch = "aarch64") {
+            "windows-arm64"
+        } else {
+            "windows-amd64"
+        }
+    } else if cfg!(target_os = "macos") {
+        if cfg!(target_arch = "aarch64") {
+            "macos-arm64"
+        } else {
+            "macos-amd64"
+        }
+    } else if cfg!(target_arch = "aarch64") {
+        "linux-arm64"
+    } else {
+        "linux-amd64"
+    }
+}
+
 fn editor_root() -> PathBuf {
+    #[cfg(target_os = "windows")]
     let base = std::env::var("LOCALAPPDATA")
         .or_else(|_| std::env::var("USERPROFILE"))
+        .unwrap_or_else(|_| ".".to_string());
+    #[cfg(target_os = "macos")]
+    let base = std::env::var("HOME")
+        .map(|home| format!("{home}/Library/Application Support"))
+        .unwrap_or_else(|_| ".".to_string());
+    #[cfg(all(not(target_os = "windows"), not(target_os = "macos")))]
+    let base = std::env::var("XDG_DATA_HOME")
+        .or_else(|_| std::env::var("HOME").map(|home| format!("{home}/.local/share")))
         .unwrap_or_else(|_| ".".to_string());
     PathBuf::from(base).join("KovaHub").join("editor")
 }
 
 fn server_dir() -> PathBuf {
-    editor_root().join(format!("code-server-{CODE_SERVER_VERSION}-windows-amd64"))
+    editor_root().join(format!(
+        "code-server-{CODE_SERVER_VERSION}-{}",
+        platform_slug()
+    ))
 }
 
 fn server_cmd() -> PathBuf {
-    server_dir().join("bin").join("code-server.cmd")
+    #[cfg(target_os = "windows")]
+    let name = "code-server.cmd";
+    #[cfg(not(target_os = "windows"))]
+    let name = "code-server";
+    server_dir().join("bin").join(name)
+}
+
+fn server_command() -> Command {
+    #[cfg(target_os = "windows")]
+    {
+        let mut command = Command::new("cmd.exe");
+        command.arg("/C").arg(server_cmd());
+        command
+    }
+    #[cfg(not(target_os = "windows"))]
+    {
+        Command::new(server_cmd())
+    }
 }
 
 fn wait_ready(port: u16) -> bool {
@@ -294,11 +343,16 @@ fn install_blocking() -> Result<(), String> {
     fs::create_dir_all(&root).map_err(|e| e.to_string())?;
     let archive = root.join("code-server.tar.gz");
     let url = format!(
-        "https://github.com/coder/code-server/releases/download/v{0}/code-server-{0}-windows-amd64.tar.gz",
-        CODE_SERVER_VERSION
+        "https://github.com/coder/code-server/releases/download/v{0}/code-server-{0}-{1}.tar.gz",
+        CODE_SERVER_VERSION,
+        platform_slug()
     );
 
-    let status = Command::new("curl.exe")
+    #[cfg(target_os = "windows")]
+    let curl = "curl.exe";
+    #[cfg(not(target_os = "windows"))]
+    let curl = "curl";
+    let status = Command::new(curl)
         .args(["-L", "--fail", "-sS", "-o"])
         .arg(&archive)
         .arg(&url)
@@ -308,7 +362,11 @@ fn install_blocking() -> Result<(), String> {
         return Err("не удалось скачать редактор".to_string());
     }
 
-    let status = Command::new("tar.exe")
+    #[cfg(target_os = "windows")]
+    let tar = "tar.exe";
+    #[cfg(not(target_os = "windows"))]
+    let tar = "tar";
+    let status = Command::new(tar)
         .args(["-xzf"])
         .arg(&archive)
         .arg("-C")
@@ -339,10 +397,8 @@ fn spawn_server(port: u16) -> Result<Child, String> {
     ensure_profile()?;
 
     let bind = format!("127.0.0.1:{port}");
-    let mut cmd = Command::new("cmd.exe");
-    cmd.arg("/C")
-        .arg(server_cmd())
-        .args(["--bind-addr", &bind])
+    let mut cmd = server_command();
+    cmd.args(["--bind-addr", &bind])
         .args(["--auth", "none"])
         .arg("--disable-telemetry")
         .arg("--disable-update-check")
@@ -461,10 +517,8 @@ pub async fn editor_uninstall_extensions(ids: Vec<String>) -> Result<usize, Stri
     tauri::async_runtime::spawn_blocking(move || {
         let mut removed = 0;
         for id in ids {
-            let mut cmd = Command::new("cmd.exe");
-            cmd.arg("/C")
-                .arg(server_cmd())
-                .arg("--uninstall-extension")
+            let mut cmd = server_command();
+            cmd.arg("--uninstall-extension")
                 .arg(&id)
                 .arg("--user-data-dir")
                 .arg(&user_data)
@@ -508,10 +562,8 @@ pub async fn editor_install_extensions(ids: Vec<String>) -> Result<usize, String
     tauri::async_runtime::spawn_blocking(move || {
         let mut installed = 0;
         for id in ids {
-            let mut cmd = Command::new("cmd.exe");
-            cmd.arg("/C")
-                .arg(server_cmd())
-                .arg("--install-extension")
+            let mut cmd = server_command();
+            cmd.arg("--install-extension")
                 .arg(&id)
                 .arg("--force")
                 .arg("--user-data-dir")

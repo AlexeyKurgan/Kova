@@ -32,3 +32,44 @@ jobs:
       - name: Core tests
         working-directory: core
         run: python -m pytest -q
+
+  portable:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install frontend
+        run: npm ci
+
+      - name: TypeScript
+        run: npm run typecheck
+
+      - name: Install core
+        run: python -m pip install -e "./core[dev]"
+
+      - name: Portable core tests
+        working-directory: core
+        run: >-
+          python -m pytest -q
+          tests/test_health.py
+          tests/test_domain.py
+          tests/test_projects.py
+          tests/test_packages.py
+          tests/test_custom_packages.py
+          tests/test_remote_packages.py
+          tests/test_memory.py
+          tests/test_sharing.py
+          tests/test_platform.py

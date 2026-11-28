@@ -23,7 +23,7 @@ from .api_provider import RunCancelled
 from .cli_output import parse_output, stream_display
 from .providers import build_command, build_resume_command, get_provider, provider_env
 from ..security.egress import EgressGuard, apply_guard_env, egress_hosts
-from ..security.job import ProcessJail
+from ..security.job import ProcessJail, kill_process_group, spawn_kwargs
 from ..security.secrets import get_secret
 
 RUNS: dict[str, dict[str, Any]] = {}
@@ -257,16 +257,7 @@ def _prompt_for(
 
 
 def _kill(process: subprocess.Popen[str]) -> None:
-    if process.poll() is not None:
-        return
-    if os.name == "nt":
-        subprocess.run(
-            ["taskkill", "/PID", str(process.pid), "/T", "/F"],
-            capture_output=True,
-            creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
-        )
-    else:
-        process.terminate()
+    kill_process_group(process)
 
 
 def _execute(
@@ -340,7 +331,7 @@ def _execute(
             encoding="utf-8",
             errors="replace",
             env=env,
-            creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
+            **spawn_kwargs(),
         )
         if use_stdin and process.stdin is not None:
             process.stdin.write(prompt)

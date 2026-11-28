@@ -1,6 +1,7 @@
 import os
 import shutil
 import subprocess
+import sys
 import time
 from pathlib import Path
 
@@ -78,17 +79,33 @@ def _find_godot() -> str:
     override = os.environ.get("KOVA_GODOT")
     if override and Path(override).is_file():
         return override
-    for command in ("godot", "godot4", "godot.exe"):
+    for command in ("godot", "godot4", "godot.exe", "godot4.2", "godot4.3"):
         found = shutil.which(command)
         if found:
             return found
-    bases = [os.environ.get("ProgramFiles", ""), os.environ.get("LOCALAPPDATA", "")]
-    for base in bases:
-        if not base:
-            continue
-        root = Path(base)
-        for pattern in ("Godot/Godot*.exe", "Programs/Godot/Godot*.exe"):
-            rows = sorted(root.glob(pattern), reverse=True)
+    if os.name == "nt":
+        bases = [os.environ.get("ProgramFiles", ""), os.environ.get("LOCALAPPDATA", "")]
+        for base in bases:
+            if not base:
+                continue
+            root = Path(base)
+            for pattern in ("Godot/Godot*.exe", "Programs/Godot/Godot*.exe"):
+                rows = sorted(root.glob(pattern), reverse=True)
+                if rows:
+                    return str(rows[0])
+    elif sys.platform == "darwin":
+        for root in (Path("/Applications"), Path.home() / "Applications"):
+            rows = sorted(root.glob("Godot*.app/Contents/MacOS/Godot"), reverse=True)
+            if rows:
+                return str(rows[0])
+    else:
+        for pattern in (
+            "/usr/bin/godot*",
+            "/usr/local/bin/godot*",
+            "/snap/bin/godot*",
+            "/var/lib/flatpak/exports/bin/org.godotengine.Godot*",
+        ):
+            rows = sorted(Path().glob(pattern), reverse=True)
             if rows:
                 return str(rows[0])
     return ""
@@ -98,11 +115,30 @@ def _find_unity() -> str:
     override = os.environ.get("KOVA_UNITY")
     if override and Path(override).is_file():
         return override
-    for base in (Path("C:/Program Files"), Path("C:/Program Files (x86)")):
-        for pattern in ("Unity/Hub/Editor/*/Editor/Unity.exe", "Unity*/Editor/Unity.exe"):
-            rows = sorted(base.glob(pattern), reverse=True)
+    if os.name == "nt":
+        for base in (Path("C:/Program Files"), Path("C:/Program Files (x86)")):
+            for pattern in ("Unity/Hub/Editor/*/Editor/Unity.exe", "Unity*/Editor/Unity.exe"):
+                rows = sorted(base.glob(pattern), reverse=True)
+                if rows:
+                    return str(rows[0])
+    elif sys.platform == "darwin":
+        for base in (
+            Path("/Applications/Unity/Hub/Editor"),
+            Path.home() / "Applications/Unity/Hub/Editor",
+        ):
+            rows = sorted(base.glob("*/Unity.app/Contents/MacOS/Unity"), reverse=True)
             if rows:
                 return str(rows[0])
+    else:
+        for base in (
+            Path.home() / "Unity/Hub/Editor",
+            Path("/opt/unity/editors"),
+            Path("/opt/Unity"),
+        ):
+            for pattern in ("*/Editor/Unity", "*/Unity"):
+                rows = sorted(base.glob(pattern), reverse=True)
+                if rows:
+                    return str(rows[0])
     return ""
 
 
@@ -110,15 +146,36 @@ def _find_unreal() -> str:
     override = os.environ.get("KOVA_UNREAL")
     if override and Path(override).is_file():
         return override
-    base = Path("C:/Program Files/Epic Games")
-    for pattern in (
-        "UE_*/Engine/Binaries/Win64/UnrealEditor.exe",
-        "UE_*/Engine/Binaries/Win64/UnrealEditor-Cmd.exe",
-    ):
+    if os.name == "nt":
+        base = Path("C:/Program Files/Epic Games")
+        for pattern in (
+            "UE_*/Engine/Binaries/Win64/UnrealEditor.exe",
+            "UE_*/Engine/Binaries/Win64/UnrealEditor-Cmd.exe",
+        ):
+            if base.is_dir():
+                rows = sorted(base.glob(pattern), reverse=True)
+                if rows:
+                    return str(rows[0])
+    elif sys.platform == "darwin":
+        base = Path("/Users/Shared/Epic Games")
         if base.is_dir():
-            rows = sorted(base.glob(pattern), reverse=True)
+            rows = sorted(
+                base.glob(
+                    "UE_*/Engine/Binaries/Mac/UnrealEditor.app/Contents/MacOS/UnrealEditor"
+                ),
+                reverse=True,
+            )
             if rows:
                 return str(rows[0])
+    else:
+        for base in (Path("/opt"), Path.home()):
+            for pattern in (
+                "UnrealEngine/Engine/Binaries/Linux/UnrealEditor",
+                "UE_*/Engine/Binaries/Linux/UnrealEditor",
+            ):
+                rows = sorted(base.glob(pattern), reverse=True)
+                if rows:
+                    return str(rows[0])
     return ""
 
 

@@ -1,5 +1,7 @@
 import ctypes
 import os
+import signal
+import subprocess
 from typing import Any
 
 
@@ -62,18 +64,54 @@ if os.name == "nt":
     _PROCESS_TERMINATE = 0x0001
 
 
-class ProcessJail:
-    """Best-effort Windows Job Object containment.
+def _is_windows() -> bool:
+    return os.name == "nt"
 
-    This is process containment, not a filesystem/network security boundary.
-    It kills the CLI and all of its children when Kova closes the job, and
-    limits runaway process creation.
+
+def spawn_kwargs() -> dict[str, Any]:
+    """Platform-safe Popen kwargs for agent processes.
+
+    POSIX starts a new session so the whole process group can be terminated.
+    Windows keeps the hidden-console flag; Job Object assignment happens after
+    the process starts.
+    """
+    if _is_windows():
+        return {"creationflags": getattr(subprocess, "CREATE_NO_WINDOW", 0)}
+    return {"start_new_session": True}
+
+
+def kill_process_group(process: subprocess.Popen[Any]) -> None:
+    if process.poll() is not None:
+        return
+    if _is_windows():
+        subprocess.run(
+            ["taskkill", "/PID", str(process.pid), "/T", "/F"],
+            capture_output=True,
+            creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
+        )
+        return
+    try:
+        os.killpg(os.getpgid(process.pid), signal.SIGTERM)
+    except (ProcessLookupError, PermissionError, OSError):
+        try:
+            process.terminate()
+        except OSError:
+            pass
+
+
+class ProcessJail:
+    """Best-effort process containment, not a filesystem/network boundary.
+
+    Windows uses a Job Object with kill-on-close. POSIX uses a new session and
+    kills the process group. Agent commands are spawned with ``spawn_kwargs``.
     """
 
     def __init__(self) -> None:
         self._handle: Any = None
+        self._pids: set[int] = set()
         self.available = False
-        if os.name != "nt":
+        if not _is_windows():
+            self.available = hasattr(os, "killpg")
             return
         try:
             handle = _KERNEL32.CreateJobObjectW(None, None)
@@ -101,6 +139,11 @@ class ProcessJail:
             self._handle = None
 
     def assign(self, pid: int) -> bool:
+        if not _is_windows():
+            if not self.available:
+                return False
+            self._pids.add(int(pid))
+            return True
         if not self.available or not self._handle:
             return False
         process = _KERNEL32.OpenProcess(
@@ -116,6 +159,14 @@ class ProcessJail:
             _KERNEL32.CloseHandle(process)
 
     def terminate(self) -> None:
+        if not _is_windows():
+            for pid in list(self._pids):
+                try:
+                    os.killpg(pid, signal.SIGTERM)
+                except (ProcessLookupError, PermissionError, OSError):
+                    pass
+            self._pids.clear()
+            return
         if self.available and self._handle:
             try:
                 _KERNEL32.TerminateJobObject(self._handle, 1)
@@ -123,6 +174,10 @@ class ProcessJail:
                 pass
 
     def close(self) -> None:
+        if not _is_windows():
+            self.terminate()
+            self.available = False
+            return
         if self._handle:
             try:
                 _KERNEL32.CloseHandle(self._handle)

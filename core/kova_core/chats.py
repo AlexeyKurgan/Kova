@@ -20,7 +20,7 @@ from .agents.api_provider import run_chat as run_api_chat
 from .domain.ids import new_id
 from .security.secrets import get_secret
 from .security.egress import EgressGuard, apply_guard_env, egress_hosts
-from .security.job import ProcessJail
+from .security.job import ProcessJail, kill_process_group, spawn_kwargs
 from .storage.projects import load_project
 
 LOCK = threading.Lock()
@@ -902,7 +902,7 @@ def _run_cli(
                 str(hub.parent),
                 external_paths,
             ),
-            creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
+            **spawn_kwargs(),
         )
         if use_stdin and process.stdin is not None:
             process.stdin.write(prompt)
@@ -1112,20 +1112,10 @@ def _provider_is_remote(provider: dict[str, Any]) -> bool:
 
 
 def _kill(chat_id: str) -> None:
-    import os
-
     with LOCK:
         process = PROCESSES.get(chat_id)
-    if process is None or process.poll() is not None:
-        return
-    if os.name == "nt":
-        subprocess.run(
-            ["taskkill", "/PID", str(process.pid), "/T", "/F"],
-            capture_output=True,
-            creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
-        )
-    else:
-        process.terminate()
+    if process is not None:
+        kill_process_group(process)
 
 
 def cancel_chat(hub: Path, chat_id: str) -> dict[str, Any] | None:

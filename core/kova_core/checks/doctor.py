@@ -7,6 +7,7 @@ from ..domain.check import CheckResult
 from ..domain.enums import CheckStatus
 from ..i18n import tr
 from ..security.job import ProcessJail
+from ..security.secrets import secret_backend
 from ..security.trash import list_project_trash
 from ..storage.projects import load_project
 from ..storage.snapshots import list_snapshots
@@ -154,22 +155,34 @@ def run_doctor(hub: Path) -> list[CheckResult]:
     jail = ProcessJail()
     jail_ok = jail.available
     jail.close()
+    containment_ok = (
+        "Job Object: CLI и дочерние процессы завершаются вместе с Kova"
+        if os.name == "nt"
+        else "process group: CLI и дочерние процессы завершаются вместе с Kova"
+    )
+    containment_ok_en = (
+        "Job Object: CLI and child processes terminate with Kova"
+        if os.name == "nt"
+        else "process group: CLI and child processes terminate with Kova"
+    )
+    containment_missing = (
+        "Job Object недоступен: дочерние процессы могут остаться"
+        if os.name == "nt"
+        else "process groups недоступны: дочерние процессы могут остаться"
+    )
+    containment_missing_en = (
+        "Job Object unavailable: child processes may remain"
+        if os.name == "nt"
+        else "process groups unavailable: child processes may remain"
+    )
     results.append(
         _check(
             "Process containment",
             "Process containment",
             CheckStatus.passed if jail_ok else CheckStatus.warning,
-            (
-                "Job Object: CLI и дочерние процессы завершаются вместе с Kova"
-                if jail_ok
-                else "Job Object недоступен: дочерние процессы могут остаться"
-            ),
-            (
-                "Job Object: CLI and child processes terminate with Kova"
-                if jail_ok
-                else "Job Object unavailable: child processes may remain"
-            ),
-            {"job_object": jail_ok},
+            containment_ok if jail_ok else containment_missing,
+            containment_ok_en if jail_ok else containment_missing_en,
+            {"containment": "job-object" if os.name == "nt" else "process-group"},
         )
     )
     os_sandbox = ""
@@ -195,6 +208,26 @@ def run_doctor(hub: Path) -> list[CheckResult]:
                 else "not supported: a sandbox project copy + process containment is used"
             ),
             {"backend": os_sandbox, "supported": False},
+        )
+    )
+    secrets_backend = secret_backend()
+    secrets_ok = secrets_backend in {"dpapi", "keychain", "secret-service"}
+    results.append(
+        _check(
+            "Секреты",
+            "Secrets",
+            CheckStatus.passed if secrets_ok else CheckStatus.warning,
+            (
+                f"backend: {secrets_backend}"
+                if secrets_ok
+                else f"backend: {secrets_backend} — OS keyring недоступен, используется файл 0600"
+            ),
+            (
+                f"backend: {secrets_backend}"
+                if secrets_ok
+                else f"backend: {secrets_backend} — OS keyring unavailable, using a 0600 file"
+            ),
+            {"backend": secrets_backend},
         )
     )
     token = bool(os.environ.get("KOVA_CORE_TOKEN"))

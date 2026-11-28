@@ -56,6 +56,7 @@ def test_doctor_reports_environment(tmp_path: Path, monkeypatch) -> None:
     assert checks["Process containment"]["status"] in {"passed", "warning"}
     assert checks["OS sandbox"]["status"] in {"passed", "warning"}
     assert checks["Права на запись"]["status"] == "passed"
+    assert checks["Секреты"]["status"] in {"passed", "warning"}
     assert checks["Порты Kova"]["details"]["8765"] in {"занят", "свободен"}
     assert checks["Пакеты проекта"]["status"] == "passed"
     assert "Свободное место" in checks

@@ -259,19 +259,26 @@ Back up `.hub/` and `assets/` together. `.hub/` is intentionally readable JSON/M
 
 **To use the installed app**
 
-- Windows 10/11 x64
+- Windows 10/11 x64 (official installers)
 - WebView2 Runtime (preinstalled on Windows 11)
 - Optional: Blender 4.2+ (tested with 5.2 LTS)
 - Optional: an AI CLI or API provider
+
+macOS and Linux are supported as a source-build preview: portable core paths,
+Keychain/Secret Service, POSIX process groups and cross-platform editor downloads
+are implemented, but official signed installers and clean-machine testing are
+still Windows-only.
 
 **To build from source**
 
 - Node.js 20+
 - Python 3.11+
-- Rust 1.77.2+ with MSVC toolchain
-- Visual Studio Build Tools C++ workload
+- Rust 1.77.2+
 - Git
 - PyInstaller for the core sidecar
+- Windows: Visual Studio Build Tools C++ workload
+- macOS: Xcode Command Line Tools and Tauri prerequisites
+- Linux: Tauri WebKitGTK/AppImage prerequisites
 
 ## Build from source
 
@@ -293,6 +300,18 @@ Clone and set up:
 git clone https://github.com/AlexeyKurgan/Kova.git
 cd Kova
 powershell -ExecutionPolicy Bypass -File scripts/setup.ps1
+```
+
+macOS/Linux build:
+
+```bash
+git clone https://github.com/AlexeyKurgan/Kova.git
+cd Kova
+python -m venv .venv
+. .venv/bin/activate
+python -m pip install -e "./core[dev]"
+npm ci
+bash scripts/build.sh
 ```
 
 Development:
