@@ -1013,7 +1013,7 @@ def _remember(state: dict[str, Any], bundle_id: str, action: str) -> None:
     if bundle_id in applied:
         applied.remove(bundle_id)
     applied.insert(0, bundle_id)
-    state["applied"] = applied[:500]
+    state["applied"] = applied[:2000]
     events = [item for item in state.get("events") or [] if isinstance(item, dict)]
     events.insert(0, {"id": bundle_id, "action": action, "at": _now()})
     state["events"] = events[:200]
@@ -1273,6 +1273,7 @@ def apply_bundle(
         _team_dir(root) / "last-apply.json",
         {"bundle_id": bundle_id, "space_id": space["id"], "at": _now()},
     )
+    _prune_backups(root)
     _event(
         root,
         "team.applied",
@@ -1355,6 +1356,19 @@ def _restore_backup(
     return restored, removed
 
 
+def _prune_backups(root: Path, keep: int = 10) -> None:
+    directory = _team_dir(root) / "backups"
+    if not directory.is_dir():
+        return
+    rows = sorted(
+        (path for path in directory.iterdir() if path.is_dir()),
+        key=lambda path: path.stat().st_mtime,
+        reverse=True,
+    )
+    for stale in rows[keep:]:
+        shutil.rmtree(stale, ignore_errors=True)
+
+
 def _prune_empty(root: Path, directory: Path) -> None:
     current = directory
     while current != root and root in current.parents:
@@ -1387,6 +1401,7 @@ def rollback_last(root: Path) -> dict[str, Any]:
         _save_state(root, space["id"], previous)
     (_team_dir(root) / "last-apply.json").unlink(missing_ok=True)
     shutil.rmtree(directory, ignore_errors=True)
+    _prune_backups(root)
     _event(
         root,
         "team.rolled_back",
