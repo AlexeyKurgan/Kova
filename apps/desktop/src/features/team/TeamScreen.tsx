@@ -10,6 +10,7 @@ import {
   FilePenLine,
   FilePlus2,
   FileX2,
+  FolderOpen,
   FolderSync,
   GitBranch,
   History,
@@ -35,6 +36,7 @@ import {
   rollbackTeam,
   setTeamMember,
 } from "../../lib/coreClient";
+import { pickFolder } from "../../lib/dialogs";
 import { formatBytes, formatDate } from "../../lib/format";
 import { t } from "../../lib/i18n";
 import type {
@@ -225,7 +227,7 @@ export default function TeamScreen({ onChanged }: Props) {
         location: location.trim(),
         name: name.trim(),
         branch: kind === "git" ? branch.trim() : undefined,
-        token: kind === "git" ? token.trim() : undefined,
+        token: kind === "git" && token.trim() ? token.trim() : undefined,
         member: member.trim() || undefined,
       });
       setToken("");
@@ -430,16 +432,37 @@ export default function TeamScreen({ onChanged }: Props) {
             </label>
             <label className="team-span-2">
               <span>{kind === "folder" ? t("Папка") : t("Git-адрес")}</span>
-              <input
-                value={location}
-                onChange={(event) => setLocation(event.target.value)}
-                placeholder={
-                  kind === "folder"
-                    ? "D:\\Kova Team\\Project"
-                    : "https://github.com/team/kova-team.git"
-                }
-                required
-              />
+              <div className="team-path-row">
+                <input
+                  value={location}
+                  onChange={(event) => setLocation(event.target.value)}
+                  placeholder={
+                    kind === "folder"
+                      ? "D:\\Kova Team\\Project"
+                      : "https://github.com/team/kova-team.git"
+                  }
+                  required
+                />
+                {kind === "folder" ? (
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    onClick={() => {
+                      void pickFolder(t("Выбрать папку пространства")).then((selected) => {
+                        if (!selected) return;
+                        setLocation(selected);
+                        if (!name.trim()) {
+                          const parts = selected.split(/[\\/]/).filter(Boolean);
+                          setName(parts[parts.length - 1] ?? "");
+                        }
+                      });
+                    }}
+                  >
+                    <FolderOpen size={14} />
+                    {t("Выбрать")}
+                  </button>
+                ) : null}
+              </div>
             </label>
             {kind === "git" ? (
               <>

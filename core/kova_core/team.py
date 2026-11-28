@@ -363,6 +363,7 @@ def connect_space(
 def leave_space(root: Path) -> dict[str, Any]:
     space = require_space(root)
     _space_path(root).unlink(missing_ok=True)
+    delete_secret(_token_key(space["id"]))
     _event(root, "team.left", subject=space["id"], data={"name": space.get("name")})
     return {"ok": True, "space": None}
 

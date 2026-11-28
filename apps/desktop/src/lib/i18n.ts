@@ -1689,6 +1689,8 @@ const EN: Record<string, string> = {
   "Создай новое пространство в пустой папке или подключись к существующему.": "Create a space in an empty folder or join an existing one.",
   "Общая папка": "Shared folder",
   "Команда проекта": "Team",
+  "Выбрать папку пространства": "Choose the space folder",
+  "Выбрать": "Browse",
   "Твоё имя": "Your name",
   "Git-адрес": "Git URL",
   "Ветка": "Branch",

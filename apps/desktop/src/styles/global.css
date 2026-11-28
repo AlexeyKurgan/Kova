@@ -21576,3 +21576,19 @@ html[data-reduce-motion="true"] *::after {
     grid-column: span 1;
   }
 }
+
+.team-path-row {
+  display: flex;
+  align-items: stretch;
+  gap: 6px;
+}
+
+.team-path-row input {
+  min-width: 0;
+  flex: 1;
+}
+
+.team-path-row .btn {
+  flex: none;
+  white-space: nowrap;
+}
