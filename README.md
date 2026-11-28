@@ -375,7 +375,7 @@ core/tests/                   Python tests
 scripts/                      setup, dev, build, release, diagnostics
 media/screenshots/            README screenshots
 .github/workflows/            CI and release workflows
-USER_GUIDE.md                 Russian end-user guide
+USER_GUIDE.md                 English end-user guide
 docs/                         Internal notes (gitignored)
 ```
 
@@ -421,7 +421,7 @@ Check internet access and antivirus rules for `%LOCALAPPDATA%\KovaHub\editor`.
 
 ## Documentation
 
-- [Russian user guide](USER_GUIDE.md)
+- [English user guide](USER_GUIDE.md)
 - [MIT License](LICENSE)
 - [Third-party notices](THIRD_PARTY_NOTICES.md)
 

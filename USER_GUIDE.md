@@ -1,323 +1,322 @@
-# Kova Hub — руководство пользователя
+# Kova Hub — User Guide
 
-Kova Hub — локальное приложение для работы над игровым проектом с AI-агентами.
-Официальные установщики — Windows 10/11 x64. macOS и Linux — source-build preview.
-Интерфейс на русском и английском.
+Kova Hub is a local-first desktop workspace for building a game project with AI
+agents. Official installers are available for Windows 10/11 x64. macOS and Linux
+are a source-build preview. The interface is available in Russian and English.
 
 ---
 
-## 1. Установка
+## 1. Installation
 
-Открой PowerShell и выполни одну команду:
+Open PowerShell and run one command:
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -Command "irm https://raw.githubusercontent.com/AlexeyKurgan/Kova/main/install.ps1 | iex"
 ```
 
-Что произойдёт:
+What happens:
 
-1. Kova найдёт самый новый опубликованный релиз на GitHub.
-2. Скачает установщик.
-3. Сверит SHA256 с `manifest.json`.
-4. Установит приложение.
-5. Запустит Kova Hub.
+1. Kova finds the highest published GitHub Release.
+2. Downloads the installer.
+3. Verifies SHA256 against `manifest.json`.
+4. Installs the app.
+5. Launches Kova Hub.
 
-Python, Node.js, Visual Studio и сертификаты не нужны.
+Python, Node.js, Visual Studio and certificates are not required.
 
-Вручную установщики лежат здесь:
+Installers are also available manually:
 <https://github.com/AlexeyKurgan/Kova/releases/latest>
 
-Установщик пока не подписан сертификатом. Windows SmartScreen может попросить
-подтверждение — это нормально для unsigned-сборки.
+The installer is not code-signed yet. Windows SmartScreen may ask you to confirm —
+this is normal for an unsigned build.
 
 ---
 
-## 2. Первый запуск
+## 2. First launch
 
-1. Создай проект или открой существующую папку.
-2. Выбери движок: Roblox, Godot, Unity, Unreal, Blender, RPG Maker, Web или «Без движка».
-3. Открой **Агенты** и добавь AI-провайдера.
-4. Создай первую задачу — вручную или из шаблона.
-5. Импортируй ассеты и привяжи их к задаче.
-6. Запусти проверки или Blender-инспекцию.
-7. Подготовь капсулу, запусти агента или вставь ответ из Clipboard-режима.
-8. Проверь результат в Review.
-9. Прими, доработай или откатись к снапшоту.
+1. Create a project or open an existing folder.
+2. Pick an engine: Roblox, Godot, Unity, Unreal, Blender, RPG Maker, Web or “No engine”.
+3. Open **Agents** and add an AI provider.
+4. Create your first task — manually or from a template.
+5. Import assets and link them to the task.
+6. Run checks or a Blender inspection.
+7. Prepare a capsule, run an agent, or paste a response from Clipboard mode.
+8. Review the result in **Review**.
+9. Accept it, rework it, or roll back to a snapshot.
 
-Проект — это обычная папка. Внутри появляется `.hub/` с задачами, ассетами,
-историей и снапшотами.
-
----
-
-## 3. Интерфейс
-
-- **Слева** — разделы: Обзор, Проекты, Задачи, Чат, Команда, Ассеты, Скиллы,
-  Пакеты, Review, Снапшоты, Память, Дневник, Агенты, Ночная смена, Doctor,
-  Редактор.
-- **Сверху** — хлебные крошки, глобальный поиск, статус Core и иконки.
-- **Справа** — инспектор проекта: подключения, проблемы, память, подсказки.
-- **Ctrl+K** — глобальный поиск по проекту.
-
-Счётчики навигации показывают активные задачи и ожидающий Review.
+A project is a regular folder. Kova creates `.hub/` inside it with tasks, assets,
+history and snapshots.
 
 ---
 
-## 4. Задачи
+## 3. Interface
 
-Задача содержит:
+- **Left sidebar** — Overview, Projects, Tasks, Chat, Team, Assets, Skills,
+  Packages, Review, Snapshots, Memory, Diary, Agents, Night Shift, Doctor, Editor.
+- **Top bar** — breadcrumbs, global search, Core status and icons.
+- **Right side** — project inspector: connections, issues, memory and tips.
+- **Ctrl+K** — global project search.
 
-- цель;
-- критерии готовности;
-- ограничения;
-- тип и движок;
-- скиллы;
-- связанные ассеты;
-- проверки;
-- шаги workflow.
-
-Вкладки задачи:
-
-- **Бриф** — цель, критерии, контекст, «Почему так вышло?».
-- **Работа** — запуск агента, очередь, handoff, live-вывод.
-- **Проверки** — команды проверок и результаты.
-- **Результат** — артефакты, ассеты, ответы.
-- **История** — события задачи.
-
-Шаблоны: модель для Roblox, меч, анимация удара, UV fix, LOD, VFX,
-экспорт в Roblox и кодовая фича.
+Navigation counters show active tasks and items waiting in Review.
 
 ---
 
-## 5. Капсула и Clipboard
+## 4. Tasks
 
-Clipboard-режим нужен для бесплатных браузерных AI:
+A task contains:
 
-1. Открой задачу.
-2. Нажми **Капсула**.
-3. Kova соберёт промпт и скопирует его.
-4. Вставь промпт в любой AI-чат.
-5. Скопируй ответ.
-6. Нажми **Вставить ответ** → **Из буфера**.
-7. Ответ сохранится как артефакт и попадёт в Review.
+- a goal;
+- acceptance criteria;
+- constraints;
+- type and engine;
+- skills;
+- linked assets;
+- checks;
+- workflow steps.
 
-В проект ничего не применяется автоматически.
+Task tabs:
+
+- **Brief** — goal, criteria, context, “Why did this happen?”.
+- **Work** — agent run, queue, handoff, live output.
+- **Checks** — check commands and results.
+- **Result** — artefacts, assets and responses.
+- **History** — task events.
+
+Templates: a Roblox model, sword, hit animation, UV fix, LOD, VFX, Roblox export
+and a code feature.
 
 ---
 
-## 6. Ассеты
+## 5. Capsule and Clipboard
 
-Ассет — это паспорт:
+Clipboard mode is intended for free browser-based AI:
 
-- файл и текущая версия;
-- хеш и размер;
-- превью и 3D-viewer;
-- метрики Blender;
-- проверки по версиям;
-- происхождение и лицензия;
-- связанные задачи;
-- зависимости;
-- контракт движка;
-- профили экспорта.
+1. Open a task.
+2. Press **Capsule**.
+3. Kova builds the prompt and copies it.
+4. Paste the prompt into any AI chat.
+5. Copy the response.
+6. Press **Paste response** → **From clipboard**.
+7. The response is saved as an artefact and goes to Review.
 
-Версии можно сравнивать:
+Nothing is applied to the project automatically.
 
-- **Метрики** — объекты, треугольники, материалы, текстуры, размер.
-- **Сцена** — добавленные/удалённые/изменённые объекты, трансформации,
-  материалы и треугольники.
+---
 
-Импорт ассета копирует файл в `<project>/assets`.
+## 6. Assets
 
-### Контракт движка
+An asset is a passport:
 
-Kova проверяет формат, оси, масштаб, пивот и бюджеты для выбранного движка.
-Замечания видны в паспорте ассета.
+- file and current version;
+- hash and size;
+- preview and 3D viewer;
+- Blender metrics;
+- checks per version;
+- origin and licence;
+- linked tasks;
+- dependencies;
+- engine contract;
+- export profiles.
 
-### Импорт в движок
+Versions can be compared:
 
-Для Godot, Unity, Unreal, RPG Maker и Web:
+- **Metrics** — objects, triangles, materials, textures, size.
+- **Scene** — added/removed/modified objects, transforms, materials and triangles.
 
-1. Установи engine-пакет в **Пакетах**.
-2. Открой ассет.
-3. Найди карточку **Импорт в движок**.
-4. Нажми **Импортировать текущую версию**.
+Importing an asset copies the file into `<project>/assets`.
 
-Файл попадёт в папку движка. Для Godot, Unity и Unreal доступна кнопка
-**Переиндексировать в движке** — запуск headless/batchmode импорта.
+### Engine contract
+
+Kova checks format, axes, scale, pivot and budgets for the selected engine.
+Findings are shown in the asset passport.
+
+### Import into engine
+
+For Godot, Unity, Unreal, RPG Maker and Web:
+
+1. Install the engine package in **Packages**.
+2. Open an asset.
+3. Find the **Import into engine** card.
+4. Press **Import current version**.
+
+The file is placed in the engine folder. For Godot, Unity and Unreal there is also
+**Reimport in engine**, which runs a headless/batchmode import.
 
 ---
 
 ## 7. Blender
 
-1. Установи Blender 4.2+ и открой его один раз.
-2. Kova установит аддон `kova_bridge`.
-3. В Blender появится панель **Kova**.
-4. В Kova нажми **Проверить в Blender** в паспорте ассета.
+1. Install Blender 4.2+ and open it once.
+2. Kova installs the `kova_bridge` add-on.
+3. A **Kova** panel appears in Blender.
+4. In Kova, press **Inspect in Blender** in the asset passport.
 
-Kova умеет:
+Kova can:
 
-- открывать и проверять ассет;
-- считать метрики;
-- рендерить превью;
-- снимать скриншот viewport;
-- запускать QA;
-- конвертировать `.blend`/`.fbx`/`.obj` в GLB для 3D-viewer.
+- open and inspect an asset;
+- calculate metrics;
+- render previews;
+- capture viewport screenshots;
+- run QA;
+- convert `.blend`/`.fbx`/`.obj` to GLB for the 3D viewer.
 
-Если Blender не найден, задай `KOVA_BLENDER` с полным путём к `blender.exe`.
-
----
-
-## 8. AI-провайдеры
-
-Раздел **Агенты**. Режимы:
-
-- **CLI** — Codex, Claude Code, Gemini CLI, OpenCode или своя команда.
-- **API** — OpenAI-совместимый, Anthropic, Gemini, локальные серверы.
-- **Clipboard** — без API, через копирование промпта и ответа.
-- **Локальный коннектор** — Ollama/LM Studio на localhost.
-
-Ключи API шифруются Windows DPAPI и не возвращаются наружу.
-
-Политики инструментов:
-
-- **Только чтение**.
-- **Workspace** — чтение/запись/удаление внутри проекта.
-- **Auto** — плюс запуск команд.
-
-Запись, удаление и команды требуют подтверждения.
-
-### Лимиты и роли
-
-- Бюджет токенов проекта считается только по реальным usage от провайдера.
-- У каждого провайдера можно задать свой лимит токенов; при 80% Kova предупреждает.
-- Если провайдер не вернул usage, запуск считается `unknown`, а не «0».
-- Правила маршрутизации связывают теги задач с провайдерами.
-- Роли добавляют имя и инструкции к промпту.
+If Blender is not detected, set `KOVA_BLENDER` to the full path of `blender.exe`
+(or the Blender binary on macOS/Linux).
 
 ---
 
-## 8.1. Повтор проверки
+## 8. AI providers
 
-У каждой проверки есть кнопка **Повтор**. Kova сохраняет окружение
-(ОС, Python, git-коммит), повторяет команду и сравнивает статус и вывод.
+Section **Agents**. Modes:
+
+- **CLI** — Codex, Claude Code, Gemini CLI, OpenCode or a custom command.
+- **API** — OpenAI-compatible, Anthropic, Gemini, local servers.
+- **Clipboard** — no API, using copied prompts and responses.
+- **Local connector** — Ollama/LM Studio on localhost.
+
+API keys are stored in the OS keyring — DPAPI on Windows, Keychain on macOS,
+Secret Service on Linux — and are never returned by the local API.
+
+Tool policies:
+
+- **Read only**.
+- **Workspace** — read/write/delete inside the project.
+- **Auto** — also run commands.
+
+Writes, deletions and commands require approval.
+
+### Limits and roles
+
+- The project token budget counts only real usage reported by the provider.
+- Each provider can have its own token limit; Kova warns at 80%.
+- If a provider does not report usage, the run is marked `unknown`, not “0”.
+- Routing rules map task tags to providers.
+- Roles add a name and instructions to the prompt.
+
+---
+
+## 8.1. Check replay
+
+Every check has a **Replay** button. Kova records the environment
+(OS, Python, git commit), reruns the command and compares status and output.
 
 ## 9. Review
 
-Review показывает:
+Review shows:
 
-- превью связанных ассетов;
-- пины и комментарии к версии;
-- слайдер сравнения версий;
-- изменения файлов и патчи;
-- результаты проверок;
-- устаревшие проверки;
-- кнопки «Принять», «Доработать», «Второе мнение».
+- previews of linked assets;
+- pins and comments on a version;
+- a version comparison slider;
+- file changes and patches;
+- check results;
+- stale checks;
+- **Accept**, **Rework** and **Second opinion** buttons.
 
-Пины:
+Pins:
 
-1. Нажми **Оставить пин**.
-2. Кликни по проблемному месту на изображении.
-3. Напиши комментарий.
-4. Пин привязан к review, ассету и версии.
+1. Press **Add pin**.
+2. Click the problem area on the image.
+3. Write a comment.
+4. The pin is linked to the review, asset and version.
 
-Для видео Review показывает плеер и таймлайн. Кнопка **Пин на 0:00** ставит
-комментарий на текущий кадр, маркеры на таймлайне переводят плеер к нужному
-времени. Старые пины без времени остаются обычными пространственными пинами.
+For video, Review shows a player and a timeline. **Pin at 0:00** places a comment
+on the current frame; timeline markers jump the player to the right time. Older
+pins without a timestamp remain regular spatial pins.
 
-Для Blender-анимаций после **Проверить в Blender** Kova рендерит до 7 кадров.
-Review показывает ползунок кадров, кнопку **Пин на кадре N** и маркеры пинов по
-кадрам. Пины привязаны к версии и номеру кадра.
+For Blender animations, after **Inspect in Blender** Kova renders up to 7 frames.
+Review shows a frame slider, a **Pin on frame N** button and per-frame pin markers.
+Pins are linked to the version and frame number.
 
-«Второе мнение» собирает промпт для независимого критика и копирует его.
+**Second opinion** builds a prompt for an independent critic and copies it.
 
-Архив Review доступен переключателем **Inbox / Архив**.
-
----
-
-## 10. Память и Дневник
-
-**Память** ищет по задачам, ассетам, чатам, решениям и событиям, понимает
-русские/английские синонимы вроде «пивот»/«pivot» и «материал»/«material».
-Поиск идёт через SQLite FTS-индекс в `.hub/.local/search.sqlite3`; индекс
-обновляется по отпечаткам файлов. Есть график активности по часам/дням/месяцам/
-годам и состав памяти.
-
-**Дневник** показывает сводку за 7/14/30 дней:
-
-- события;
-- созданные и закрытые задачи;
-- ассеты;
-- принятые результаты;
-- снапшоты;
-- календарь активных дней.
+The Review archive is available through the **Inbox / Archive** switch.
 
 ---
 
-## 10.1. Передача проекта
+## 10. Memory and Diary
 
-В **Проектах** можно экспортировать проект в `.kovaproj` и импортировать его
-на другой машине.
+**Memory** searches tasks, assets, chats, decisions and events, and understands
+Russian/English synonyms such as “pivot” and “material”. Search uses a SQLite FTS
+index in `.hub/.local/search.sqlite3`; the index is refreshed from file
+fingerprints. There is an activity chart by hour/day/month/year and a memory
+breakdown.
 
-- В меню проекта выбери **Экспорт** и укажи файл.
-- Для импорта нажми **Импорт**, выбери папку назначения и `.kovaproj`.
-- В архив попадают файлы проекта и `.hub`; исключаются `.git`, `node_modules`,
-  виртуальные окружения, кэши, `build/release`, `.hub/.local` и `.env`/ключи.
-- Лимиты: 20 000 файлов и 2 ГБ. Архивы с небезопасными путями или symlink
-  отклоняются.
-- История и пути в журнале могут содержать локальные пути — проверь архив перед
-  передачей за пределы команды.
+**Diary** shows a summary for 7/14/30 days:
 
----
-
-## 10.2. Командное пространство
-
-Раздел **Команда** позволяет работать над одним проектом с нескольких машин без
-сервера Kova.
-
-1. Открой проект и раздел **Команда**.
-2. Выбери транспорт:
-   - **Общая папка** — OneDrive, Dropbox, iCloud Drive, Nextcloud, NAS или
-     сетевая папка;
-   - **GitHub / Git** — отдельная ветка (по умолчанию `kova-team`), токен
-     хранится в системном хранилище и не сохраняется в `.git/config`.
-3. Нажми **Подключить**. Пустая папка станет новым пространством; папка с
-   `kova-team.json` — существующим.
-4. **Опубликовать** отправляет срез проекта: `.kovaproj` + автор, сообщение и
-   SHA256. Секреты, кэши, `.git` и `.hub/team` не попадают в срез.
-5. На другой машине импортируй первый срез через **Проекты → Импорт**, открой
-   проект и подключи то же пространство.
-6. **Проверить изменения** показывает чужие срезы. Открой срез, посмотри список
-   файлов и нажми **Применить**.
-7. Если файл изменён и здесь, и в команде, Kova покажет конфликт. Для каждого
-   файла выбери **Моя** или **Из команды** — молча ничего не перезаписывается.
-8. **Откатить применение** возвращает файлы к состоянию до последнего
-   применения. Опубликованные срезы остаются в пространстве.
-
-Ограничения: 20 000 файлов и 2 ГБ на срез, хранится кэш трёх последних входящих
-срезов. Это совместная работа на уровне срезов с явной проверкой, а не live
-Парное программирование в реальном времени и live co-editing — необязательны и в
-текущий объём не входят. Перед проверкой дай облачной папке синхронизироваться.
+- events;
+- created and closed tasks;
+- assets;
+- accepted results;
+- snapshots;
+- a calendar of active days.
 
 ---
 
-## 11. Пакеты
+## 10.1. Project sharing
 
-В **Пакетах** можно:
+In **Projects** you can export a project as `.kovaproj` and import it on another
+machine.
 
-- установить пакет;
-- включить/выключить;
-- удалить;
-- посмотреть разрешения, инструменты, проверки и шаблоны;
-- импортировать локальный `.zip` с `kova-package.json` кнопкой «Импорт пакета»;
-- открыть вкладку **Маркетплейс**, указать HTTPS-адрес индекса и установить пакет.
+- In the project menu, choose **Export** and pick a file.
+- To import, press **Import**, choose the destination folder and the `.kovaproj`.
+- The archive contains project files and `.hub`; it excludes `.git`, `node_modules`,
+  virtual environments, caches, `build/release`, `.hub/.local`, `.env` and keys.
+- Limits: 20,000 files and 2 GB. Archives with unsafe paths or symlinks are rejected.
+- History and ledger paths may contain local paths — review the archive before
+  sharing it outside your team.
 
-Пакет может добавить декларативные шаблоны задач в библиотеку задач. Код пакета
-не исполняется, шаблоны — это только текстовые брифы и критерии.
+---
 
-Маркетплейс проверяет SHA256 архива и не исполняет код пакета: манифест проходит
-те же проверки, что и локальный импорт. Встроенный индекс:
+## 10.2. Team spaces
+
+The **Team** section lets several machines work on one project without a Kova
+server.
+
+1. Open the project and the **Team** section.
+2. Pick a transport:
+   - **Shared folder** — OneDrive, Dropbox, iCloud Drive, Nextcloud, a NAS or a
+     network folder;
+   - **GitHub / Git** — a dedicated branch (default `kova-team`); the token is
+     stored in the system keyring and is not saved in `.git/config`.
+3. Press **Connect**. An empty folder becomes a new space; a folder containing
+   `kova-team.json` becomes an existing one.
+4. **Publish** sends a project bundle: `.kovaproj` plus author, message and
+   SHA256. Secrets, caches, `.git` and `.hub/team` never enter the bundle.
+5. On another machine, import the first bundle via **Projects → Import**, open the
+   project and connect the same space.
+6. **Check for changes** lists other members' bundles. Open a bundle, inspect the
+   file list and press **Apply**.
+7. If a file changed both here and in the team, Kova reports a conflict. For each
+   file choose **Mine** or **From team** — nothing is overwritten silently.
+8. **Roll back apply** returns files to the state before the last apply.
+   Published bundles stay in the space.
+
+Limits: 20,000 files and 2 GB per bundle; the three most recent incoming bundles
+are cached. This is bundle-level collaboration with explicit review. Real-time
+pair programming and live co-editing are optional and outside the current scope.
+Let the cloud folder finish syncing before checking for changes.
+
+---
+
+## 11. Packages
+
+In **Packages** you can:
+
+- install a package;
+- enable/disable it;
+- remove it;
+- inspect permissions, tools, checks and templates;
+- import a local `.zip` with `kova-package.json` via **Import package**;
+- open the **Marketplace** tab, set an HTTPS index URL and install a package.
+
+A package can add declarative task templates to the task library. Package code is
+not executed; templates are only text briefs and criteria.
+
+The marketplace verifies the archive SHA256 and does not execute package code: the
+manifest goes through the same checks as a local import. Built-in index:
 `https://raw.githubusercontent.com/AlexeyKurgan/Kova/main/packages/index.json`.
 
-Engine-пакеты:
+Engine packages:
 
 - Blender Core;
 - Roblox Core;
@@ -327,176 +326,184 @@ Engine-пакеты:
 - RPG Maker Core;
 - Web Core.
 
-Пакет должен быть установлен и включён, чтобы работал импорт в движок.
+The package must be installed and enabled for engine import to work.
 
-### Язык
+### Language
 
-В **Настройках → Язык** можно включить English. Переведён весь интерфейс,
-а также описания пакетов, шаблоны задач из пакетов и сообщения Doctor:
-desktop отправляет язык в core заголовком `X-Kova-Language`.
+In **Settings → Language** you can switch to English. The whole interface is
+translated, along with package descriptions, package task templates and Doctor
+messages: the desktop client sends the language to the core with the
+`X-Kova-Language` header.
 
-### Песочница
+### Sandbox
 
-Kova определяет Docker, WSL2 и Windows Sandbox, но **не запускает CLI
-провайдера внутри них**: бинарник и авторизация должны быть установлены в
-контейнере. Поэтому используется sandbox-копия проекта и Job Object. Это
-ограничение показано в настройках и Doctor явно, без имитации готовой изоляции.
+Kova detects Docker, WSL2 and Windows Sandbox, but **does not run the provider CLI
+inside them**: the binary and its authorization would have to be installed in the
+container. Instead, Kova uses a sandbox copy of the project and a Job Object (on
+Windows) or a POSIX process group. This limitation is shown explicitly in Settings
+and Doctor — the app does not pretend to have a full OS sandbox.
 
 ---
 
 ## 12. Style Guard
 
-В настройках есть **Style Bible**:
+**Style Bible** in Settings contains:
 
-- бюджеты треугольников, вершин, материалов, текстур, костей;
-- обязательная лицензия;
-- regex-шаблон имени;
-- палитра.
+- budgets for triangles, vertices, materials, textures and bones;
+- a required licence;
+- a regex name pattern;
+- a palette.
 
-Проверки стиля появляются в ассетах и Review.
+Style checks appear in assets and Review.
 
-Палитра проверяется по превью ассета: Kova предупреждает, если слишком мало
-пикселей близки к цветам Style Bible.
-
----
-
-## 13. Ночная смена
-
-1. Открой **Ночную смену**.
-2. Выбери задачи.
-3. Выбери провайдера.
-4. Задай время и лимит задач.
-5. Включи расписание или нажми **Запустить сейчас**.
-
-Kova выполняет задачи по одной, создаёт снапшот перед запуском и оставляет
-результат в Review. Авто-применение выключено.
-
-Планировщик работает, пока Kova открыта.
+The palette is checked against the asset preview: Kova warns when too few pixels
+are close to the Style Bible colours.
 
 ---
 
-## 14. Снапшоты
+## 13. Night Shift
 
-- Создание вручную.
-- Автоснапшот перед применением worktree.
-- Таймлайн по дням.
-- Сравнение двух снапшотов.
-- Diff с текущим проектом перед откатом.
-- Восстановление в один клик.
+1. Open **Night Shift**.
+2. Select tasks.
+3. Select a provider.
+4. Set the time and task limit.
+5. Enable the schedule or press **Run now**.
 
-Перед откатом Kova создаёт аварийный снапшот.
+Kova runs tasks one by one, creates a snapshot before each run and leaves the
+result in Review. Auto-apply is disabled.
+
+The scheduler runs while Kova is open.
+
+---
+
+## 14. Snapshots
+
+- Manual creation.
+- Automatic snapshot before applying a worktree.
+- Timeline by day.
+- Compare two snapshots.
+- Diff against the current project before rollback.
+- One-click restore.
+
+Before a rollback, Kova creates an emergency snapshot.
 
 ---
 
 ## 15. Doctor
 
-Doctor проверяет:
+Doctor checks:
 
 - `.hub`;
-- движок;
+- the engine;
 - Git;
 - Blender;
-- корзину проектов;
-- снапшоты;
-- пакеты проекта и пакет выбранного движка;
-- права на запись в проект и `.hub`;
-- порты 8765 / 47832 / 48620;
-- изоляцию агентов;
-- локальный режим;
-- сетевой щит;
+- the project trash;
+- snapshots;
+- project packages and the package for the selected engine;
+- write permissions for the project and `.hub`;
+- ports 8765 / 47832 / 48620;
+- agent isolation;
+- local mode;
+- the egress guard;
 - process containment;
-- OS sandbox;
-- токен Core;
-- свободное место.
+- the OS sandbox;
+- the Core token;
+- the secrets backend;
+- free disk space.
 
-Кнопка **Починить** безопасно восстанавливает папки и журналы `.hub`.
-`project.json` автоматически не создаётся.
+**Repair** safely restores `.hub` folders and journals. `project.json` is never
+created automatically.
 
-Экспорт диагностики — JSON-файл.
+Diagnostics export is a JSON file.
 
 ---
 
-## 16. Настройки
+## 16. Settings
 
-- Beginner / Pro режим.
-- Плотность Comfortable / Compact.
-- Размер текста и ширина чата.
-- Уменьшение анимаций.
-- Язык: русский (English пока в разработке).
+- Beginner / Pro mode.
+- Comfortable / Compact density.
+- Text size and chat width.
+- Reduced motion.
+- Language: Russian / English.
 - Style Bible.
-- Песочница: статус Docker/WSL/Windows Sandbox и fallback.
-- Резервные копии: снапшоты.
-- О программе: версия и проверка обновлений.
+- Sandbox: Docker/WSL/Windows Sandbox status and the documented fallback.
+- Backups: snapshots.
+- About: version and update check.
 
 ---
 
-## 17. Обновления
+## 17. Updates
 
-В **Настройках → О программе**:
+In **Settings → About**:
 
-1. Нажми **Проверить обновления**.
-2. Если есть новая версия, скачай установщик.
-3. Нажми **Установить и закрыть Kova** или открой установщик вручную.
+1. Press **Check for updates**.
+2. If a new version exists, download the installer.
+3. Press **Install and close Kova**, or run the installer manually.
 
-Также можно повторить одну команду установки из раздела 1 — она всегда берёт
-последний релиз.
+You can also repeat the one-line install command from section 1 — it always picks
+the highest published release.
+
+Self-update is available in the Windows build. On macOS/Linux, update the sources
+and rebuild the app.
 
 ---
 
-## 18. Где лежат данные
+## 18. Where data lives
 
-| Путь | Что там |
+| Path | Contents |
 | --- | --- |
-| `<project>/` | Исходники и `assets/` |
-| `<project>/.hub/` | Задачи, ассеты, проверки, Review, снапшоты, журнал, стиль, пакеты |
-| `%APPDATA%\KovaHub\projects.json` | Реестр проектов |
-| `%APPDATA%\KovaHub\providers.json` | AI-провайдеры |
-| `%APPDATA%\KovaHub\secrets.json` | Ключи API (DPAPI) |
-| `%APPDATA%\KovaHub\core-token.json` | Локальный owner token |
-| `%APPDATA%\KovaHub\worktrees\` | Временные worktree |
-| `%LOCALAPPDATA%\KovaHub\editor\` | code-server |
-| `%LOCALAPPDATA%\KovaHub\blender\bridge.json` | Поиск Blender-моста |
+| `<project>/` | Source files and `assets/` |
+| `<project>/.hub/` | Tasks, assets, checks, Review, snapshots, ledger, style, packages |
+| `<project>/.hub/team/` | Device-local team space config, sync state, cache and backups |
+| `%APPDATA%\KovaHub\` / `~/Library/Application Support/KovaHub/` / `$XDG_DATA_HOME/KovaHub/` | Registry, providers, identity, secrets and owner token |
+| `<app data>/secrets.json` | Secrets (DPAPI / Keychain / Secret Service; 0600 file fallback) |
+| `<app data>/core-token.json` | Local owner token |
+| `<app data>/worktrees/` | Temporary git worktrees |
+| `%LOCALAPPDATA%\KovaHub\editor\` / `~/Library/Application Support/KovaHub/editor/` / `$XDG_DATA_HOME/KovaHub/editor/` | code-server and extensions |
+| `%LOCALAPPDATA%\KovaHub\blender\bridge.json` / `~/Library/Caches/KovaHub/blender/` / `$XDG_CACHE_HOME/KovaHub/blender/` | Blender bridge discovery |
 
-Для переноса проекта копируй `.hub/` и `assets/` вместе.
-
----
-
-## 19. Безопасность
-
-- Core слушает только `127.0.0.1:8765`.
-- API требует owner token.
-- Roblox bridge использует отдельный bridge token.
-- Секреты шифруются DPAPI.
-- Телеметрия не отправляется.
-- OS sandbox определяется в настройках; если его нет, используется
-  sandbox-копия проекта + Job Object.
-- Kova не перехватывает команды, которые CLI выполняет внутри себя.
+To move a project, copy `.hub/` and `assets/` together.
 
 ---
 
-## 20. Частые проблемы
+## 19. Security
 
-**Core: недоступен**
-Проверь порт 8765 и запусти core:
+- Core listens only on `127.0.0.1:8765`.
+- The API requires an owner token.
+- The Roblox bridge uses a separate bridge token.
+- Secrets are encrypted by DPAPI on Windows, Keychain on macOS and Secret Service
+  on Linux; the explicit fallback is a 0600 file.
+- No telemetry is sent.
+- The OS sandbox is detected in Settings; when unavailable, Kova uses a sandbox
+  copy of the project plus a Job Object or a POSIX process group.
+- Kova does not intercept commands that a CLI runs inside itself.
+
+---
+
+## 20. Troubleshooting
+
+**Core: unavailable**
+Check port 8765 and start the core:
 
 ```powershell
 Get-NetTCPConnection -LocalPort 8765
 powershell -ExecutionPolicy Bypass -File scripts/run-core.ps1
 ```
 
-**Пустое окно**
-Установи/восстанови WebView2 Runtime.
+**Blank window**
+Install or repair the WebView2 Runtime.
 
-**Blender не виден**
-Открой Blender один раз и обнови панель Blender. При необходимости задай
+**Blender is not detected**
+Open Blender once and refresh the Blender panel. If needed, set
 `KOVA_BLENDER`.
 
-**Не грузится 3D-превью `.blend`/`.fbx`/`.obj`**
-Нужен Blender. `.glb`/`.gltf` работают без него.
+**The 3D preview of `.blend`/`.fbx`/`.obj` does not load**
+Blender is required. `.glb`/`.gltf` work without it.
 
-**SmartScreen при установке**
-Установщик не подписан. Используй one-line installer (он сверяет SHA256)
-или собери из исходников.
+**SmartScreen during installation**
+The installer is not signed. Use the one-line installer (it verifies SHA256) or
+build from source.
 
-**Редактор не скачивается**
-Проверь интернет и антивирус для `%LOCALAPPDATA%\KovaHub\editor`.
+**The editor does not download**
+Check the internet connection and antivirus rules for
+`%LOCALAPPDATA%\KovaHub\editor`.
