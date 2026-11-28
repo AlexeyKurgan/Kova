@@ -1,3 +1,4 @@
+import glob
 import os
 import shutil
 import subprocess
@@ -105,9 +106,9 @@ def _find_godot() -> str:
             "/snap/bin/godot*",
             "/var/lib/flatpak/exports/bin/org.godotengine.Godot*",
         ):
-            rows = sorted(Path().glob(pattern), reverse=True)
+            rows = sorted(glob.glob(pattern), reverse=True)
             if rows:
-                return str(rows[0])
+                return rows[0]
     return ""
 
 
