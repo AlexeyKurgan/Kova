@@ -116,6 +116,7 @@ jobs:
         shell: bash
         run: |
           triple="$(rustc -vV | awk '/^host:/ {print $2}')"
+          mkdir -p apps/desktop/src-tauri/binaries
           touch "apps/desktop/src-tauri/binaries/kova-core-$triple"
           chmod +x "apps/desktop/src-tauri/binaries/kova-core-$triple"
 

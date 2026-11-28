@@ -311,3 +311,44 @@ def test_folder_space_survives_a_different_mount_path(tmp_path: Path, monkeypatc
     assert again["space"]["id"] == shared_id
     rows = client.get("/team/incoming").json()["bundles"]
     assert rows == []
+
+
+def test_apply_rolls_back_when_a_path_cannot_be_written(tmp_path: Path, monkeypatch) -> None:
+    client = make_client(tmp_path, monkeypatch)
+    space = tmp_path / "team-space"
+    first = create_project(client, tmp_path, "Blocked Path")
+    root_a = Path(first["path"])
+    connect(client, space)
+    (root_a / "blocked").mkdir()
+    (root_a / "blocked" / "old.txt").write_text("old\n", encoding="utf-8")
+    base = client.post("/team/publish", json={"message": "base"}).json()["bundle"]["id"]
+
+    second = import_bundle(client, tmp_path, bundles(space)[0])
+    root_b = Path(second["path"])
+    connect(client, space)
+    assert client.post(f"/team/incoming/{base}/apply", json={}).status_code == 200
+
+    shutil.rmtree(root_b / "blocked")
+    (root_b / "blocked").write_text("i am a file\n", encoding="utf-8")
+
+    assert client.post(f"/projects/{first['id']}/open").status_code == 200
+    (root_a / "blocked" / "new.txt").write_text("new\n", encoding="utf-8")
+    assert client.post("/tasks", json={"title": "After failure"}).status_code == 201
+    assert client.post("/team/publish", json={"message": "new file"}).status_code == 200
+
+    assert client.post(f"/projects/{second['id']}/open").status_code == 200
+    rows = client.get("/team/incoming").json()["bundles"]
+    assert len(rows) == 1
+    failed = client.post(f"/team/incoming/{rows[0]['id']}/apply", json={})
+    assert failed.status_code == 400
+    assert "откачены" in failed.json()["detail"]
+    assert (root_b / "blocked").is_file()
+    assert "After failure" not in [task["title"] for task in client.get("/tasks").json()]
+    assert client.get("/team/incoming").json()["bundles"]
+
+    (root_b / "blocked").unlink()
+    (root_b / "blocked").mkdir()
+    (root_b / "blocked" / "old.txt").write_text("old\n", encoding="utf-8")
+    retried = client.post(f"/team/incoming/{rows[0]['id']}/apply", json={})
+    assert retried.status_code == 200, retried.text
+    assert "After failure" in [task["title"] for task in client.get("/tasks").json()]

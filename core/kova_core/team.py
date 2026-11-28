@@ -1216,26 +1216,37 @@ def apply_bundle(
         operations.append((row["path"], row["status"]))
 
     extracted = _incoming_path(root, bundle_id) / "tree"
+    backup_dir = _team_dir(root) / "backups" / bundle_id
+    rows: dict[str, Any] = {}
     if operations:
-        _backup(root, space, bundle_id, [path for path, _ in operations], state)
+        rows = _backup(root, space, bundle_id, [path for path, _ in operations], state)
     written = 0
     deleted = 0
-    for path, status in operations:
-        target = resolve_inside(root, path)
-        if status == "deleted":
-            if target.is_file() or target.is_symlink():
-                target.unlink()
-                deleted += 1
-            _prune_empty(root, target.parent)
-            continue
-        source = resolve_inside(extracted, path)
-        if not source.is_file():
-            raise TeamError(tr(f"в бандле нет файла {path}", f"the bundle has no file {path}"))
-        target.parent.mkdir(parents=True, exist_ok=True)
-        temporary = target.with_name(f".{target.name}.kova-tmp")
-        shutil.copy2(source, temporary)
-        os.replace(temporary, target)
-        written += 1
+    try:
+        for path, status in operations:
+            target = resolve_inside(root, path)
+            if status == "deleted":
+                if target.is_file() or target.is_symlink():
+                    target.unlink()
+                    deleted += 1
+                _prune_empty(root, target.parent)
+                continue
+            source = resolve_inside(extracted, path)
+            if not source.is_file():
+                raise TeamError(tr(f"в бандле нет файла {path}", f"the bundle has no file {path}"))
+            target.parent.mkdir(parents=True, exist_ok=True)
+            temporary = target.with_name(f".{target.name}.kova-tmp")
+            shutil.copy2(source, temporary)
+            os.replace(temporary, target)
+            written += 1
+    except (OSError, TeamError) as exc:
+        _restore_backup(root, backup_dir, rows)
+        raise TeamError(
+            tr(
+                f"не удалось применить срез — изменения откачены: {exc}",
+                f"could not apply the bundle — changes were rolled back: {exc}",
+            )
+        ) from exc
 
     state["head"] = bundle_id
     state["base"] = _archive_manifest(extracted)
@@ -1273,7 +1284,7 @@ def _backup(
     bundle_id: str,
     paths: list[str],
     state: dict[str, Any],
-) -> None:
+) -> dict[str, Any]:
     directory = _team_dir(root) / "backups" / bundle_id
     if directory.exists():
         shutil.rmtree(directory, ignore_errors=True)
@@ -1298,6 +1309,34 @@ def _backup(
             "previous_state": state,
         },
     )
+    return rows
+
+
+def _restore_backup(
+    root: Path,
+    directory: Path,
+    rows: dict[str, Any],
+) -> tuple[int, int]:
+    restored = 0
+    removed = 0
+    for path, info in rows.items():
+        if not isinstance(info, dict):
+            continue
+        target = resolve_inside(root, path)
+        if info.get("existed"):
+            source = resolve_inside(directory / "files", path)
+            if not source.is_file():
+                continue
+            target.parent.mkdir(parents=True, exist_ok=True)
+            temporary = target.with_name(f".{target.name}.kova-tmp")
+            shutil.copy2(source, temporary)
+            os.replace(temporary, target)
+            restored += 1
+        elif target.is_file() or target.is_symlink():
+            target.unlink()
+            removed += 1
+            _prune_empty(root, target.parent)
+    return restored, removed
 
 
 def _prune_empty(root: Path, directory: Path) -> None:
@@ -1325,25 +1364,7 @@ def rollback_last(root: Path) -> dict[str, Any]:
     rows = manifest.get("paths")
     if not isinstance(rows, dict) or not rows:
         raise TeamError(tr("нет резервной копии для отката", "there is no backup to roll back"))
-    restored = 0
-    removed = 0
-    for path, info in rows.items():
-        if not isinstance(info, dict):
-            continue
-        target = resolve_inside(root, path)
-        if info.get("existed"):
-            source = resolve_inside(directory / "files", path)
-            if not source.is_file():
-                continue
-            target.parent.mkdir(parents=True, exist_ok=True)
-            temporary = target.with_name(f".{target.name}.kova-tmp")
-            shutil.copy2(source, temporary)
-            os.replace(temporary, target)
-            restored += 1
-        elif target.is_file() or target.is_symlink():
-            target.unlink()
-            removed += 1
-            _prune_empty(root, target.parent)
+    restored, removed = _restore_backup(root, directory, rows)
     previous = manifest.get("previous_state")
     if isinstance(previous, dict):
         _save_state(root, space["id"], previous)
