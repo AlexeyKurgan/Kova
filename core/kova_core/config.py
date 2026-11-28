@@ -39,4 +39,7 @@ def app_data_dir() -> Path:
 
 
 def local_data_dir() -> Path:
+    override = os.environ.get("KOVA_LOCAL_DATA_DIR")
+    if override:
+        return Path(override)
     return _platform_cache_root() / "KovaHub"

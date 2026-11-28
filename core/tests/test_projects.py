@@ -8,6 +8,7 @@ from kova_core.api.server import create_app
 def make_client(tmp_path: Path, monkeypatch) -> TestClient:
     monkeypatch.setenv("KOVA_DATA_DIR", str(tmp_path / "data"))
     monkeypatch.setenv("LOCALAPPDATA", str(tmp_path / "local"))
+    monkeypatch.setenv("KOVA_LOCAL_DATA_DIR", str(tmp_path / "local-data"))
     monkeypatch.delenv("KOVA_CORE_TOKEN", raising=False)
     return TestClient(create_app())
 

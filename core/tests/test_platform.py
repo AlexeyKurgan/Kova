@@ -7,6 +7,7 @@ from kova_core.security import job, secrets
 
 def test_config_linux_paths(tmp_path: Path, monkeypatch) -> None:
     monkeypatch.delenv("KOVA_DATA_DIR", raising=False)
+    monkeypatch.delenv("KOVA_LOCAL_DATA_DIR", raising=False)
     monkeypatch.setenv("XDG_DATA_HOME", str(tmp_path / "data"))
     monkeypatch.setenv("XDG_CACHE_HOME", str(tmp_path / "cache"))
     monkeypatch.setattr(config, "_is_windows", lambda: False)
