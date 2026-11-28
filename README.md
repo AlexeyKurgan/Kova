@@ -327,6 +327,7 @@ cd Kova
 python -m venv .venv
 . .venv/bin/activate
 python -m pip install -e "./core[dev]"
+python -m pip install pyinstaller
 npm ci
 bash scripts/build.sh
 ```
