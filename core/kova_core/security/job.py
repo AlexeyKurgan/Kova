@@ -2,6 +2,7 @@ import ctypes
 import os
 import signal
 import subprocess
+import time
 from typing import Any
 
 
@@ -91,12 +92,42 @@ def kill_process_group(process: subprocess.Popen[Any]) -> None:
         )
         return
     try:
-        os.killpg(os.getpgid(process.pid), signal.SIGTERM)
+        group = os.getpgid(process.pid)
+    except (ProcessLookupError, PermissionError, OSError):
+        group = None
+    if group is None:
+        try:
+            process.terminate()
+        except OSError:
+            return
+        return
+    try:
+        os.killpg(group, signal.SIGTERM)
     except (ProcessLookupError, PermissionError, OSError):
         try:
             process.terminate()
         except OSError:
+            return
+    deadline = time.monotonic() + 0.6
+    while time.monotonic() < deadline:
+        if not _pgid_alive(group):
+            return
+        time.sleep(0.05)
+    try:
+        os.killpg(group, getattr(signal, "SIGKILL", signal.SIGTERM))
+    except (ProcessLookupError, PermissionError, OSError):
+        try:
+            process.kill()
+        except OSError:
             pass
+
+
+def _pgid_alive(pid: int) -> bool:
+    try:
+        os.killpg(pid, 0)
+        return True
+    except (ProcessLookupError, PermissionError, OSError):
+        return False
 
 
 class ProcessJail:
@@ -160,9 +191,24 @@ class ProcessJail:
 
     def terminate(self) -> None:
         if not _is_windows():
-            for pid in list(self._pids):
+            pids = list(self._pids)
+            for pid in pids:
                 try:
                     os.killpg(pid, signal.SIGTERM)
+                except (ProcessLookupError, PermissionError, OSError):
+                    pass
+            deadline = time.monotonic() + 0.6
+            while time.monotonic() < deadline and pids:
+                pids = [
+                    pid
+                    for pid in pids
+                    if _pgid_alive(pid)
+                ]
+                if pids:
+                    time.sleep(0.05)
+            for pid in pids:
+                try:
+                    os.killpg(pid, getattr(signal, "SIGKILL", signal.SIGTERM))
                 except (ProcessLookupError, PermissionError, OSError):
                     pass
             self._pids.clear()

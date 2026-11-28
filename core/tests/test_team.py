@@ -295,3 +295,19 @@ def test_connect_rejects_space_inside_project(tmp_path: Path, monkeypatch) -> No
     )
     assert response.status_code == 400
     assert "внутри проекта" in response.json()["detail"]
+
+
+def test_folder_space_survives_a_different_mount_path(tmp_path: Path, monkeypatch) -> None:
+    client = make_client(tmp_path, monkeypatch)
+    first_space = tmp_path / "team-a"
+    create_project(client, tmp_path, "Mounted")
+    connected = connect(client, first_space)
+    shared_id = connected["space"]["id"]
+    assert client.post("/team/publish", json={"message": "mount"}).status_code == 200
+
+    second_space = tmp_path / "team-b"
+    shutil.copytree(first_space, second_space)
+    again = connect(client, second_space)
+    assert again["space"]["id"] == shared_id
+    rows = client.get("/team/incoming").json()["bundles"]
+    assert rows == []

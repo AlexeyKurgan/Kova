@@ -7,18 +7,29 @@ BRIDGE_FILE = "bridge.json"
 DEFAULT_HOST = "127.0.0.1"
 
 
+def _is_windows() -> bool:
+    return os.name == "nt"
+
+
+def _platform() -> str:
+    return sys.platform
+
+
 def data_dir() -> Path:
     override = os.environ.get("KOVA_HUB_BLENDER_DATA")
     if override:
         return Path(override).expanduser()
-    if os.name == "nt":
+    local = os.environ.get("KOVA_LOCAL_DATA_DIR")
+    if local:
+        return Path(local).expanduser() / "blender"
+    if _is_windows():
         base = os.environ.get("LOCALAPPDATA")
         root = Path(base) if base else Path.home() / "AppData" / "Local"
         return root / "KovaHub" / "blender"
-    if sys.platform == "darwin":
-        return Path.home() / "Library" / "Application Support" / "KovaHub" / "blender"
-    base = os.environ.get("XDG_DATA_HOME")
-    root = Path(base) if base else Path.home() / ".local" / "share"
+    if _platform() == "darwin":
+        return Path.home() / "Library" / "Caches" / "KovaHub" / "blender"
+    base = os.environ.get("XDG_CACHE_HOME")
+    root = Path(base) if base else Path.home() / ".cache"
     return root / "KovaHub" / "blender"
 
 

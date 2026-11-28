@@ -3,6 +3,7 @@ import os
 import secrets
 import re
 import subprocess
+import sys
 import time
 from collections import OrderedDict, deque
 from pathlib import Path
@@ -945,11 +946,20 @@ def _validate_command(command: dict[str, Any]) -> None:
 
 
 def _studio_roots() -> list[Path]:
-    local = Path(os.environ.get("LOCALAPPDATA") or Path.home() / "AppData" / "Local")
-    roots = [local / "Roblox" / "Versions"]
-    roots.append(Path("C:/Program Files/Roblox/Versions"))
-    roots.append(Path("C:/Program Files (x86)/Roblox/Versions"))
-    return roots
+    if os.name == "nt":
+        local = Path(os.environ.get("LOCALAPPDATA") or Path.home() / "AppData" / "Local")
+        return [
+            local / "Roblox" / "Versions",
+            Path("C:/Program Files/Roblox/Versions"),
+            Path("C:/Program Files (x86)/Roblox/Versions"),
+        ]
+    if sys.platform == "darwin":
+        return [
+            Path("/Applications"),
+            Path.home() / "Applications",
+            Path.home() / "Applications" / "Roblox",
+        ]
+    return []
 
 
 def find_studio() -> Path | None:
@@ -958,12 +968,21 @@ def find_studio() -> Path | None:
         path = Path(override)
         return path if path.is_file() else None
     found: list[Path] = []
-    for root in _studio_roots():
-        if not root.is_dir():
-            continue
-        for candidate in root.glob("*/RobloxStudioBeta.exe"):
-            if candidate.is_file():
-                found.append(candidate)
+    if sys.platform == "darwin" and os.name != "nt":
+        for root in _studio_roots():
+            for candidate in (
+                root / "RobloxStudio.app" / "Contents" / "MacOS" / "RobloxStudio",
+                root / "Roblox" / "RobloxStudio.app" / "Contents" / "MacOS" / "RobloxStudio",
+            ):
+                if candidate.is_file():
+                    found.append(candidate)
+    else:
+        for root in _studio_roots():
+            if not root.is_dir():
+                continue
+            for candidate in root.glob("*/RobloxStudioBeta.exe"):
+                if candidate.is_file():
+                    found.append(candidate)
     if not found:
         return None
     found.sort(key=lambda item: item.stat().st_mtime, reverse=True)
@@ -971,8 +990,14 @@ def find_studio() -> Path | None:
 
 
 def plugin_path() -> Path:
-    local = Path(os.environ.get("LOCALAPPDATA") or Path.home() / "AppData" / "Local")
-    return local / "Roblox" / "Plugins" / "KovaBridge.lua"
+    if os.name == "nt":
+        local = Path(os.environ.get("LOCALAPPDATA") or Path.home() / "AppData" / "Local")
+        return local / "Roblox" / "Plugins" / "KovaBridge.lua"
+    if sys.platform == "darwin":
+        return Path.home() / "Documents" / "Roblox" / "Plugins" / "KovaBridge.lua"
+    base = os.environ.get("XDG_DATA_HOME")
+    root = Path(base) if base else Path.home() / ".local" / "share"
+    return root / "Roblox" / "Plugins" / "KovaBridge.lua"
 
 
 class RobloxBridge:

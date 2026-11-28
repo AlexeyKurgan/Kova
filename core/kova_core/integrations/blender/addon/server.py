@@ -10,7 +10,6 @@ import os
 import queue
 import secrets
 import socket
-import sys
 import threading
 import time
 import traceback
@@ -32,23 +31,7 @@ from .constants import (
 )
 
 
-def data_dir() -> Path:
-    override = os.environ.get("KOVA_HUB_BLENDER_DATA")
-    if override:
-        return Path(override).expanduser()
-    if os.name == "nt":
-        base = os.environ.get("LOCALAPPDATA")
-        root = Path(base) if base else Path.home() / "AppData" / "Local"
-        return root / "KovaHub" / "blender"
-    if sys.platform == "darwin":
-        return Path.home() / "Library" / "Application Support" / "KovaHub" / "blender"
-    base = os.environ.get("XDG_DATA_HOME")
-    root = Path(base) if base else Path.home() / ".local" / "share"
-    return root / "KovaHub" / "blender"
-
-
-def discovery_path() -> Path:
-    return data_dir() / "bridge.json"
+from .paths import data_dir, discovery_path
 
 
 def _write_discovery(port: int, token: str) -> None:

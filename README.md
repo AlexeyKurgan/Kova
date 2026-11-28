@@ -267,7 +267,8 @@ explicit click, after a snapshot.
 | `<app data>/secrets.json` | Secrets (DPAPI on Windows; Keychain/Secret Service on macOS/Linux; 0600 file fallback) |
 | `<app data>/core-token.json` | Local owner token |
 | `<app data>/worktrees/` | Temporary git worktrees |
-| `%LOCALAPPDATA%\KovaHub\` / `~/Library/Caches/KovaHub/` / `$XDG_CACHE_HOME/KovaHub/` | Editor, Blender bridge, team Git mirrors and caches |
+| `%LOCALAPPDATA%\KovaHub\` / `~/Library/Caches/KovaHub/` / `$XDG_CACHE_HOME/KovaHub/` | Blender bridge, team Git mirrors and caches |
+| `%LOCALAPPDATA%\KovaHub\editor\` / `~/Library/Application Support/KovaHub/editor/` / `$XDG_DATA_HOME/KovaHub/editor/` | code-server and extensions |
 
 Back up `.hub/` and `assets/` together. `.hub/` is intentionally readable JSON/Markdown.
 

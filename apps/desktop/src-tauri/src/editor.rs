@@ -235,11 +235,9 @@ fn ensure_profile() -> Result<(), String> {
 
 fn platform_slug() -> &'static str {
     if cfg!(target_os = "windows") {
-        if cfg!(target_arch = "aarch64") {
-            "windows-arm64"
-        } else {
-            "windows-amd64"
-        }
+        // code-server ships only the amd64 Windows build; Windows on ARM runs it
+        // through x64 emulation.
+        "windows-amd64"
     } else if cfg!(target_os = "macos") {
         if cfg!(target_arch = "aarch64") {
             "macos-arm64"

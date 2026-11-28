@@ -179,6 +179,31 @@ def _space_id(kind: str, location: str, branch: str) -> str:
     return f"tsp_{digest[:12]}"
 
 
+def _folder_index_id(location: Path) -> str | None:
+    path = location / STORE_INDEX
+    if not path.is_file():
+        return None
+    payload = _json(path, {})
+    if not payload:
+        raise TeamError(
+            tr("индекс пространства повреждён", "the space index is damaged")
+        )
+    if payload.get("format") != STORE_FORMAT:
+        raise TeamError(
+            tr("папка не является командным пространством Kova", "the folder is not a Kova team space")
+        )
+    if int(payload.get("version") or 0) != STORE_VERSION:
+        raise TeamError(
+            tr("неподдерживаемая версия командного пространства", "unsupported team space version")
+        )
+    space_id = str(payload.get("space_id") or "")
+    if not space_id:
+        raise TeamError(
+            tr("в индексе пространства нет идентификатора", "the space index has no identifier")
+        )
+    return space_id
+
+
 def _normalize_location(kind: str, location: str) -> str:
     value = location.strip()
     if not value or "\n" in value or "\r" in value:
@@ -265,7 +290,11 @@ def connect_space(
                 )
             )
 
-    space_id = _space_id(kind, location, branch)
+    # A folder can be mounted at different paths on different machines, so the
+    # identifier stored in the shared index wins over the local path hash.
+    space_id = _folder_index_id(Path(location)) if kind == "folder" else None
+    if not space_id:
+        space_id = _space_id(kind, location, branch)
     if token is not None:
         if token.strip():
             set_secret(_token_key(space_id), token.strip())
@@ -353,8 +382,16 @@ def space_info(root: Path) -> dict[str, Any]:
         "applied": len(state.get("applied") or []),
         "base_files": len(state.get("base") or {}),
         "last_apply_at": state.get("last_apply_at") or "",
-        "can_rollback": (_team_dir(root) / "last-apply.json").is_file(),
+        "can_rollback": _rollback_pointer(root, space["id"]),
     }
+
+
+def _rollback_pointer(root: Path, space_id: str) -> bool:
+    pointer = _json(_team_dir(root) / "last-apply.json", {})
+    return (
+        bool(pointer.get("bundle_id"))
+        and str(pointer.get("space_id") or "") == space_id
+    )
 
 
 def _version() -> str:
@@ -1279,6 +1316,8 @@ def rollback_last(root: Path) -> dict[str, Any]:
     root = root.resolve()
     space = require_space(root)
     pointer = _json(_team_dir(root) / "last-apply.json", {})
+    if str(pointer.get("space_id") or "") != space["id"]:
+        raise TeamError(tr("нет применения для отката", "there is no apply to roll back"))
     bundle_id = str(pointer.get("bundle_id") or "")
     _check_bundle_id(bundle_id)
     directory = _team_dir(root) / "backups" / bundle_id

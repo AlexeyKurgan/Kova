@@ -32,6 +32,7 @@ from .routes import (
     updates,
 )
 
+from ..config import ensure_cli_path
 from ..i18n import reset_language, set_language
 
 ALLOWED_ORIGINS = [
@@ -44,6 +45,8 @@ ALLOWED_ORIGINS = [
 
 
 def create_app() -> FastAPI:
+    ensure_cli_path()
+
     @asynccontextmanager
     async def lifespan(_app: FastAPI):
         import threading
