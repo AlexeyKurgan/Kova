@@ -1,6 +1,6 @@
 [project]
 name = "kova-core"
-version = "0.3.1"
+version = "0.4.0"
 description = "Local engine for Kova Hub: tasks, capsules, checks, snapshots, ledger"
 requires-python = ">=3.11"
 dependencies = [
