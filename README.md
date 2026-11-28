@@ -148,7 +148,7 @@ For free browser AIs:
 - Every apply is backed up, recorded in the ledger, and can be rolled back. The
   append-only ledger is merged instead of conflicting.
 - Git tokens are stored in the OS keyring (DPAPI/Keychain/Secret Service) and are
-  never written to `.git/config`.
+  never kept in `.git/config`.
 - This is bundle-level collaboration with explicit review, not live co-editing.
 
 ### Packages and engines
