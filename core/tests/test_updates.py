@@ -32,3 +32,19 @@ def test_update_download_rejects_foreign_urls(tmp_path, monkeypatch) -> None:
         ).status_code
         == 400
     )
+
+
+def test_pick_release_uses_highest_semver() -> None:
+    from kova_core.api.routes.updates import _pick_release
+
+    releases = [
+        {"tag_name": "v0.4.1", "draft": False, "prerelease": False},
+        {"tag_name": "v0.4.0", "draft": False, "prerelease": False},
+        {"tag_name": "v0.10.0", "draft": False, "prerelease": False},
+        {"tag_name": "v0.9.0", "draft": True, "prerelease": False},
+        {"tag_name": "v0.11.0", "draft": False, "prerelease": True},
+    ]
+    picked = _pick_release(releases)
+    assert picked is not None
+    assert picked["tag_name"] == "v0.10.0"
+    assert _pick_release([{"tag_name": "v9.0.0", "draft": True}]) is None

@@ -45,6 +45,7 @@ import SkillPickerModal from "./features/tasks/SkillPickerModal";
 import TaskDetail from "./features/tasks/TaskDetail";
 import TaskDialog from "./features/tasks/TaskDialog";
 import TasksScreen from "./features/tasks/TasksScreen";
+import TeamScreen from "./features/team/TeamScreen";
 import {
   acceptReview,
   cleanupSnapshots,
@@ -1393,6 +1394,8 @@ export default function App() {
               }}
               onTasksChanged={() => void loadProjectData()}
             />
+          ) : active === "Команда проекта" ? (
+            <TeamScreen onChanged={() => void loadProjectData()} />
           ) : active === "Задачи" ? (
             openTask ? (
               <TaskDetail

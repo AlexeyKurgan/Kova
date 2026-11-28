@@ -47,11 +47,23 @@ def _version(value: str) -> tuple[int, ...]:
     return tuple(parts or [0])
 
 
+def _pick_release(releases: list[object]) -> dict[str, object] | None:
+    rows = [
+        row
+        for row in releases
+        if isinstance(row, dict) and not row.get("draft") and not row.get("prerelease")
+    ]
+    if not rows:
+        return None
+    rows.sort(key=lambda row: _version(str(row.get("tag_name") or "")), reverse=True)
+    return rows[0]
+
+
 @router.get("/check", response_model=UpdateInfo)
 def check_updates() -> UpdateInfo:
     current = os.environ.get("KOVA_VERSION", "0.0.0")
     repo = os.environ.get("KOVA_UPDATE_REPO", "AlexeyKurgan/Kova")
-    url = f"https://api.github.com/repos/{repo}/releases/latest"
+    url = f"https://api.github.com/repos/{repo}/releases?per_page=20"
     request = urllib.request.Request(
         url,
         headers={
@@ -75,6 +87,10 @@ def check_updates() -> UpdateInfo:
         return UpdateInfo(current=current, error=f"Нет связи с GitHub: {exc}")
     except ValueError:
         return UpdateInfo(current=current, error="Некорректный ответ GitHub")
+
+    payload = _pick_release(payload if isinstance(payload, list) else [payload])
+    if payload is None:
+        return UpdateInfo(current=current, error="Релизов пока нет — канал обновлений пуст")
 
     latest = str(payload.get("tag_name") or "").strip()
     available = bool(latest) and _version(latest) > _version(current)

@@ -28,6 +28,7 @@ from .routes import (
     style,
     summary,
     tasks,
+    team,
     updates,
 )
 
@@ -80,6 +81,7 @@ def create_app() -> FastAPI:
     app.include_router(projects.router)
     app.include_router(packages.router)
     app.include_router(tasks.router)
+    app.include_router(team.router)
     app.include_router(assets.router)
     app.include_router(blender.router)
     app.include_router(review.router)

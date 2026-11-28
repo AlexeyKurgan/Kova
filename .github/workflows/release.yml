@@ -11,6 +11,7 @@ permissions:
 jobs:
   build:
     runs-on: windows-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
 
@@ -46,26 +47,51 @@ jobs:
         run: ./scripts/release.ps1 -SkipBuild -Version "${{ github.ref_name }}"
 
       - name: Install smoke test
+        timeout-minutes: 8
         shell: pwsh
         run: |
+          $ErrorActionPreference = "Stop"
+          function Stop-Kova {
+            Get-Process -ErrorAction SilentlyContinue |
+              Where-Object { $_.ProcessName -match '^kova' } |
+              Stop-Process -Force -ErrorAction SilentlyContinue
+          }
           $msi = Get-ChildItem "apps/desktop/src-tauri/target/release/bundle/msi/*.msi" | Select-Object -First 1
           if (-not $msi) { throw "MSI not found" }
-          $install = Start-Process msiexec.exe -ArgumentList @("/i", "`"$($msi.FullName)`"", "/qn", "/norestart") -Wait -PassThru
+          Write-Host "Installing $($msi.Name)"
+          $install = Start-Process msiexec.exe -ArgumentList @("/i", "`"$($msi.FullName)`"", "/qn", "/norestart") -PassThru
+          if (-not $install.WaitForExit(240000)) {
+            $install.Kill()
+            throw "MSI install timed out"
+          }
           if ($install.ExitCode -ne 0) { throw "MSI install failed: $($install.ExitCode)" }
           $exe = Get-ChildItem "$env:ProgramFiles\Kova Hub" -Filter "*.exe" -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
           if (-not $exe) { throw "Installed executable not found" }
-          Start-Process -FilePath $exe.FullName
+          Write-Host "Starting $($exe.FullName)"
+          $app = Start-Process -FilePath $exe.FullName -PassThru
           $healthy = $false
-          for ($i = 0; $i -lt 25; $i++) {
-            Start-Sleep -Seconds 2
-            try {
-              $health = Invoke-RestMethod "http://127.0.0.1:8765/health" -TimeoutSec 2
-              if ($health.status -eq "ok") { $healthy = $true; break }
-            } catch { }
+          try {
+            for ($i = 0; $i -lt 20; $i++) {
+              Start-Sleep -Seconds 2
+              try {
+                $health = Invoke-RestMethod "http://127.0.0.1:8765/health" -TimeoutSec 2
+                if ($health.status -eq "ok") { $healthy = $true; break }
+              } catch { }
+            }
+          } finally {
+            if ($app -and -not $app.HasExited) {
+              Stop-Process -Id $app.Id -Force -ErrorAction SilentlyContinue
+            }
+            Stop-Kova
           }
           if (-not $healthy) { throw "Installed app did not start Core" }
-          Stop-Process -Name kova-hub,kova-core -Force -ErrorAction SilentlyContinue
-          Start-Process msiexec.exe -ArgumentList @("/x", "`"$($msi.FullName)`"", "/qn", "/norestart") -Wait
+          Start-Sleep -Seconds 2
+          Write-Host "Uninstalling"
+          $remove = Start-Process msiexec.exe -ArgumentList @("/x", "`"$($msi.FullName)`"", "/qn", "/norestart") -PassThru
+          if (-not $remove.WaitForExit(240000)) {
+            $remove.Kill()
+            throw "MSI uninstall timed out"
+          }
           Write-Host "Install smoke test passed"
 
       - uses: actions/upload-artifact@v4

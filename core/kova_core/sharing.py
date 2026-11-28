@@ -71,7 +71,7 @@ def _skip_dir(relative: PurePosixPath) -> bool:
         return True
     if any(part.endswith(".backup") for part in parts):
         return True
-    if len(parts) >= 2 and parts[0] == ".hub" and parts[1] in {".local", ".trash"}:
+    if len(parts) >= 2 and parts[0] == ".hub" and parts[1] in {".local", ".trash", "team"}:
         return True
     return False
 
@@ -113,7 +113,11 @@ def _iter_project_files(root: Path, target: Path | None = None):
             yield path, relative
 
 
-def export_project(project_root: Path, target_file: Path) -> dict[str, Any]:
+def export_project(
+    project_root: Path,
+    target_file: Path,
+    extra: dict[str, Any] | None = None,
+) -> dict[str, Any]:
     root = project_root.expanduser().resolve()
     if not root.is_dir():
         raise ShareError(tr("папка проекта не найдена", "project folder not found"))
@@ -145,6 +149,8 @@ def export_project(project_root: Path, target_file: Path) -> dict[str, Any]:
         "files": len(files),
         "bytes": total,
     }
+    if extra:
+        manifest.update(extra)
 
     fd, temporary_name = tempfile.mkstemp(
         prefix=".kova-export-",

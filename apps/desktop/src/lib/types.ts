@@ -3,6 +3,7 @@ export const SECTIONS = [
   "Проекты",
   "Задачи",
   "Чат",
+  "Команда проекта",
   "Review",
   "Ассеты",
   "Скиллы",
@@ -1106,4 +1107,98 @@ export type CheckResult = {
   message: string;
   details: Record<string, unknown>;
   created_at: string;
+};
+
+export type TeamSpaceKind = "folder" | "git";
+
+export type TeamSpace = {
+  id: string;
+  kind: TeamSpaceKind;
+  name: string;
+  location: string;
+  branch: string;
+  connected_at: string;
+  has_token: boolean;
+};
+
+export type TeamIdentity = {
+  device_id: string;
+  member: string;
+};
+
+export type TeamStatus = {
+  connected: boolean;
+  space: TeamSpace | null;
+  identity: TeamIdentity;
+  project_uid: string;
+  head?: string;
+  applied?: number;
+  base_files?: number;
+  last_apply_at?: string;
+  can_rollback?: boolean;
+};
+
+export type TeamBundle = {
+  id: string;
+  project_uid: string;
+  project: string;
+  engine: string;
+  author: string;
+  device: string;
+  message: string;
+  created_at: string;
+  sha256: string;
+  bytes: number;
+  files: number;
+  base: string;
+};
+
+export type TeamFileState = {
+  sha256: string;
+  size: number;
+} | null;
+
+export type TeamChange = {
+  path: string;
+  status: "added" | "modified" | "deleted";
+  conflict: boolean;
+  local: TeamFileState;
+  remote: TeamFileState;
+  size: number;
+};
+
+export type TeamPreview = {
+  bundle: TeamBundle;
+  changes: TeamChange[];
+  stats: {
+    added: number;
+    modified: number;
+    deleted: number;
+    conflicts: number;
+  };
+  can_apply: boolean;
+  base_bundle: string;
+};
+
+export type TeamApplyResult = {
+  ok: boolean;
+  bundle: TeamBundle;
+  written: number;
+  deleted: number;
+  conflicts: number;
+  space: TeamStatus;
+};
+
+export type TeamHistoryRow = {
+  id: string;
+  action: "publish" | "apply" | string;
+  at: string;
+  author: string;
+  message: string;
+  files: number;
+};
+
+export type TeamHistory = {
+  space: TeamStatus;
+  history: TeamHistoryRow[];
 };

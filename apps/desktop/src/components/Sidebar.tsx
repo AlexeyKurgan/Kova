@@ -18,6 +18,7 @@ import {
   Sparkles,
   Star,
   Stethoscope,
+  Users,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { engineBrand } from "../lib/brands";
@@ -47,6 +48,7 @@ const GROUPS: NavGroup[] = [
       { label: "Проекты", icon: FolderKanban },
       { label: "Задачи", icon: ClipboardList },
       { label: "Чат", icon: MessageSquare },
+      { label: "Команда проекта", icon: Users },
     ],
   },
   {

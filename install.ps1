@@ -7,7 +7,26 @@ $work = Join-Path $env:TEMP "kova-install"
 New-Item -ItemType Directory -Force -Path $work | Out-Null
 
 Write-Host "Kova Hub: fetching latest release..."
-$release = Invoke-RestMethod "https://api.github.com/repos/$repo/releases/latest" -Headers $headers
+$releases = Invoke-RestMethod "https://api.github.com/repos/$repo/releases?per_page=20" -Headers $headers
+function Convert-TagToVersion([string]$tag) {
+  $raw = $tag -replace '^[vV]', ''
+  $parts = $raw.Split('.')
+  while ($parts.Count -lt 3) { $parts += '0' }
+  $numbers = @()
+  foreach ($part in $parts[0..2]) {
+    $digits = ($part -replace '[^0-9]', '')
+    if (-not $digits) { $digits = '0' }
+    $numbers += [int]$digits
+  }
+  return [version]::new($numbers[0], $numbers[1], $numbers[2])
+}
+$release = $releases |
+  Where-Object { -not $_.draft -and -not $_.prerelease -and $_.assets } |
+  Sort-Object { Convert-TagToVersion $_.tag_name } -Descending |
+  Select-Object -First 1
+if (-not $release) {
+  throw "No published release found"
+}
 $installerAsset = $release.assets |
   Where-Object { $_.name -like "*.exe" -and $_.name -notlike "*.msi" } |
   Select-Object -First 1

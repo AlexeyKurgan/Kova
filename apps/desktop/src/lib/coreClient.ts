@@ -46,6 +46,13 @@ import type {
   StyleBible,
   StyleViolation,
   Task,
+  TeamApplyResult,
+  TeamBundle,
+  TeamHistory,
+  TeamIdentity,
+  TeamPreview,
+  TeamSpaceKind,
+  TeamStatus,
   UpdateTaskInput,
   ValidationResult,
   ValidationSuggestion,
@@ -1303,4 +1310,86 @@ export async function duplicateAsset(assetId: string): Promise<AssetPassport> {
   return request<AssetPassport>(`/assets/${encodeURIComponent(assetId)}/duplicate`, {
     method: "POST",
   });
+}
+
+export async function getTeam(): Promise<TeamStatus> {
+  return request<TeamStatus>("/team");
+}
+
+export async function connectTeam(input: {
+  kind: TeamSpaceKind;
+  location: string;
+  name?: string;
+  branch?: string;
+  token?: string;
+  member?: string;
+}): Promise<TeamStatus> {
+  return request<TeamStatus>("/team/connect", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export async function leaveTeam(): Promise<{ ok: boolean; space: null }> {
+  return request<{ ok: boolean; space: null }>("/team/leave", { method: "POST" });
+}
+
+export async function setTeamMember(member: string): Promise<TeamStatus> {
+  const response = await request<{ identity: TeamIdentity; space: TeamStatus }>(
+    "/team/identity",
+    { method: "POST", body: JSON.stringify({ member }) },
+  );
+  return response.space;
+}
+
+export async function publishTeam(message: string): Promise<{
+  bundle: TeamBundle;
+  space: TeamStatus;
+}> {
+  return request<{ bundle: TeamBundle; space: TeamStatus }>("/team/publish", {
+    method: "POST",
+    body: JSON.stringify({ message }),
+  });
+}
+
+export async function listTeamIncoming(): Promise<{
+  space: TeamStatus;
+  bundles: TeamBundle[];
+}> {
+  return request<{ space: TeamStatus; bundles: TeamBundle[] }>("/team/incoming");
+}
+
+export async function previewTeamBundle(bundleId: string): Promise<TeamPreview> {
+  return request<TeamPreview>(`/team/incoming/${encodeURIComponent(bundleId)}`);
+}
+
+export async function applyTeamBundle(
+  bundleId: string,
+  resolutions: Record<string, "local" | "remote"> = {},
+  force = false,
+): Promise<TeamApplyResult> {
+  return request<TeamApplyResult>(
+    `/team/incoming/${encodeURIComponent(bundleId)}/apply`,
+    { method: "POST", body: JSON.stringify({ resolutions, force }) },
+  );
+}
+
+export async function rollbackTeam(): Promise<{
+  ok: boolean;
+  bundle_id: string;
+  restored: number;
+  removed: number;
+  space: TeamStatus;
+}> {
+  return request<{
+    ok: boolean;
+    bundle_id: string;
+    restored: number;
+    removed: number;
+    space: TeamStatus;
+  }>("/team/rollback", { method: "POST" });
+}
+
+export async function getTeamHistory(): Promise<TeamHistory> {
+  return request<TeamHistory>("/team/history");
 }

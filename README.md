@@ -135,6 +135,22 @@ For free browser AIs:
 - History and ledger paths may still contain local paths — review the archive before
   sharing it outside your team.
 
+### Team spaces
+
+- Work on one project from several machines without a Kova server.
+- Two transports: a shared/synced folder (OneDrive, Dropbox, iCloud Drive,
+  Nextcloud, NAS) or a Git remote on a dedicated branch.
+- Publishing creates an immutable `.kovaproj` bundle with author, message and
+  SHA256. The same exclusions and 20,000 files / 2 GB limits apply.
+- Incoming work is a three-way file diff against the last synced state. Conflicts
+  are never overwritten silently: keep your version or take the team version per
+  file.
+- Every apply is backed up, recorded in the ledger, and can be rolled back. The
+  append-only ledger is merged instead of conflicting.
+- Git tokens are stored in the OS keyring (DPAPI/Keychain/Secret Service) and are
+  never written to `.git/config`.
+- This is bundle-level collaboration with explicit review, not live co-editing.
+
 ### Packages and engines
 
 - Package catalog with permissions, tools, checks and engine coverage.
@@ -245,13 +261,13 @@ explicit click, after a snapshot.
 | --- | --- |
 | `<project>/` | Source files and imported assets |
 | `<project>/.hub/` | Project metadata, tasks, assets, checks, review, snapshots, ledger, previews, packages, style |
-| `%APPDATA%\KovaHub\projects.json` | Project registry |
-| `%APPDATA%\KovaHub\providers.json` | AI provider configuration |
-| `%APPDATA%\KovaHub\secrets.json` | API keys encrypted with DPAPI |
-| `%APPDATA%\KovaHub\core-token.json` | Local owner token |
-| `%APPDATA%\KovaHub\worktrees\` | Temporary git worktrees |
-| `%LOCALAPPDATA%\KovaHub\editor\` | code-server and extensions |
-| `%LOCALAPPDATA%\KovaHub\blender\bridge.json` | Blender bridge discovery |
+| `<project>/.hub/team-project.json` | Stable project identity shared through team bundles |
+| `<project>/.hub/team/` | Device-local team space config, sync state, incoming cache and backups |
+| `%APPDATA%\KovaHub\` / `~/Library/Application Support/KovaHub/` / `$XDG_DATA_HOME/KovaHub/` | Registry, providers, identity, secrets, owner token |
+| `<app data>/secrets.json` | Secrets (DPAPI on Windows; Keychain/Secret Service on macOS/Linux; 0600 file fallback) |
+| `<app data>/core-token.json` | Local owner token |
+| `<app data>/worktrees/` | Temporary git worktrees |
+| `%LOCALAPPDATA%\KovaHub\` / `~/Library/Caches/KovaHub/` / `$XDG_CACHE_HOME/KovaHub/` | Editor, Blender bridge, team Git mirrors and caches |
 
 Back up `.hub/` and `assets/` together. `.hub/` is intentionally readable JSON/Markdown.
 

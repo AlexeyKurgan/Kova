@@ -1,7 +1,7 @@
 {
   "name": "kova-hub",
   "private": true,
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "Local-first desktop workspace for AI-assisted game development",
   "workspaces": [
     "apps/*"
